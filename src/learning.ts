@@ -21,6 +21,17 @@ export type LearningSession = {
   rating: Exclude<LearningRating, 'absent'>
   lessonKey?: string
   updatedAt: string
+  planId?: string
+  scheduledKey?: string
+}
+export type LearningPlanTask = {
+  id: string
+  moduleId: string
+  date: string
+  title: string
+  duration: number
+  kind: 'review' | 'exam'
+  lessonKey?: string
 }
 export type LearningLesson = {
   key: string
@@ -74,6 +85,27 @@ export function pastLessons(data:AppData, semester:Semester|undefined, now=new D
       if(!result.has(key)) result.set(key,{
         key,moduleId:o.moduleId,contentId,
         label:o.contentLabel||o.category,date:occ.date,from:occ.from,to:occ.to
+      })
+    }
+  }
+  return [...result.values()].sort((a,b)=>b.date.localeCompare(a.date)||b.from.localeCompare(a.from))
+}
+/** Completed calendar entries for self-study. Same-content alternatives collapse to one feedback prompt. */
+export function pastFreeStudy(data:AppData,semester:Semester|undefined,now=new Date()):LearningLesson[]{
+  if(!semester)return []
+  const stop=todayFrom(now)
+  const limit=[stop,semester.end].sort()[0]
+  if(limit<semester.start)return []
+  const result=new Map<string,LearningLesson>()
+  for(let date=semester.start,i=0;date<=limit&&i<240;date=addDays(date,1),i++){
+    for(const occ of occurrencesOn(data.offerings,date)){
+      const o=occ.offering
+      if(o.semesterId!==semester.id||!o.moduleId||o.category!=='Freies Lernen')continue
+      if(date===stop&&minutes(occ.to)>now.getHours()*60+now.getMinutes())continue
+      const contentId=o.contentId||o.familyId||o.id
+      const key='free:'+o.moduleId+':'+contentId+':'+weekStart(occ.origin)
+      if(!result.has(key))result.set(key,{
+        key,moduleId:o.moduleId,contentId,label:o.contentLabel||'Freies Lernen',date:occ.date,from:occ.from,to:occ.to
       })
     }
   }
