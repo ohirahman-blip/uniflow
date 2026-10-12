@@ -89,3 +89,35 @@
   .learning-modal { padding:20px; }
   .learning-module-card { padding:17px; }
 }
+
+
+/* One-tap plan controls, scoped to the new dashboard. */
+.learning-plan { background:#1b1b1e; border-radius:15px; padding:8px 16px; }
+.learning-plan-summary { font-size:11px; color:#aaabb2; padding:13px 1px 7px; }
+.learning-plan-item { display:flex; align-items:center; gap:11px; padding:13px 0; border-bottom:1px solid #303035; }
+.learning-plan-item:last-child { border-bottom:0; }
+.learning-plan-mark { display:grid; place-items:center; flex-shrink:0; width:33px; height:33px; background:#322c32; border-radius:9px; color:#ecc5d3; }
+.learning-plan-item.done .learning-plan-mark { background:#28392f; color:#93cfaa; }
+.learning-plan-body { display:flex; flex-direction:column; gap:4px; min-width:0; flex:1; }
+.learning-plan-body strong { color:#e9e7ea; font-size:13px; font-weight:650; }
+.learning-plan-body small { color:#93939d; font-size:11px; }
+.learning-plan-item.done .learning-plan-body strong { color:#9ca69e; }
+.learning-plan-done { font-size:11px; font-weight:650; border:0; background:#ece7eb; color:#211b20; border-radius:9px; padding:10px 11px; cursor:pointer; white-space:nowrap; }
+.learning-plan-remove { border:0; background:transparent; color:#85838c; padding:6px; cursor:pointer; display:grid; place-items:center; }
+.learning-plan-complete { color:#89cda7; font-size:11px; font-weight:700; }
+.learning-plan-suggestions { padding:12px 0 5px; }
+.learning-plan-caption { display:flex; align-items:center; gap:7px; color:#c7a6b7; font-size:11px; font-weight:650; margin-bottom:8px; }
+.learning-plan-suggestion { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0; }
+.learning-plan-suggestion+ .learning-plan-suggestion { border-top:1px solid #29292e; }
+.learning-plan-suggestion>div { display:flex; flex-direction:column; gap:5px; min-width:0; }
+.learning-plan-suggestion strong { font-size:12px; font-weight:600; color:#e5e2e8; }
+.learning-plan-suggestion small { color:#a4a2ac; font-size:11px; }
+.learning-plan-suggestion button { display:flex; align-items:center; gap:5px; border:1px solid #494048; border-radius:9px; padding:9px 11px; background:#292329; color:#ebc4d2; font-size:11px; font-weight:650; cursor:pointer; white-space:nowrap; }
+.learning-plan-empty { color:#a4a3aa; font-size:12px; padding:17px 3px; margin:0; }
+@media(max-width:400px) {
+  .learning-plan { padding:6px 12px; }
+  .learning-plan-item { gap:7px; }
+  .learning-plan-done { padding:9px 7px; font-size:10px; }
+  .learning-plan-remove { padding:4px; }
+  .learning-plan-suggestion button { padding:8px 7px; }
+}
