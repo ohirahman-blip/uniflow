@@ -136,3 +136,11 @@ html[data-theme='light'] .learn-hero-subject strong { color:color-mix(in srgb,va
   .learn-hero-subject{padding-left:20px;}
   .learn-section{margin-top:25px;}
 }
+
+
+/* Module colors remain in text and soft card surfaces, without left-hand stripes. */
+.learn-hero-subject::before { display:none; content:none; }
+.learn-hero-subject { padding-left:20px; }
+.learn-recommendation { border-left:0; padding-left:20px; }
+.learn-checkin { border-left:0; }
+@media(max-width:740px){ .learn-hero-subject {padding-left:16px;} }
