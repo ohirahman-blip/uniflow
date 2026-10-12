@@ -3,27 +3,27 @@
 .uf-week-strip {
   position:sticky;
   top:0;
-  z-index:8;
+  z-index:20;
   isolation:isolate;
   width:100%;
-  padding:10px 0 12px;
+  padding:7px 0 8px;
   background:#080808;
   border-bottom:1px solid #222225;
-  box-shadow:0 5px 14px #080808b0;
+  box-shadow:0 2px 8px #080808cc;
   -webkit-tap-highlight-color:transparent;
 }
 .uf-week-strip-labels {
   display:grid;
   grid-template-columns:repeat(7,minmax(0,1fr));
   align-items:center;
-  margin:0 0 11px;
+  margin:0 0 5px;
 }
 .uf-week-strip-labels span {
   color:#f2f2f3;
   text-align:center;
-  font-size:12px;
-  font-weight:620;
-  line-height:18px;
+  font-size:11px;
+  font-weight:560;
+  line-height:16px;
   letter-spacing:.1px;
 }
 .uf-week-strip-labels .uf-weekend { color:#7a7a7f; }
@@ -31,15 +31,16 @@
   position:relative;
   display:grid;
   grid-template-columns:repeat(7,minmax(0,1fr));
-  min-height:71px;
+  min-height:60px;
   isolation:isolate;
 }
 .uf-week-range {
   position:absolute;
-  top:3px;
-  height:54px;
+  top:2px;
+  height:44px;
+  border:1px solid rgba(255,255,255,.065);
   border-radius:999px;
-  background:#3e3d42;
+  background:#29292d;
   transition:left 470ms cubic-bezier(.2,1.2,.34,1),width 400ms cubic-bezier(.2,1,.3,1);
   pointer-events:none;
   z-index:0;
@@ -50,8 +51,8 @@
   align-items:center;
   justify-content:center;
   z-index:1;
-  top:0;
-  height:60px;
+  top:1px;
+  height:46px;
   width:calc(100% / 7);
   pointer-events:none;
   transition:left 470ms cubic-bezier(.2,1.18,.32,1);
@@ -59,9 +60,9 @@
 }
 .uf-week-liquid-core {
   display:block;
-  height:56px;
-  width:min(56px,100%);
-  background:#f7f7f7;
+  height:42px;
+  width:min(42px,calc(100% - 6px));
+  background:#f1f1f2;
   border-radius:51% 49% 49% 51% / 50% 50% 50% 50%;
   box-shadow:0 1px 0 rgba(255,255,255,.18);
   transform-origin:center;
@@ -89,10 +90,10 @@
   border-radius:999px;
   background:transparent;
   outline:none;
-  margin:2px 0 0;
+  margin:0;
   padding:0;
   width:100%;
-  height:56px;
+  height:46px;
   color:#f1f1f2;
   font-size:18px;
   font-weight:400;
@@ -118,13 +119,13 @@
 .uf-week-strip-assessments {
   display:flex;
   position:absolute;
-  top:59px;
+  top:47px;
   left:0;
   right:0;
   align-items:center;
   justify-content:center;
   gap:2px;
-  height:14px;
+  height:12px;
 }
 .uf-week-assessment {
   width:15px;
@@ -178,7 +179,7 @@ html[data-theme='light'] .uf-week-strip { background:#f7f7f6; border-bottom-colo
 html[data-theme='light'] .uf-week-strip-labels span {color:#272729;}
 html[data-theme='light'] .uf-week-strip-labels .uf-weekend {color:#959599;}
 html[data-theme='light'] .uf-week-strip-button {color:#303034;}
-html[data-theme='light'] .uf-week-range{background:#cac9ce;}
+html[data-theme='light'] .uf-week-range{background:#e0dfe2;border-color:rgba(0,0,0,.045);}
 html[data-theme='light'] .uf-week-liquid-core {background:#202023;}
 html[data-theme='light'] .uf-week-strip-button.uf-week-first {color:white;}
 html[data-theme='light'] .uf-week-strip-button.uf-week-second {color:#28282b;}
@@ -189,16 +190,26 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
 html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > .calendar-today:hover,
 html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria-label="Vorheriger Zeitraum"]:hover,
 html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria-label="Nächster Zeitraum"]:hover{background:transparent;color:#38383a;}
+/* Match the horizontally scrolling calendar's full-bleed width on phones.
+   Its opaque sticky surface masks course cards underneath right up to the edge. */
+@media(max-width:720px){
+  .uf-week-strip{
+    margin-inline:-10px;
+    width:calc(100% + 20px);
+    padding-inline:10px;
+    background:#080808;
+  }
+  html[data-theme='light'] .uf-week-strip{background:#f7f7f6;}
+}
 @media(max-width:420px){
-  .uf-week-strip{padding-top:9px;padding-bottom:8px;}
-  .uf-week-strip-labels{margin-bottom:8px;}
-  .uf-week-strip-button{font-size:17px;}
-  .uf-week-range{height:50px;}
-  .uf-week-liquid{height:56px;}
-  .uf-week-liquid-core{height:52px;}
-  .uf-week-strip-button{height:52px;}
-  .uf-week-strip-assessments{top:54px;}
-  .uf-week-strip-days{min-height:68px;}
+  .uf-week-strip{padding-top:6px;padding-bottom:6px;}
+  .uf-week-strip-labels{margin-bottom:4px;}
+  .uf-week-strip-button{font-size:17px;height:41px;}
+  .uf-week-range{top:2px;height:39px;}
+  .uf-week-liquid{top:1px;height:41px;}
+  .uf-week-liquid-core{height:38px;width:min(38px,calc(100% - 6px));}
+  .uf-week-strip-assessments{top:42px;}
+  .uf-week-strip-days{min-height:55px;}
 }
 @media(prefers-reduced-motion:reduce){
   .uf-week-range,.uf-week-liquid,.uf-week-strip-button{transition:none!important;}
