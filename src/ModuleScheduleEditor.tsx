@@ -6,6 +6,7 @@ import {
   weekday, weekStart,
   type Offering, type Repeat, type Semester, type StudyModule, type Occurrence
 } from './model'
+import type { Journey } from './learning'
 import './module-schedule.css'
 
 const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
@@ -75,7 +76,7 @@ export function parseModuleQuickInput(raw:string, expectedModule:string):QuickPr
   return {topics,errors}
 }
 type Props = {
-  module:StudyModule;semester?:Semester;offerings:Offering[];
+  module:StudyModule;semester?:Semester;offerings:Offering[];journey?:Journey;
   onBack:()=>void;onUpdateModule:(next:StudyModule)=>void;onDeleteModule:()=>void;
   onChangeOfferings:(next:Offering[])=>void;
   onOpenOccurrence:(occ:Occurrence)=>void;
@@ -83,7 +84,7 @@ type Props = {
   cloudStatus:'loading'|'saving'|'synced'|'error';cloudError:string;onRetrySync:()=>void;
 }
 export default function ModuleScheduleEditor({
-  module,semester,offerings,onBack,onUpdateModule,onDeleteModule,
+  module,semester,offerings,journey,onBack,onUpdateModule,onDeleteModule,
   onChangeOfferings,onOpenOccurrence,onClearException,cloudStatus,cloudError,onRetrySync
 }:Props) {
   const [quickText,setQuickText]=useState('')
@@ -222,6 +223,11 @@ export default function ModuleScheduleEditor({
       <span className="module-emoji" style={{background:module.color}}>{module.emoji||<BookOpen size={20}/>}</span>
       <div><span className="overline">MODUL</span><h1>{module.name}</h1><p>{module.credits} LP · {module.shortName}</p></div>
     </div>
+    {journey&&journey.total>0&&<div className="module-fast-journey">
+      <div className="module-fast-journey-head"><strong>{journey.status}</strong><span>{journey.rated}/{journey.total} bewertet</span></div>
+      <p>{journey.message}</p>
+      <div className="module-fast-journey-stats"><span>Verständnis <b>{journey.understanding===null?'—':journey.understanding+' %'}</b></span><span>Wiederholung <b>{journey.repetition} %</b></span><span>Klausurtraining <b>{journey.training} %</b></span></div>
+    </div>}
     <div className="module-fast-state" role="status">
       {cloudStatus==='error'?<><span>Cloud-Speicherung fehlgeschlagen · Eingaben bleiben lokal erhalten.</span><button onClick={onRetrySync}>Erneut synchronisieren</button><small>{cloudError}</small></>:
         <span>{cloudStatus==='saving'?'Synchronisiere …':cloudStatus==='synced'?'Automatisch gespeichert':'Speichere lokal …'}</span>}
