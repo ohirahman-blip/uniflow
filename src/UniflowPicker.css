@@ -63,3 +63,29 @@ html[data-theme='light'] .uf-picker-dialog { background:#fafafa;color:#202024;bo
 html[data-theme='light'] .uf-picker-close, html[data-theme='light'] .uf-picker-option, html[data-theme='light'] .uf-picker-scroll button:not(.selected), html[data-theme='light'] .uf-picker-preset-grid button:not(.selected), html[data-theme='light'] .uf-picker-calendar button:not(.selected), html[data-theme='light'] .uf-picker-calendar-nav button, html[data-theme='light'] .uf-picker-duration-row button { background:#e9e9ed;color:#242427; }
 html[data-theme='light'] .uf-picker-option.selected { background:#f5e6ed; }
 html[data-theme='light'] .uf-picker-duration-row input { background:#e9e9ed; color:#222;border-color:#ccc; }
+
+
+/* Shared range visual language if a study slider is added later.
+   The data behavior remains the browser's accessible range input. */
+input[type="range"].uf-slider {
+  appearance:none; -webkit-appearance:none;
+  width:100%; height:24px; margin:0; background:transparent;
+  cursor:pointer; outline:0; accent-color:var(--module-accent,#d7b5c3);
+}
+input[type="range"].uf-slider::-webkit-slider-runnable-track {
+  height:6px; border-radius:999px; background:#39383d;
+}
+input[type="range"].uf-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; appearance:none;
+  width:20px; height:20px; margin-top:-7px; border:3px solid #1b1b1d;
+  border-radius:50%; background:var(--module-accent,#e7c1cf);
+  box-shadow:0 0 0 1px #6b606a;
+}
+input[type="range"].uf-slider::-moz-range-track {
+  height:6px; border-radius:999px; background:#39383d;
+}
+input[type="range"].uf-slider::-moz-range-thumb {
+  width:14px; height:14px; border:3px solid #1b1b1d;
+  border-radius:50%; background:var(--module-accent,#e7c1cf);
+}
+input[type="range"].uf-slider:focus-visible::-webkit-slider-thumb {box-shadow:0 0 0 3px #9f8493;}
