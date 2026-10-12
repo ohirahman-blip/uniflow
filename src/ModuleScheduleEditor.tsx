@@ -245,7 +245,7 @@ export default function ModuleScheduleEditor({
       return <section className="module-fast-topic" key={group.id}>
         <div className="module-fast-topic-head">
           <div className="module-fast-topic-inputs">
-            <label>Inhalt<input aria-label={'Inhalt Veranstaltung '+(index+1)} value={first.contentLabel||first.category} onChange={e=>renameTopic(group.offerings,e.target.value)}/></label>
+            <label>Inhalt<input aria-label={'Inhalt Veranstaltung '+(index+1)} value={first.contentLabel??first.category} onChange={e=>renameTopic(group.offerings,e.target.value)}/></label>
             <label>Art<select value={first.category} onChange={e=>recategorize(group.offerings,e.target.value)}>
               {!['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].includes(first.category)&&<option value={first.category}>{first.category}</option>}
               {['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].map(c=><option key={c}>{c}</option>)}
@@ -280,7 +280,7 @@ export default function ModuleScheduleEditor({
                 <div className="module-fast-fields">
                   <label>Lehrperson<input value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></label>
                   <label>Online-Link<input type="url" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></label>
-                  <label>Wiederholung<select value={o.recurrence} onChange={e=>update(o.id,{recurrence:e.target.value as Repeat,endDate:e.target.value==='once'?o.date:o.endDate<o.date?semester.lectureEnd:o.endDate})}><option value="weekly">Wöchentlich</option><option value="biweekly">Alle 2 Wochen</option><option value="once">Einmalig</option></select></label>
+                  <label>Wiederholung<select value={o.recurrence} onChange={e=>update(o.id,{recurrence:e.target.value as Repeat,endDate:e.target.value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}><option value="weekly">Wöchentlich</option><option value="biweekly">Alle 2 Wochen</option><option value="once">Einmalig</option></select></label>
                   {o.recurrence==='once'
                     ?<label>Datum<input type="date" min={semester.start} max={semester.end} value={o.date} onChange={e=>{if(e.target.value>=semester.start&&e.target.value<=semester.end)update(o.id,{date:e.target.value,endDate:e.target.value})}}/></label>
                     :<label>Bis<input type="date" min={o.date} max={semester.end} value={o.endDate} onChange={e=>{if(e.target.value>=o.date)update(o.id,{endDate:e.target.value})}}/></label>}
