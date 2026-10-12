@@ -1,3 +1,4 @@
+import type { LearningCheckin, LearningSession } from './learning'
 export type Repeat = 'once' | 'weekly' | 'biweekly'
 export type CalendarView = 'day' | 'two' | 'week'
 export type ModuleStatus = 'open' | 'planned' | 'current' | 'passed' | 'failed' | 'recognized'
@@ -18,13 +19,13 @@ export type Assessment = {
   completed?: boolean
 }
 export type Alternative = { recurrence?: Repeat; endDate?: string; id: string; parentOfferingId: string; parentOrigin?: string; kind: 'slot' | 'group'; moduleId: string; category: string; name: string; date: string; from: string; to: string; room: string }
-export type AppData = { alternatives?: Alternative[]; weekEndDay?: 4 | 5 | 6; theme?: 'dark' | 'light'; version: 2; profile: string; degrees: Degree[]; activeDegreeId: string; semesters: Semester[]; activeSemesterId: string; modules: StudyModule[]; offerings: Offering[]; assessments: Assessment[]; firstHour: number; lastHour: number; lastUpdate: number }
+export type AppData = { alternatives?: Alternative[]; weekEndDay?: 4 | 5 | 6; theme?: 'dark' | 'light'; version: 2; profile: string; degrees: Degree[]; activeDegreeId: string; semesters: Semester[]; activeSemesterId: string; modules: StudyModule[]; offerings: Offering[]; assessments: Assessment[]; learningCheckins?: LearningCheckin[]; learningSessions?: LearningSession[]; firstHour: number; lastHour: number; lastUpdate: number }
 export type Occurrence = { key: string; offering: Offering; origin: string; date: string; from: string; to: string; isOverride: boolean }
 export const STORE = 'uniflow-v2-local'
 export const LEGACY_STORE = 'uniflow-v1-local'
 export const moduleEmojis: string[] = []
 export const colors = ['#EC9A83', '#929DDC', '#7EBBAA', '#E5C47C', '#B5A0C9', '#7EB9D5', '#E6A7BB', '#D990BF']
-export const emptyData: AppData = { version: 2, profile: '', degrees: [], activeDegreeId: '', semesters: [], activeSemesterId: '', modules: [], offerings: [], assessments: [], alternatives: [], weekEndDay: 4, theme: 'dark', firstHour: 6, lastHour: 20, lastUpdate: 0 }
+export const emptyData: AppData = { version: 2, profile: '', degrees: [], activeDegreeId: '', semesters: [], activeSemesterId: '', modules: [], offerings: [], assessments: [], learningCheckins: [], learningSessions: [], alternatives: [], weekEndDay: 4, theme: 'dark', firstHour: 6, lastHour: 20, lastUpdate: 0 }
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
 export const dateString = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 export const fromDate = (iso: string) => new Date(`${iso}T12:00:00`)
