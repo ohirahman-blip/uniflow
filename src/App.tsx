@@ -770,8 +770,10 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ,e.currentTarget as HTMLElement)}} onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(occ)}} onKeyDown={e=>{if(e.key==='Enter')openFan(occ,e.currentTarget as HTMLElement)}}>
             <strong className="course-title">{isAssessment(occ.offering.category)?<span className="course-kind-icon">{/klausur|prüfung/i.test(occ.offering.category)?<GraduationCap size={compact?12:16}/>:<ClipboardList size={compact?12:16}/>}</span>:null}{module?.emoji?<span className="course-emoji">{module.emoji}</span>:null}{compact?module?.shortName||acronym(occ.offering.name):module?.name||occ.offering.name}</strong>
             {numberOfAlternatives>0&&<span className="stack-indicator" title={`${numberOfAlternatives} Alternativen`}><Layers2 size={12}/><span>{numberOfAlternatives}</span></span>}
-            <span className="course-category" title={occ.offering.category}>{occ.offering.category}</span>
-             {singleVisitLabel(occ)&&<span className="course-recurrence" title={singleVisitLabel(occ)==='Einmalig'?'Nur einmaliger Termin':'Einmalige Ausnahme'}>{singleVisitLabel(occ)}</span>}
+            <div className="course-meta">
+              <span className="course-category" title={occ.offering.category}>{occ.offering.category}</span>
+              {singleVisitLabel(occ)&&<span className="course-recurrence" title={singleVisitLabel(occ)==='Einmalig'?'Nur einmaliger Termin':'Einmalige Ausnahme'}>{singleVisitLabel(occ)}</span>}
+            </div>
             {(placeLabel(occ.offering)||occ.offering.organizer)&&<span className="course-place">{placeLabel(occ.offering)&&<span title={placeLabel(occ.offering)}>{placeLabel(occ.offering)}</span>}{occ.offering.organizer&&<span title={occ.offering.organizer}>{occ.offering.organizer}</span>}</span>}
             <small className="course-hours">{occ.from}–{occ.to}</small>
           </div>
