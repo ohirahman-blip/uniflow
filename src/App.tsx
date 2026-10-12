@@ -748,7 +748,10 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
       </div>
     </div>
     <div className={'uf-week-strip'+(mode==='week'?' uf-week-strip--week':'')} aria-label="Wochenauswahl" style={{'--uf-days':stripDates.length} as CSSProperties}>
-      <div className="uf-week-strip-month">{fromDate(anchor).toLocaleDateString('de-DE',{month:'long',year:'numeric'})}</div>
+      <div className="uf-week-strip-month" title={fromDate(anchor).toLocaleDateString('de-DE',{month:'long',year:'numeric'})} aria-label={fromDate(anchor).toLocaleDateString('de-DE',{month:'long',year:'numeric'})}>
+        <strong>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'}).split('.').join('')}</strong>
+        <span>{fromDate(anchor).toLocaleDateString('de-DE',{year:'2-digit'})}</span>
+      </div>
       <div className="uf-week-strip-labels" aria-hidden="true">
         {weekNames.slice(0,stripDates.length).map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
       </div>
