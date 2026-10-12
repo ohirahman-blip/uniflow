@@ -67,11 +67,11 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
     setStudyOpen(false)
     setLessonKey('')
   }
-  const beginStudy=(id?:string,key?:string)=>{
+  const beginStudy=(id?:string,key?:string,exam=false)=>{
     setModuleId(id||focus?.module.id||active[0]?.id||'')
     setLessonKey(key||'')
     setResult('understood')
-    setKind('review')
+    setKind(exam?'exam':'review')
     setDuration(45)
     setStudyOpen(true)
   }
@@ -122,6 +122,17 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
           focus.j.weakLessons.length?'Einige Inhalte benötigen noch eine Wiederholung.':'Halte dein Wissen mit kurzen Wiederholungen frisch.'}</p>
         <div className="learn-recommendation-footer"><span>{focus.j.daysUntilExam!==undefined?`Klausur in ${focus.j.daysUntilExam} Tagen`:focus.j.status}</span><button onClick={()=>beginStudy(focus.module.id,focus.j.weakLessons[0]?.key)}>Lernen erfassen <ArrowRight size={15}/></button></div>
       </div>:<p className="learn-muted">Füge ein aktuelles Modul hinzu, um Empfehlungen zu erhalten.</p>}
+      {rankedModules.length>0&&<div className="learn-suggestions">
+        {rankedModules.slice(0,3).map(({module,j},index)=>{
+          const target=j.weakLessons[0]
+          const examFocus=j.daysUntilExam!==undefined&&j.daysUntilExam<=7&&!target
+          return <div className="learn-suggestion" key={module.id}>
+            <span className="learn-suggestion-num">{String(index+1).padStart(2,'0')}</span>
+            <div><strong>{module.name}</strong><small>{target?'Wiederholen: '+target.label:examFocus?'Klausuraufgaben üben':'Wissen festigen'} · Vorschlag 45 Min.</small></div>
+            <button aria-label={'Lernen für '+module.name+' erfassen'} onClick={()=>beginStudy(module.id,target?.key,examFocus)}><Plus size={17}/></button>
+          </div>
+        })}
+      </div>}
       <div className="learn-today"><Clock3 size={17}/><span>Heute erfasste Lerneinheiten</span><strong>{completed}</strong></div>
     </section>
     <section className="learn-section">
