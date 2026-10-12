@@ -6,7 +6,7 @@ import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, f
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
 import LearningDashboard from './LearningDashboard'
-import { deriveLearningJourneys, type LearningCheckin, type LearningJourney, type LearningSession } from './learning'
+import { deriveLearningJourneys, type LearningCheckin, type LearningJourney, type LearningSession, type LearningPlanItem } from './learning'
 import './styles.css'
 
 type Page = 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
@@ -1020,8 +1020,10 @@ export default function App() {
   return <div className="app-root"><div className="app-desktop-side"><div className="brand-side">{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</div><nav>{([{ id: 'dashboard', title: 'Dashboard', icon: GraduationCap }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'modules', title: 'Module', icon: BookOpen }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => setPage(n.id)}><n.icon size={19} />{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
     <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => setPage('dashboard')}>{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
       {page === 'dashboard' && semester && <LearningDashboard data={data} semester={semester} modules={semesterModules}
-        onCheckin={(checkin:LearningCheckin)=>mutate(d=>({...d,learning:{checkins:[...(d.learning?.checkins||[]).filter(c=>c.key!==checkin.key),checkin],sessions:d.learning?.sessions||[]}}))}
-        onSession={(session:LearningSession)=>mutate(d=>({...d,learning:{checkins:d.learning?.checkins||[],sessions:[...(d.learning?.sessions||[]).filter(item=>item.id!==session.id),session]}}))}
+        onCheckin={(checkin:LearningCheckin)=>mutate(d=>({...d,learning:{checkins:[...(d.learning?.checkins||[]).filter(c=>c.key!==checkin.key),checkin],sessions:d.learning?.sessions||[],plans:d.learning?.plans||[]}}))}
+        onSession={(session:LearningSession)=>mutate(d=>({...d,learning:{checkins:d.learning?.checkins||[],sessions:[...(d.learning?.sessions||[]).filter(item=>item.id!==session.id),session],plans:d.learning?.plans||[]}}))}
+        onPlan={(plan:LearningPlanItem)=>mutate(d=>({...d,learning:{checkins:d.learning?.checkins||[],sessions:d.learning?.sessions||[],plans:[...(d.learning?.plans||[]),plan]}}))}
+        onRemovePlan={id=>mutate(d=>({...d,learning:{checkins:d.learning?.checkins||[],sessions:d.learning?.sessions||[],plans:(d.learning?.plans||[]).filter(item=>item.id!==id)}}))}
         onModules={()=>{setSelectedModuleId(null);setPage('modules')}}
         onOpenModule={id=>{setSelectedModuleId(id);setPage('modules')}} />}
       {page === 'dashboard' && !semester && <div className="screen secondary-screen page-blank"><h1>Deine Lernreise.</h1><p>Richte zuerst ein Semester ein.</p><button className="primary-action" onClick={()=>setPage('settings')}>Semester einrichten</button></div>}
