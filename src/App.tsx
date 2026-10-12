@@ -752,7 +752,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             return <span key={date} className={date===today()?'uf-week-previous-today':''}>{Number(date.slice(-2))}</span>
           })}
         </div>}
-        <div className={'uf-week-strip-days'+(weekSlide?' uf-week-slide-in-'+weekSlide.direction:'')}>
+        <div key={stripMonday} className={'uf-week-strip-days'+(weekSlide?' uf-week-slide-in-'+weekSlide.direction:'')}>
           {mode!=='week'&&<span className="uf-week-range" aria-hidden="true" style={{left:(stripRangeIndex/7*100)+'%',width:(stripRangeDays/7*100)+'%'}}/>}
           {todayIndex!==-1&&(mode==='week'||anchor!==today())&&<span className="uf-week-today-marker" aria-hidden="true" style={{left:(todayIndex/7*100)+'%'}}/>}
           {mode!=='week'&&<span className="uf-week-liquid" aria-hidden="true" style={{left:(stripIndex/7*100)+'%'}}>
