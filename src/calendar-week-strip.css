@@ -236,3 +236,127 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
   from { opacity:.32; transform:none; }
   to { opacity:1; transform:none; }
 }
+
+
+/* The logo red is the real today's date, independent of the day selection.
+   In Week mode the all-week grey pill is deliberately absent. */
+.uf-week-liquid-core.uf-week-liquid-today {
+  background:var(--uniflow-accent,#f94f72);
+  box-shadow:0 1px 0 rgba(255,255,255,.10);
+}
+.uf-week-today-marker {
+  position:absolute;
+  z-index:1;
+  top:1px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  width:calc(100% / 7);
+  height:46px;
+  pointer-events:none;
+}
+.uf-week-today-marker::after {
+  content:"";
+  display:block;
+  width:min(42px,calc(100% - 6px));
+  height:42px;
+  border-radius:50%;
+  background:var(--uniflow-accent,#f94f72);
+}
+.uf-week-strip-button.uf-week-today,
+.uf-week-strip-button.uf-week-today:not(.uf-week-first) {
+  color:#fff;
+}
+html[data-theme='light'] .uf-week-liquid-core.uf-week-liquid-today,
+html[data-theme='light'] .uf-week-today-marker::after {
+  background:var(--uniflow-accent,#f94f72);
+}
+html[data-theme='light'] .uf-week-strip-button.uf-week-today,
+html[data-theme='light'] .uf-week-strip-button.uf-week-today:not(.uf-week-first) {
+  color:white;
+}
+/* Keep the weekday labels and the outer surface stationary.
+   Only the seven numbers/markers move between successive weeks. */
+.uf-week-strip-viewport {
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+}
+.uf-week-dates-previous {
+  position:absolute;
+  inset:0;
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  min-height:60px;
+  z-index:4;
+  pointer-events:none;
+  will-change:transform,opacity;
+}
+.uf-week-dates-previous > span {
+  display:grid;
+  place-items:center;
+  height:46px;
+  color:#f1f1f2;
+  font-size:18px;
+  font-weight:400;
+  font-variant-numeric:tabular-nums;
+  position:relative;
+}
+.uf-week-dates-previous > span.uf-week-previous-today {
+  color:white;
+}
+.uf-week-dates-previous > span.uf-week-previous-today::before {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  width:min(42px,calc(100% - 6px));
+  height:42px;
+  background:var(--uniflow-accent,#f94f72);
+  border-radius:50%;
+}
+.uf-week-strip-days.uf-week-slide-in-left {
+  animation:uf-week-in-left 400ms cubic-bezier(.24,.78,.2,1) both;
+}
+.uf-week-strip-days.uf-week-slide-in-right {
+  animation:uf-week-in-right 400ms cubic-bezier(.24,.78,.2,1) both;
+}
+.uf-week-dates-previous.uf-week-slide-out-left {
+  animation:uf-week-out-left 400ms cubic-bezier(.24,.78,.2,1) both;
+}
+.uf-week-dates-previous.uf-week-slide-out-right {
+  animation:uf-week-out-right 400ms cubic-bezier(.24,.78,.2,1) both;
+}
+@keyframes uf-week-in-left {
+  from {transform:translateX(100%);opacity:.85;}
+  to {transform:translateX(0);opacity:1;}
+}
+@keyframes uf-week-in-right {
+  from {transform:translateX(-100%);opacity:.85;}
+  to {transform:translateX(0);opacity:1;}
+}
+@keyframes uf-week-out-left {
+  from {transform:translateX(0);opacity:1;}
+  to {transform:translateX(-100%);opacity:.8;}
+}
+@keyframes uf-week-out-right {
+  from {transform:translateX(0);opacity:1;}
+  to {transform:translateX(100%);opacity:.8;}
+}
+html[data-theme='light'] .uf-week-dates-previous > span {color:#303034;}
+html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {color:white;}
+@media(max-width:420px) {
+  .uf-week-today-marker {top:1px;height:41px;}
+  .uf-week-today-marker::after {width:min(38px,calc(100% - 6px));height:38px;}
+  .uf-week-dates-previous {min-height:55px;}
+  .uf-week-dates-previous > span {font-size:17px;height:41px;}
+  .uf-week-dates-previous > span.uf-week-previous-today::before {width:min(38px,calc(100% - 6px));height:38px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .uf-week-strip-days.uf-week-slide-in-left,
+  .uf-week-strip-days.uf-week-slide-in-right,
+  .uf-week-dates-previous.uf-week-slide-out-left,
+  .uf-week-dates-previous.uf-week-slide-out-right {
+    animation:none!important;
+  }
+  .uf-week-dates-previous {display:none;}
+}
