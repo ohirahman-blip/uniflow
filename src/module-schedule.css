@@ -180,3 +180,95 @@
 .module-fast .module-fast-journey-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .module-fast .module-fast-journey-stats span{font-size:10px;color:#999;display:flex;flex-direction:column;gap:6px}
 .module-fast .module-fast-journey-stats b{font-size:14px;color:#f5f5f5}
+
+
+/* Symmetric inputs inside the Module tab (including iOS Safari's time picker).
+   Only the editor layout changes; term values and selection logic are untouched. */
+.module-fast .module-fast-slot .module-fast-fields {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  align-items:stretch;
+  column-gap:12px;
+  row-gap:14px;
+  width:100%;
+  min-width:0;
+}
+.module-fast .module-fast-slot .module-fast-fields label,
+.module-fast .module-fast-meta-grid label,
+.module-fast .module-fast-topic-inputs label {
+  display:grid;
+  grid-template-rows:18px 44px;
+  align-content:start;
+  align-items:stretch;
+  gap:7px;
+  min-width:0;
+  margin:0;
+  line-height:18px;
+}
+.module-fast .module-fast-slot .module-fast-fields input,
+.module-fast .module-fast-slot .module-fast-fields select,
+.module-fast .module-fast-topic-inputs input,
+.module-fast .module-fast-topic-inputs select,
+.module-fast .module-fast-meta-grid input,
+.module-fast .module-fast-meta-grid select {
+  display:block;
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  height:44px;
+  min-height:0;
+  max-height:44px;
+  margin:0;
+  padding:0 12px;
+  border:1px solid transparent;
+  border-radius:10px;
+  background:#2b2b2b;
+  color:#f1f1f2;
+  font-family:inherit;
+  font-size:14px;
+  font-weight:500;
+  line-height:normal;
+  vertical-align:middle;
+}
+.module-fast .module-fast-topic-inputs input {
+  font-weight:650;
+  border-bottom:1px solid transparent;
+}
+.module-fast .module-fast-slot .module-fast-fields :is(input,select):focus-visible,
+.module-fast .module-fast-topic-inputs :is(input,select):focus-visible,
+.module-fast .module-fast-meta-grid :is(input,select):focus-visible {
+  border-color:#8b8b91;
+  outline:none;
+}
+.module-fast .module-fast-slot .module-fast-fields input[type="time"] {
+  -webkit-appearance:none;
+  appearance:none;
+  width:100%;
+  min-width:0;
+  min-height:0;
+  max-height:44px;
+  text-align:left;
+  text-align-last:left;
+  color-scheme:dark;
+}
+.module-fast .module-fast-slot .module-fast-fields input[type="time"]::-webkit-date-and-time-value {
+  text-align:left;
+  width:100%;
+  min-width:0;
+  min-height:1em;
+}
+.module-fast .module-fast-slot .module-fast-fields input[type="time"]::-webkit-datetime-edit {
+  text-align:left;
+  padding:0;
+}
+@media(max-width:900px) {
+  .module-fast .module-fast-slot .module-fast-fields {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:360px) {
+  .module-fast .module-fast-slot .module-fast-fields {
+    grid-template-columns:minmax(0,1fr);
+  }
+}
