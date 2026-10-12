@@ -286,6 +286,12 @@ export function replaceWithAlternative(offers: Offering[], alt: Alternative, occ
  * preserving past decisions. */
 export function setOfferingAttendance(offers: Offering[], chosen: Occurrence,
     scope: 'single' | 'future', selected = true): Offering[] {
+  const existing = offers.find(o => o.id === chosen.offering.id)
+  // Resuming a once-paused visit revokes that exception rather than adding another.
+  if (scope === 'single' && selected && existing?.overrides?.[chosen.origin]?.scope === 'single'
+    && existing.overrides[chosen.origin].reason === 'pause') {
+    return undoSingleChoice(offers,{...chosen,offering:existing})
+  }
   const changeId = scope === 'single' ? uid() : undefined
   return offers.map(o => {
     if (o.id !== chosen.offering.id) return o
