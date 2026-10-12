@@ -58,14 +58,14 @@ export function learningUnitKey(occ: Occurrence): string {
 }
 
 /** Read-only occurrence enumeration; does not change any calendar or offering. */
-export function pastLearningUnits(data: AppData, semester: Semester, asOf = today()): LearningUnit[] {
+export function pastLearningUnits(data: AppData, semester: Semester, asOf = today(), freeStudy = false): LearningUnit[] {
   const end = asOf < semester.end ? asOf : semester.end
   const result = new Map<string, LearningUnit>()
   const now = new Date()
   for (let day = semester.start, i = 0; day <= end && i < 240; day = addDays(day, 1), i++) {
     for (const occ of occurrencesOn(data.offerings, day)) {
       const o = occ.offering
-      if (o.semesterId !== semester.id || isAssessment(o.category) || o.category === 'Freies Lernen') continue
+      if (o.semesterId !== semester.id || isAssessment(o.category) || (freeStudy ? o.category !== 'Freies Lernen' : o.category === 'Freies Lernen')) continue
       if (day === today()) {
         const ended = new Date(now.getFullYear(), now.getMonth(), now.getDate(), Math.floor(minutes(occ.to) / 60), minutes(occ.to) % 60)
         if (now < ended) continue
