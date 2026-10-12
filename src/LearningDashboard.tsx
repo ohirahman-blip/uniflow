@@ -158,7 +158,7 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
           return <div className="learn-suggestion" key={module.id}>
             <span className="learn-suggestion-num">{String(index+1).padStart(2,'0')}</span>
             <div><strong>{module.name}</strong><small>{target?'Wiederholen: '+target.label:examFocus?'Klausuraufgaben üben':'Wissen festigen'} · Vorschlag 45 Min.</small></div>
-            <button aria-label={'Lernen für '+module.name+' erfassen'} onClick={()=>onPlan({id:module.id+'-'+Date.now(),moduleId:module.id,date:today(),title:target?'Wiederholen: '+target.label:examFocus?'Klausuraufgaben üben':'Wissen festigen',kind:examFocus?'exam':'review',duration:45,lessonKey:target?.key})}><Plus size={17}/></button>
+            <button aria-label={'Lernziel für '+module.name+' übernehmen'} title="Für heute einplanen" onClick={()=>onPlan({id:module.id+'-'+Date.now(),moduleId:module.id,date:today(),title:target?'Wiederholen: '+target.label:examFocus?'Klausuraufgaben üben':'Wissen festigen',kind:examFocus?'exam':'review',duration:45,lessonKey:target?.key})}><Plus size={17}/></button>
           </div>
         })}
       </div>}
