@@ -6,6 +6,7 @@ import {
   weekday, weekStart,
   type Offering, type Repeat, type Semester, type StudyModule, type Occurrence
 } from './model'
+import type { LearningJourney } from './learning'
 import './module-schedule.css'
 
 const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
@@ -75,7 +76,7 @@ export function parseModuleQuickInput(raw:string, expectedModule:string):QuickPr
   return {topics,errors}
 }
 type Props = {
-  module:StudyModule;semester?:Semester;offerings:Offering[];
+  module:StudyModule;semester?:Semester;offerings:Offering[];journey?:LearningJourney;
   onBack:()=>void;onUpdateModule:(next:StudyModule)=>void;onDeleteModule:()=>void;
   onChangeOfferings:(next:Offering[])=>void;
   onOpenOccurrence:(occ:Occurrence)=>void;
@@ -83,7 +84,7 @@ type Props = {
   cloudStatus:'loading'|'saving'|'synced'|'error';cloudError:string;onRetrySync:()=>void;
 }
 export default function ModuleScheduleEditor({
-  module,semester,offerings,onBack,onUpdateModule,onDeleteModule,
+  module,semester,offerings,journey,onBack,onUpdateModule,onDeleteModule,
   onChangeOfferings,onOpenOccurrence,onClearException,cloudStatus,cloudError,onRetrySync
 }:Props) {
   const [quickText,setQuickText]=useState('')
@@ -238,6 +239,16 @@ export default function ModuleScheduleEditor({
       <button className="module-fast-remove" onClick={onDeleteModule}><Trash2 size={16}/> Modul löschen</button>
     </details>
 
+    {journey&&<section className="module-learning-journey" aria-label="Lernreise des Moduls">
+      <div className="module-learning-overline">DEINE LERNREISE</div>
+      <div className="module-learning-status"><div><h2>{journey.status}</h2><p>{journey.advice}</p></div><strong>{journey.preparation===null?'–':journey.preparation+'%'}</strong></div>
+      <div className="module-learning-bars">{[
+        {label:'Stoffverständnis',value:journey.understanding},
+        {label:'Wiederholung',value:journey.repetition},
+        {label:'Klausurtraining',value:journey.examTraining}
+      ].map(part=><div className="module-learning-bar" key={part.label}><div><span>{part.label}</span><span>{part.value===null?'Noch offen':part.value+'%'}</span></div><div className="module-learning-track"><span style={{width:(part.value||0)+'%',background:module.color}}/></div></div>)}</div>
+      <small>{journey.rated} von {journey.units.length} bisherigen Einheiten bewertet · Der Wert zeigt deine dokumentierte Vorbereitung, keine Notenprognose.</small>
+    </section>}
     <div className="module-fast-section-head"><h2>Veranstaltungen</h2><button onClick={addTopic}><Plus size={17}/> Veranstaltung</button></div>
     <p className="module-fast-intro">Ein Inhalt, mehrere gleichwertige Gruppen. Änderungen werden automatisch gespeichert.</p>
     {groups.map((group,index)=>{
