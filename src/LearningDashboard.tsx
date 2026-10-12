@@ -46,7 +46,7 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
   const chosenModule=active.find(m=>m.id===(moduleId||focus?.module.id)) || active[0]
   const options=allLessons.filter(l=>l.moduleId===chosenModule?.id)
   const completed=(data.learningSessions||[]).filter(s=>s.date===today()).length
-  const next=useMemo(()=>{
+  const next=useMemo<{date:string;from:string;to:string;name:string;room:string}|null>(()=>{
     const now=new Date()
     let result:{date:string;from:string;to:string;name:string;room:string}|null=null
     for(let date=today(),d=0;d<21;d++,date=addDaysLocal(date,1)){
