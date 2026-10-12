@@ -100,7 +100,7 @@ export default function UniflowPicker(props: Props) {
     {open && createPortal(
       <div className="uf-picker-backdrop" onClick={e => { if (e.target === e.currentTarget) closePicker() }}>
         <section className="uf-picker-dialog" ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label={props.label}>
-          <div className="uf-picker-heading"><div><span>UNIFLOW</span><h2>{props.label}</h2></div><button type="button" aria-label="Schließen" className="uf-picker-close" onClick={closePicker}><X size={19}/></button></div>
+          <div className="uf-picker-heading"><h2>{props.label}</h2><button type="button" aria-label="Schließen" className="uf-picker-close" onClick={closePicker}><X size={19}/></button></div>
           {kind === 'select' && <div className="uf-picker-choices" role="list">
             {options.map(option => <button type="button" key={option.value} className={'uf-picker-option ' + (draft === option.value ? 'selected' : '')} onClick={() => commit(option.value)} aria-pressed={draft === option.value}>
               <span><strong>{option.label}</strong>{option.detail && <small>{option.detail}</small>}</span>{draft === option.value && <Check size={17}/>}
