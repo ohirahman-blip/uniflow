@@ -25,6 +25,16 @@ export function shiftVisibleDay(date: string, amount: number, weekEndDay: number
   return current
 }
 
+/** Deterministic two-day windows. Odd-length weeks end with one overlapping
+ * window (Thu/Fri for a Friday cutoff, Sat/Sun for a Sunday cutoff). */
+export const twoDayStarts = (weekEndDay: number | undefined): number[] => {
+  const finalStart = lastVisibleWeekday(weekEndDay) - 1
+  const result: number[] = []
+  for (let i = 0; i <= finalStart; i += 2) result.push(i)
+  if (result[result.length - 1] !== finalStart) result.push(finalStart)
+  return result
+}
+
 /** Keep both two-day columns inside the same configured workweek.
  * Selecting its final day shows it together with the preceding visible day. */
 export function alignCalendarStart(date: string, mode: CalendarView, weekEndDay: number | undefined): string {
@@ -33,7 +43,8 @@ export function alignCalendarStart(date: string, mode: CalendarView, weekEndDay:
   const safeDate = weekdayIndex(date) <= end ? date : shiftVisibleDay(date, 1, end)
   if (mode === 'day') return safeDate
   const dayIndex = weekdayIndex(safeDate)
-  return addDays(weekStart(safeDate), Math.min(dayIndex, end - 1))
+  const firstMatchingWindow = twoDayStarts(end).find(start => dayIndex <= start + 1)
+  return addDays(weekStart(safeDate), firstMatchingWindow ?? end - 1)
 }
 
 export function datesForCalendarPage(start: string, mode: CalendarView, weekEndDay: number | undefined): string[] {
@@ -48,14 +59,10 @@ export function adjacentCalendarPage(start: string, mode: CalendarView, directio
   const anchor = alignCalendarStart(start, mode, weekEndDay)
   if (mode === 'week') return addDays(anchor, direction * 7)
   if (mode === 'day') return shiftVisibleDay(anchor, direction, weekEndDay)
-  const index = weekdayIndex(anchor)
-  const lastStart = lastVisibleWeekday(weekEndDay) - 1
-  if (direction === 1) {
-    if (index + 2 <= lastStart) return addDays(anchor, 2)
-    if (index < lastStart) return addDays(weekStart(anchor), lastStart)
-    return addDays(weekStart(anchor), 7)
-  }
-  if (index - 2 >= 0) return addDays(anchor, -2)
-  if (index > 0) return weekStart(anchor)
-  return addDays(weekStart(anchor), lastStart - 7)
+  const windows = twoDayStarts(weekEndDay)
+  const index = windows.indexOf(weekdayIndex(anchor))
+  const nextIndex = index + direction
+  if (nextIndex < 0) return addDays(weekStart(anchor), windows[windows.length - 1] - 7)
+  if (nextIndex >= windows.length) return addDays(weekStart(anchor), 7 + windows[0])
+  return addDays(weekStart(anchor), windows[nextIndex])
 }
