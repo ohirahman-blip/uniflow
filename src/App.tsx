@@ -1,9 +1,10 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Menu, Plus, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
-import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, occurrenceInWeek, contentGroups, linkOfferingToContent, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, weekStart, type Alternative, type Assessment, type AppData, type CalendarView, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
+import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, weekStart, type Alternative, type Assessment, type AppData, type CalendarView, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
+import ModuleScheduleEditor from './ModuleScheduleEditor'
 import './styles.css'
 
 type Page = 'calendar' | 'modules' | 'settings' | 'admin'
@@ -423,109 +424,6 @@ function ModuleHub({ degree, modules, assessments, currentSemesterId, creditsPas
   </div>
 }
 
-
-/** Inline editor belonging to one module and one topic. All equivalent offerings
- * get their own immutable IDs. There is no automatic copy of a selected event. */
-function ModuleGroupEditor({module,semester,existing,parent,defaultLabel,onSave,onClose,onRequestDelete}:{
-  module:StudyModule;semester:Semester;existing?:Offering;parent?:Offering;defaultLabel:string;
-  onSave:(offering:Offering)=>void;onClose:()=>void;onRequestDelete?:()=>void
-}) {
-  const [category,setCategory]=useState(existing?.category||parent?.category||'Vorlesung')
-  const [customCategory,setCustomCategory]=useState(false)
-  const [label,setLabel]=useState(existing?.contentLabel||parent?.contentLabel||defaultLabel)
-  const [date,setDate]=useState(existing?.date || (today()<semester.start||today()>semester.lectureEnd?semester.start:today()))
-  const [from,setFrom]=useState(existing?.from||'10:00'),[to,setTo]=useState(existing?.to||'12:00')
-  const [repeat,setRepeat]=useState<Repeat>(existing?.recurrence||'weekly')
-  const [end,setEnd]=useState(existing?.endDate||semester.lectureEnd)
-  const [room,setRoom]=useState(existing?.room||''),[onlineLink,setOnlineLink]=useState(existing?.onlineLink||''),[organizer,setOrganizer]=useState(existing?.organizer||'')
-  const [error,setError]=useState('')
-  const save=()=>{
-    if(!category.trim()||!label.trim())return setError('Bitte Veranstaltungsart und Inhalt angeben.')
-    if(minutes(to)<=minutes(from))return setError('Das Ende muss nach dem Beginn liegen.')
-    if(repeat!=='once'&&end<date)return setError('Das Enddatum liegt vor dem Startdatum.')
-    const id=existing?.id||uid()
-    onSave({
-      id, semesterId:semester.id,moduleId:module.id,name:module.name,
-      category:category.trim(),contentId:parent?.contentId||parent?.familyId||parent?.id||existing?.contentId||id,
-      contentLabel:parent?.contentLabel||label.trim(),date,from,to,
-      endDate:repeat==='once'?date:end,recurrence:repeat,room:room.trim(),onlineLink:onlineLink.trim(),organizer:organizer.trim(),
-      selected:existing?.selected??!parent,
-      overrides:existing?.overrides||{},scheduleChanges:existing?.scheduleChanges||[]
-    })
-  }
-  return <BottomSheet title={existing?'Gruppe bearbeiten':parent?'Gleichwertige Gruppe hinzufügen':'Veranstaltung erstellen'} onClose={onClose}
-    footer={<button className="primary-action" onClick={save}><Check size={18}/> {existing?'Änderungen speichern':'Gruppe speichern'}</button>}>
-    <p className="field-description">{parent?'Diese Gruppe behandelt denselben Inhalt wie die anderen Gruppen. Du kannst sie später einmalig oder dauerhaft auswählen.':'Erstelle einen Inhalt, zum Beispiel VL 01, und füge anschließend weitere gleichwertige Gruppen hinzu.'}</p>
-    <div className="editor-field"><span className="field-label">Inhalt / Veranstaltungsnummer</span><input className="line-input" value={parent?.contentLabel||label} disabled={!!parent} placeholder="VL 01" onChange={e=>setLabel(e.target.value)}/></div>
-    <div className="editor-field"><span className="field-label">Art</span><div className="category-list">{['Vorlesung','Übung','Tutorium','Freies Lernen'].map(c=><button key={c} className={category===c&&!customCategory?'chosen':''} onClick={()=>{setCategory(c);setCustomCategory(false)}}>{c}</button>)}<button className={customCategory?'chosen':''} onClick={()=>{setCustomCategory(true);setCategory('')}}><Plus size={15}/> Eigene</button></div>{customCategory&&<input className="line-input" value={category} onChange={e=>setCategory(e.target.value)} placeholder="Veranstaltungsart"/>}</div>
-    <div className="editor-field"><span className="field-label">Erster Termin</span><DateControl value={date} min={semester.start} max={semester.end} onChange={setDate}/></div>
-    <div className="editor-time-row"><TimeControl label="Beginn" value={from} onChange={setFrom}/><span className="time-divider">–</span><TimeControl label="Ende" value={to} onChange={setTo}/></div>
-    <div className="editor-field"><span className="field-label">Wiederholung</span><div className="repeat-switch">{([{v:'once',t:'Einmalig'},{v:'weekly',t:'Wöchentlich'},{v:'biweekly',t:'Alle 2 Wochen'}] as const).map(x=><button key={x.v} className={repeat===x.v?'chosen':''} onClick={()=>setRepeat(x.v)}>{x.t}</button>)}</div></div>
-    {repeat!=='once'&&<div className="editor-field"><span className="field-label">Wiederholen bis</span><DateControl value={end} min={date} max={semester.end} onChange={setEnd}/></div>}
-    <div className="editor-field"><span className="field-label">Lehrperson / Veranstalter <span className="optional">optional</span></span><input className="line-input" value={organizer} onChange={e=>setOrganizer(e.target.value)} placeholder="z. B. Winkert"/></div>
-    <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" value={room} onChange={e=>setRoom(e.target.value)} placeholder="z. B. MA 041"/></div>
-    <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://meet.google.com/..." value={onlineLink} onChange={e=>setOnlineLink(e.target.value)}/></div>
-    {error&&<p className="inline-error">{error}</p>}
-    {existing&&onRequestDelete&&<button className="danger-simple" onClick={onRequestDelete}><Trash2 size={17}/> Gruppe löschen</button>}
-  </BottomSheet>
-}
-
-function ModuleDetail({module,semester,offerings,onBack,onUpdateModule,onDeleteModule,onSaveOffering,onLinkOffering,onRemoveOffering,onOpenOccurrence,onClearException}: {
-  module:StudyModule;semester?:Semester;offerings:Offering[];onBack:()=>void;
-  onUpdateModule:()=>void;onDeleteModule:()=>void;onSaveOffering:(o:Offering)=>void;
-  onLinkOffering:(offeringId:string,topic:Offering)=>void;onRemoveOffering:(offeringId:string)=>void;onOpenOccurrence:(occ:Occurrence)=>void;
-  onClearException:(offeringId:string,origin:string)=>void
-}) {
-  const [editor,setEditor]=useState<{parent?:Offering;existing?:Offering;label:string}|null>(null)
-  const [expanded,setExpanded]=useState<Record<string,boolean>>({})
-  const [showExceptions,setShowExceptions]=useState(false)
-  const [toDelete,setToDelete]=useState<Offering|null>(null)
-  const [showLink,setShowLink]=useState<string|null>(null)
-  if(!semester)return <div className="screen secondary-screen"><button className="text-back" onClick={onBack}><ArrowLeft size={19}/> Module</button><p>Bitte zuerst ein Semester auswählen.</p></div>
-  const groups=contentGroups(offerings,module.id,semester.id)
-  const numbered=(category:string)=>{
-    const n=groups.filter(g=>g.offerings[0]?.category===category).length+1
-    const short=category==='Vorlesung'?'VL':category==='Übung'?'Ü':category==='Tutorium'?'TUT':category==='Freies Lernen'?'LERN':category.slice(0,3).toUpperCase()
-    return `${short} ${String(n).padStart(2,'0')}`
-  }
-  const futureExceptions=offerings.filter(o=>o.moduleId===module.id&&o.semesterId===semester.id)
-    .flatMap(o=>Object.entries(o.overrides||{}).filter(([date,value])=>date>=today() && (value.scope==='single'||(!value.scope&&(!!value.cancelled||!!value.date||!!value.from))))
-      .map(([origin,value])=>({o,origin,value}))).sort((a,b)=>a.origin.localeCompare(b.origin))
-  const topicNames=new Map<string,number>()
-  const nextTopicLabel=(o:Offering)=>{
-    const type=o.category
-    const number=(topicNames.get(type)||0)+1;topicNames.set(type,number)
-    return o.contentLabel||`${type==='Vorlesung'?'VL':type==='Übung'?'Ü':type==='Tutorium'?'TUT':type.slice(0,3).toUpperCase()} ${String(number).padStart(2,'0')}`
-  }
-  const previewWeek=weekStart(today()<semester.start?semester.start:today()>semester.end?semester.end:today())
-  return <div className="screen secondary-screen module-detail-screen">
-    <button className="text-back" onClick={onBack}><ArrowLeft size={18}/> Alle Module</button>
-    <div className="module-detail-heading"><span className="module-emoji" style={{background:module.color}}>{module.emoji||<BookOpen size={20}/>}</span><div><span className="overline">MODUL</span><h1>{module.name}</h1><p>{module.credits} LP · {module.shortName}</p></div></div>
-    <div className="module-detail-actions"><button onClick={onUpdateModule}><Settings2 size={16}/> Modul bearbeiten</button><button className="module-danger-link" onClick={onDeleteModule}><Trash2 size={16}/> Löschen</button></div>
-    <div className="module-topic-head"><h2>Veranstaltungen</h2><button onClick={()=>setEditor({label:numbered('Vorlesung')})}><Plus size={17}/> Inhalt anlegen</button></div>
-    <p className="module-topic-description">Gleicher Inhalt, verschiedene Gruppen: Du entscheidest im Kalender, welche du besuchst.</p>
-    {groups.map(g=>{
-      const first=g.offerings[0], label=nextTopicLabel(first),open=expanded[g.id]??true
-      return <section className="content-topic" key={g.id}><button className="content-topic-toggle" onClick={()=>setExpanded(x=>({...x,[g.id]:!open}))} aria-expanded={open}><div><strong>{label}</strong><small>{g.offerings.length} {g.offerings.length===1?'Gruppe':'Gruppen'} · {first.category}</small></div><ChevronDown className={open?'is-open':''} size={19}/></button>
-        {open&&<div className="content-topic-body">{g.offerings.map(o=>{
-          const occ=occurrenceInWeek(o,previewWeek,true)||occurrenceAtOrigin(o,o.date,true)
-          const active=occ&&!!occurrenceAtOrigin(o,occ.origin,false)
-          return <div className="topic-offering" key={o.id}><span className={'topic-status-dot '+(active?'active':'')}/><div className="topic-offering-main"><strong>{o.organizer||'Ohne Veranstalter'}</strong><small>{['So','Mo','Di','Mi','Do','Fr','Sa'][fromDate(o.date).getDay()]} · {o.from}–{o.to} · {placeLabel(o)||'Raum offen'}</small><small>{o.recurrence==='weekly'?'Wöchentlich':o.recurrence==='biweekly'?'Alle 2 Wochen':'Einmalig'}{active?' · Im Plan':' · Alternative'}</small></div><button onClick={()=>setEditor({existing:o,label:o.contentLabel||label})} aria-label="Gruppe bearbeiten"><Settings2 size={17}/></button></div>
-        })}<button className="topic-add-group" onClick={()=>setEditor({parent:first,label})}><Plus size={17}/> Gleichwertige Gruppe hinzufügen</button>
-          <button className="topic-link-existing" onClick={()=>setShowLink(showLink===g.id?null:g.id)}><Layers2 size={16}/> Bestehende Reihe zuordnen</button>
-          {showLink===g.id&&<div className="topic-link-list">{offerings.filter(o=>o.moduleId===module.id&&o.semesterId===semester.id&&!g.offerings.some(x=>x.id===o.id)&&o.category===first.category&&!o.contentId?.startsWith('assessment:')&&!isAssessment(o.category)).map(o=><button key={o.id} onClick={()=>{onLinkOffering(o.id,first);setShowLink(null)}}>{o.contentLabel||o.category} · {o.organizer||'Ohne Dozent'} · {o.from}–{o.to}<ArrowRight size={15}/></button>)}{groups.length<2&&<small>Keine weiteren Reihen vorhanden.</small>}</div>}
-        </div>}</section>
-    })}
-    {!groups.length&&<div className="module-topic-empty">Noch keine Veranstaltungen. Lege VL 01 an und füge danach gleichwertige Gruppen hinzu.</div>}
-    <div className="module-topic-head exceptions-head"><h2>Zukünftige Ausnahmen</h2><button onClick={()=>setShowExceptions(x=>!x)} aria-expanded={showExceptions}>{futureExceptions.length} <ChevronDown className={showExceptions?'is-open':''} size={18}/></button></div>
-    {showExceptions&&<div className="exceptions-list">{futureExceptions.length===0?<p>Keine zukünftigen Einzelausnahmen.</p>:futureExceptions.map(({o,origin,value})=>
-      <div className="exception-row" key={`${o.id}-${origin}`}><div><strong>{formatDate(origin)} · {o.contentLabel||o.category}</strong><small>{value.cancelled?'Entfällt':value.reason==='move'?'Einmalig verschoben':value.selected===true?'Einmalig besuchen':value.selected===false?'Einmalig nicht besuchen':'Einmalige Änderung'}</small></div><div><button onClick={()=>{const occ=occurrenceAtOrigin(o,origin,true);if(occ)onOpenOccurrence(occ)}} aria-label="Ausnahme ansehen"><Settings2 size={16}/></button><button onClick={()=>onClearException(o.id,origin)} aria-label="Ausnahme zurücksetzen"><RotateCcw size={16}/></button></div></div>)}
-    </div>}
-    {toDelete&&<BottomSheet title="Gruppe wirklich löschen?" onClose={()=>setToDelete(null)}><p className="scope-intro">{toDelete.organizer||toDelete.name} · {toDelete.from}–{toDelete.to}. Diese Veranstaltungsreihe wird entfernt. Andere gleichwertige Gruppen bleiben erhalten.</p><button className="danger-simple" onClick={()=>{onRemoveOffering(toDelete.id);setToDelete(null)}}><Trash2 size={18}/> Gruppe löschen</button><button className="dismiss-action" onClick={()=>setToDelete(null)}>Abbrechen</button></BottomSheet>}
-    {editor&&<ModuleGroupEditor key={`${editor.existing?.id||editor.parent?.id||'new'}-${editor.label}`} module={module} semester={semester} parent={editor.parent} existing={editor.existing} defaultLabel={editor.label}
-      onClose={()=>setEditor(null)} onSave={o=>{onSaveOffering(o);setEditor(null)}} onRequestDelete={()=>{if(editor.existing){setToDelete(editor.existing);setEditor(null)}}}/>}
-  </div>
-}
 
 function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNew,onEditOccurrence,onEditAssessment,onSelectGroup,onSuspendVisit,onRestoreVisit,onRequestDeleteOccurrence,onOfferingsChange,onNotice}:{
   data:AppData;semester:Semester;modules:StudyModule[];userId:string;focusModuleId:string;onFocusChange:(id:string)=>void;
@@ -1120,30 +1018,39 @@ export default function App() {
     <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => setPage('calendar')}>{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
       {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onEditAssessment={setEditingAssessment} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
       {page === 'modules' && !selectedModuleId && <ModuleHub degree={degree} modules={degreeModules} assessments={data.assessments} currentSemesterId={semester?.id||''} creditsPassed={creditsPassed} average={average} onAdd={()=>setNewModule(true)} editing={newModule} onEdit={m=>setSelectedModuleId(m.id)} newName={newName} setNewName={setNewName} newCredits={newCredits} setNewCredits={setNewCredits} saveNewModule={saveNewModule} cancelNew={()=>setNewModule(false)} />}
-      {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleDetail key={selectedModuleId} module={data.modules.find(m=>m.id===selectedModuleId)!} semester={semester} offerings={data.offerings}
-        onBack={()=>setSelectedModuleId(null)} onUpdateModule={()=>setEditingModule(data.modules.find(m=>m.id===selectedModuleId)||null)}
+      {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleScheduleEditor
+        key={selectedModuleId+'-'+(semester?.id||'')}
+        module={data.modules.find(m=>m.id===selectedModuleId)!}
+        semester={semester}
+        offerings={data.offerings}
+        onBack={()=>setSelectedModuleId(null)}
+        onUpdateModule={updated=>mutate(d=>({...d,modules:d.modules.map(m=>m.id===updated.id?updated:m)}))}
         onDeleteModule={()=>setConfirmDeleteModule(data.modules.find(m=>m.id===selectedModuleId)||null)}
-        onSaveOffering={offer=>{mutate(d=>{
-          const existing=d.offerings.find(o=>o.id===offer.id)
-          const groupLabelChanged=existing&&existing.contentLabel!==offer.contentLabel
-          const updateLabel=(o:Offering)=>groupLabelChanged&&sameContent(existing,o)?{...o,contentLabel:offer.contentLabel}:o
-          const others=d.offerings.map(updateLabel)
-          let prepared=offer
-          if(!existing&&offer.selected&&!isAssessment(offer.category)){
-            let date=offer.date,collision=false
-            for(let i=0;i<120&&date<=offer.endDate;i++){
-              if(occurrencesOn(others,date).some(o=>o.offering.semesterId===offer.semesterId&&intersects(o,offer))){collision=true;break}
-              if(offer.recurrence==='once')break
-              date=addDays(date,offer.recurrence==='biweekly'?14:7)
-            }
-            if(collision)prepared={...offer,selected:false}
+        onChangeOfferings={updated=>mutate(d=>{
+          const isTarget=(o:Offering)=>o.moduleId===selectedModuleId&&o.semesterId===semester?.id&&!isAssessment(o.category)
+          const previous=d.offerings.filter(isTarget)
+          const next=[...new Map(updated.map(o=>[o.id,o])).values()]
+          const keptIds=new Set(next.map(o=>o.id))
+          const removedIds=new Set(previous.filter(o=>!keptIds.has(o.id)).map(o=>o.id))
+          let inserted=false
+          const merged:Offering[]=[]
+          for(const o of d.offerings){
+            if(isTarget(o)){
+              if(!inserted){merged.push(...next);inserted=true}
+            }else merged.push(o)
           }
-          return {...d,offerings:existing?others.map(o=>o.id===offer.id?prepared:o):[...others,prepared]}
-        });note('Veranstaltungsgruppe gespeichert.')}}
-        onLinkOffering={(id,topic)=>{mutate(d=>({...d,offerings:linkOfferingToContent(d.offerings,id,topic)}));note('Veranstaltungsgruppe zugeordnet.')}}
-        onRemoveOffering={id=>{mutate(d=>({...d,offerings:removeOfferingGroup(d.offerings,id),alternatives:(d.alternatives||[]).filter(a=>a.parentOfferingId!==id)}));note('Gruppe endgültig entfernt.')}}
+          if(!inserted)merged.push(...next)
+          return {...d,offerings:merged,
+            alternatives:(d.alternatives||[]).filter(a=>!removedIds.has(a.parentOfferingId))}
+        })}
         onOpenOccurrence={setDetail}
-        onClearException={(id,origin)=>{mutate(d=>({...d,offerings:d.offerings.map(o=>o.id===id?{...o,overrides:Object.fromEntries(Object.entries(o.overrides||{}).filter(([day])=>day!==origin))}:o)}));note('Einmalige Ausnahme zurückgesetzt.')}} />}
+        onClearException={(id,origin)=>mutate(d=>({...d,offerings:d.offerings.map(o=>o.id===id
+          ?{...o,overrides:Object.fromEntries(Object.entries(o.overrides||{}).filter(([day])=>day!==origin))}
+          :o)}))}
+        cloudStatus={cloudStatus}
+        cloudError={cloudError}
+        onRetrySync={()=>void syncNow()}
+      />}
       {page === 'admin' && user && admin && <AdminPanel user={user} notice={note} />}
       {page === 'settings' && <div className="screen secondary-screen settings-screen"><div className="page-title-row"><div><span className="overline">UNIFLOW</span><h1>Einstellungen.</h1><p>Weniger Optionen. Mehr Überblick.</p></div></div><section className="settings-section"><h2>Profil</h2><label className="setting-input"><span>Dein Name</span><input value={data.profile} onChange={e => mutate(d => ({ ...d, profile: e.target.value }))} /></label><div className="setting-line"><span>Studiengang</span><strong>{degree?.name}</strong></div><div className="setting-line"><span>Hochschule</span><strong>{degree?.university || 'Nicht angegeben'}</strong></div><div className="setting-line"><span>LP-Ziel</span><div className="number-setting"><input type="number" min="0" value={degree?.targetCredits || 0} onChange={e => mutate(d => ({ ...d, degrees: d.degrees.map(x => x.id === degree?.id ? { ...x, targetCredits: +e.target.value || 0 } : x) }))} /> LP</div></div></section><section className="settings-section"><h2>Design</h2><div className="setting-line"><span>Darstellung</span><div className="inline-toggle theme-icon-switch"><button className="selected" aria-label="Dunkler Modus" title="Dunkler Modus" onClick={()=>mutate(d=>({...d,theme:'dark'}))}><Moon size={17}/></button><button disabled aria-label="Heller Modus – folgt später" title="Heller Modus folgt später"><Sun size={17}/></button></div></div></section><section className="settings-section"><h2>Stundenplan</h2><div className="setting-line"><span>Erste Stunde</span><div className="small-picker"><button disabled={data.firstHour <= 0} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour - 2 }))}>−</button><strong>{timeString(data.firstHour * 60)}</strong><button disabled={data.firstHour >= data.lastHour - 2} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Letzte Stunde</span><div className="small-picker"><button disabled={data.lastHour <= data.firstHour + 2} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour - 2 }))}>−</button><strong>{timeString(data.lastHour * 60)}</strong><button disabled={data.lastHour >= 24} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Woche anzeigen bis</span><div className="inline-toggle week-end-toggle">{([{v:4,label:'Fr'},{v:5,label:'Sa'},{v:6,label:'So'}] as const).map(x=><button key={x.v} className={(data.weekEndDay??4)===x.v?'selected':''} onClick={()=>mutate(d=>({...d,weekEndDay:x.v}))}>{x.label}</button>)}</div></div><small className="setting-hint">Termine und Prüfungen am Wochenende werden in dieser Woche trotzdem angezeigt.</small><small className="setting-hint">Das Raster bleibt in Zwei-Stunden-Schritten. Veranstaltungen können minutengenau beginnen und enden.</small></section><section className="settings-section"><h2>Semester</h2><div className="semester-picker-list">{data.semesters.filter(s => s.degreeId === degree?.id).map(s => <button key={s.id} className={s.id === semester?.id ? 'current' : ''} onClick={() => { mutate(d => ({ ...d, activeSemesterId: s.id })); note(`${s.name} geöffnet.`) }}><span><strong>{s.name}</strong><small>{formDate(s.start)} – {formDate(s.end)}</small></span>{s.id === semester?.id && <Check size={18} />}</button>)}</div>{semester && <label className="setting-input"><span>Letzter Vorlesungstag</span><DateControl value={semester.lectureEnd} min={semester.start} max={semester.end} onChange={v => mutate(d => ({ ...d, semesters: d.semesters.map(s => s.id === semester.id ? { ...s, lectureEnd: v } : s) }))} /></label>}<button className="underlined-link" onClick={() => { if (!degree) return; const recent = data.semesters.filter(s => s.degreeId === degree.id).sort((a, b) => b.end.localeCompare(a.end))[0]; const start = recent ? addDays(recent.end, 1) : currentSemesterDates().start; const next = semesterFromStart(start); if (data.semesters.some(s => s.degreeId === degree.id && overlaps(s.start, s.end, next.start, next.end))) { note('Dieses Semester ist bereits vorhanden.'); return } const newSemester: Semester = { ...next, id: uid(), degreeId: degree.id, archived: false }; mutate(d => ({ ...d, semesters: [...d.semesters, newSemester], activeSemesterId: d.activeSemesterId })); note('Nächstes Semester gespeichert. Das aktuelle bleibt ausgewählt.') }}>Nächstes Semester hinzufügen <Plus size={17} /></button><div className="semester-management"><h3>Semester verwalten</h3>{data.semesters.filter(x=>x.degreeId===degree?.id).map(x=><div key={x.id} className="semester-manage-row"><span><strong>{x.name}</strong><small>{x.id===semester?.id?'Ausgewählt':x.start>today()?'Geplant':x.end<today()?'Vergangen':'Laufend'} · {formDate(x.start)} – {formDate(x.end)}</small></span><button aria-label={`${x.name} löschen`} onClick={()=>setConfirmDeleteSemester(x)}><Trash2 size={18}/></button></div>)}</div></section><section className="settings-section"><h2>Deine Daten</h2><button className="settings-action" onClick={saveBackup}><Download size={19} /> Backup herunterladen <ArrowRight size={17} /></button><button className="settings-action" onClick={() => fileRef.current?.click()}><Upload size={19} /> Backup importieren <ArrowRight size={17} /></button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => { void readBackup(e.target.files?.[0]); e.target.value = '' }} /><button className="settings-action settings-danger" onClick={() => setConfirmReset(true)}><RotateCcw size={19} /> Alles zurücksetzen <ArrowRight size={17} /></button><div className="cloud-account-state"><div><strong>Supabase Cloud</strong><small>{cloudStatus === 'synced' ? 'Alle Änderungen gespeichert' : cloudStatus === 'saving' ? 'Synchronisiere …' : cloudStatus === 'error' ? 'Synchronisierung fehlgeschlagen' : 'Verbunden'}</small></div>{cloudStatus === 'synced' ? <Check size={19}/> : <RefreshCw size={19}/>}</div>{cloudStatus === 'error' && <p className="auth-error">{cloudError}</p>}<button className="settings-action" disabled={cloudBusy || cloudStatus === 'saving'} onClick={() => void syncNow()}><RefreshCw size={19}/> Jetzt synchronisieren <ArrowRight size={17}/></button><button className="settings-action" onClick={() => void logOut()}><LogOut size={19}/> Abmelden <ArrowRight size={17}/></button><p className="quiet-copy">Angemeldet als {user.email || user.id.slice(0,8) + '…'}. Deine Daten werden beim Öffnen geladen und bei Änderungen automatisch nach Supabase gespeichert. Bei gleichzeitigen Änderungen auf mehreren Geräten kann der zuletzt gespeicherte Stand gewinnen.</p></section></div>}
     </div>
