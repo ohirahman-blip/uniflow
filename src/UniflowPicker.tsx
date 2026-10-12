@@ -57,6 +57,14 @@ export default function UniflowPicker(props: Props) {
     const initialOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     dialog.current?.focus()
+    if (kind === 'time') {
+      dialog.current?.querySelectorAll<HTMLElement>('.uf-picker-scroll').forEach(container => {
+        const selected = container.querySelector<HTMLElement>('button.selected')
+        if (!selected) return
+        const item = selected.getBoundingClientRect(), viewport = container.getBoundingClientRect()
+        container.scrollTop += item.top - viewport.top - viewport.height / 2 + item.height / 2
+      })
+    }
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { event.preventDefault(); closePicker(); return }
       if (event.key !== 'Tab' || !dialog.current) return
@@ -67,7 +75,7 @@ export default function UniflowPicker(props: Props) {
     }
     document.addEventListener('keydown', keydown)
     return () => { document.body.style.overflow = initialOverflow; document.removeEventListener('keydown', keydown) }
-  }, [open])
+  }, [open, kind])
   const hour = Math.min(23, Math.max(0, Math.floor(toMinutes(draft) / 60)))
   const minute = Math.min(59, Math.max(0, toMinutes(draft) % 60))
   const maxMinutes = 'maxMinutes' in props ? props.maxMinutes ?? (kind === 'time' ? 1439 : 1440) : 1440
@@ -90,7 +98,7 @@ export default function UniflowPicker(props: Props) {
       {kind === 'time' ? <Clock3 size={16}/> : kind === 'date' ? <CalendarDays size={16}/> : <ChevronDown size={16}/>}
     </button>
     {open && createPortal(
-      <div className="uf-picker-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) closePicker() }}>
+      <div className="uf-picker-backdrop" onClick={e => { if (e.target === e.currentTarget) closePicker() }}>
         <section className="uf-picker-dialog" ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label={props.label}>
           <div className="uf-picker-heading"><div><span>UNIFLOW</span><h2>{props.label}</h2></div><button type="button" aria-label="Schließen" className="uf-picker-close" onClick={closePicker}><X size={19}/></button></div>
           {kind === 'select' && <div className="uf-picker-choices" role="list">
