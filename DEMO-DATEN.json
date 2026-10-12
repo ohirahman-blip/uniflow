@@ -1,0 +1,24 @@
+{
+  "profile": "Demo",
+  "degrees": [{"id":"degree-demo","name":"Wirtschaftsinformatik","level":"Bachelor","targetCredits":180}],
+  "activeDegreeId":"degree-demo",
+  "semesters":[{"id":"semester-past","degreeId":"degree-demo","name":"Sommersemester 2026","start":"2026-04-01","end":"2026-09-30","archived":true},{"id":"semester-demo","degreeId":"degree-demo","name":"Wintersemester 2026/27","start":"2026-10-01","end":"2027-03-31","archived":false}],
+  "activeSemesterId":"semester-demo",
+  "modules":[
+    {"id":"m1","degreeId":"degree-demo","name":"Mathematik","color":"#a393f3","credits":6,"difficulty":5,"priority":5,"status":"current","grade":"","counted":true,"hidden":false,"semesterIds":["semester-demo"],"passedSemesterId":""},
+    {"id":"m2","degreeId":"degree-demo","name":"Informatik","color":"#70c4b0","credits":6,"difficulty":3,"priority":4,"status":"current","grade":"","counted":true,"hidden":false,"semesterIds":["semester-demo"],"passedSemesterId":""},
+    {"id":"m3","degreeId":"degree-demo","name":"Physik","color":"#f3ae78","credits":6,"difficulty":4,"priority":3,"status":"planned","grade":"","counted":true,"hidden":false,"semesterIds":["semester-demo"],"passedSemesterId":""},
+    {"id":"m4","degreeId":"degree-demo","name":"Programmieren II","color":"#7fa7e9","credits":6,"difficulty":4,"priority":3,"status":"passed","grade":"1,7","counted":true,"hidden":false,"semesterIds":["semester-past"],"passedSemesterId":"semester-past"},
+    {"id":"m5","degreeId":"degree-demo","name":"Wirtschaftsrecht","color":"#d0ae72","credits":6,"difficulty":3,"priority":2,"status":"open","grade":"","counted":true,"hidden":false,"semesterIds":[],"passedSemesterId":""},
+    {"id":"m6","degreeId":"degree-demo","name":"Freies Wahlmodul","color":"#ef8eb3","credits":6,"difficulty":2,"priority":1,"status":"passed","grade":"2,0","counted":false,"hidden":true,"semesterIds":["semester-past"],"passedSemesterId":"semester-past"}
+  ],
+  "offerings":[
+    {"id":"o1","semesterId":"semester-demo","moduleId":"m1","name":"Vorlesung A","kind":"lecture","date":"2026-10-05","endDate":"2027-02-15","recurrence":"weekly","from":"10:00","to":"12:00","room":"MA 041","topic":"Lineare Algebra","selected":true},
+    {"id":"o2","semesterId":"semester-demo","moduleId":"m1","name":"Vorlesung B","kind":"lecture","date":"2026-10-08","endDate":"2027-02-18","recurrence":"weekly","from":"14:00","to":"16:00","room":"MA 043","topic":"Lineare Algebra","selected":false},
+    {"id":"o3","semesterId":"semester-demo","moduleId":"m2","name":"Vorlesung","kind":"lecture","date":"2026-10-05","endDate":"2027-02-15","recurrence":"weekly","from":"10:00","to":"12:00","room":"MAR 002","topic":"Datenstrukturen","selected":false},
+    {"id":"o4","semesterId":"semester-demo","moduleId":"m2","name":"Übung","kind":"exercise","date":"2026-10-06","endDate":"2027-02-16","recurrence":"weekly","from":"12:00","to":"14:00","room":"EN 101","topic":"Arrays und Listen","selected":true},
+    {"id":"o5","semesterId":"semester-demo","moduleId":"m3","name":"Vorlesung","kind":"lecture","date":"2026-10-07","endDate":"2027-02-17","recurrence":"weekly","from":"08:00","to":"10:00","room":"HE 101","topic":"Elektrodynamik","selected":true},
+    {"id":"o6","semesterId":"semester-demo","moduleId":"m1","name":"Mathematik wiederholen","kind":"study","date":"2026-10-09","endDate":"2027-02-19","recurrence":"weekly","from":"13:00","to":"14:00","room":"Bibliothek","topic":"","selected":true}
+  ],
+  "lastUpdate":0
+}
