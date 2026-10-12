@@ -43,8 +43,13 @@ export function alignCalendarStart(date: string, mode: CalendarView, weekEndDay:
   const safeDate = weekdayIndex(date) <= end ? date : shiftVisibleDay(date, 1, end)
   if (mode === 'day') return safeDate
   const dayIndex = weekdayIndex(safeDate)
-  const firstMatchingWindow = twoDayStarts(end).find(start => dayIndex <= start + 1)
-  return addDays(weekStart(safeDate), firstMatchingWindow ?? end - 1)
+  const windows = twoDayStarts(end)
+  // A canonical start must remain itself even if its first day also belongs
+  // to the preceding overlapping window. Otherwise swipe-back isn't reversible.
+  const firstMatchingWindow = windows.includes(dayIndex)
+    ? dayIndex
+    : windows.find(start => dayIndex <= start + 1) ?? end - 1
+  return addDays(weekStart(safeDate), firstMatchingWindow)
 }
 
 export function datesForCalendarPage(start: string, mode: CalendarView, weekEndDay: number | undefined): string[] {
