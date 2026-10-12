@@ -171,3 +171,12 @@
  .module-fast .module-fast-slot-list{padding:0 8px}
  .module-fast .module-fast-slot{padding:12px}
 }
+
+.module-hub .module-journey-inline{color:#d0d0d4;font-size:11px}
+.module-fast .module-fast-journey{background:#171717;border-radius:14px;padding:18px;margin:13px 0}
+.module-fast .module-fast-journey-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px}
+.module-fast .module-fast-journey-head span{color:#888;font-size:11px}
+.module-fast .module-fast-journey p{color:#aaa;font-size:12px;line-height:1.6;margin:10px 0 14px}
+.module-fast .module-fast-journey-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.module-fast .module-fast-journey-stats span{font-size:10px;color:#999;display:flex;flex-direction:column;gap:6px}
+.module-fast .module-fast-journey-stats b{font-size:14px;color:#f5f5f5}
