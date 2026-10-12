@@ -110,8 +110,12 @@ export function journeyFor(data:AppData, module:StudyModule, allLessons:Learning
   const reviewed=new Set(sessions.filter(x=>x.kind==='review'&&x.lessonKey).map(x=>x.lessonKey!))
   const reviewQuality=sessions.filter(x=>x.kind==='review')
   const confidence=reviewQuality.length?reviewQuality.reduce((sum,x)=>sum+ratingValue(x.rating),0)/reviewQuality.length:0
-  const repetition=clamp((lessons.length?reviewed.size/lessons.length*70:0)+
-    (reviewQuality.length?confidence*0.3:0))
+  const spacedLessons=new Set(reviewQuality.filter(x=>x.lessonKey && reviewQuality.some(y=>
+    y.lessonKey===x.lessonKey && Math.abs(dayDistance(x.date,y.date))>=2
+  )).map(x=>x.lessonKey))
+  const repetition=clamp((lessons.length?reviewed.size/lessons.length*55:0)+
+    (reviewQuality.length?confidence*0.25:0)+
+    (lessons.length?spacedLessons.size/lessons.length*20:0))
   const examSessions=sessions.filter(x=>x.kind==='exam')
   const effectiveMinutes=examSessions.reduce((sum,x)=>sum+x.duration*ratingValue(x.rating)/100,0)
   const distinctDays=new Set(examSessions.map(x=>x.date)).size
@@ -124,7 +128,14 @@ export function journeyFor(data:AppData, module:StudyModule, allLessons:Learning
   const urgency=daysUntilExam===undefined?10:daysUntilExam<=3?100:daysUntilExam<=7?90:daysUntilExam<=14?75:daysUntilExam<=30?45:20
   const learningGap=understanding===null?65:100-understanding
   const insufficient=lessons.length?100-rated.length/lessons.length*100:70
-  const priority=clamp(.45*urgency+.3*learningGap+.15*(100-repetition)+.1*insufficient)
+  let priority=clamp(.45*urgency+.3*learningGap+.15*(100-repetition)+.1*insufficient)
+  // An imminent exam overrides a distant module's worse average, unless
+  // documented preparation is already genuinely extensive.
+  if(daysUntilExam!==undefined && (preparation===null||preparation<90)){
+    if(daysUntilExam<=3) priority=Math.max(priority,95)
+    else if(daysUntilExam<=7) priority=Math.max(priority,90)
+    else if(daysUntilExam<=14) priority=Math.max(priority,75)
+  }
   let status='Lernreise beginnt'
   let message='Bewerte deine Vorlesungen, damit uniflow deinen Lernstand einschätzen kann.'
   if(rated.length){
