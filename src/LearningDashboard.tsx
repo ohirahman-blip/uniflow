@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ArrowRight, BookOpen, CalendarClock, Check, CheckCircle2, ChevronRight, Clock3, GraduationCap, Plus, Sparkles, Target, X } from 'lucide-react'
-import { addDays, formatDate, isAssessment, occurrencesOn, today, uid, type AppData, type Semester, type StudyModule } from './model'
+import { addDays, formatDate, isAssessment, minutes, occurrencesOn, today, uid, type AppData, type Semester, type StudyModule } from './model'
 import { deriveLearningJourneys, pastLearningUnits, type LearningCheckin, type LearningKind, type LearningRating, type LearningSession } from './learning'
 import './learning-dashboard.css'
 
@@ -25,6 +25,9 @@ export default function LearningDashboard({ data, semester, modules, onCheckin, 
   const units = useMemo(() => pastLearningUnits(data, semester), [data, semester])
   const rated = useMemo(() => new Set((data.learning?.checkins || []).map(c => c.key)), [data.learning])
   const pending = units.filter(u => !rated.has(u.key))
+  const freeStudy = useMemo(() => pastLearningUnits(data, semester, today(), true), [data, semester])
+  const doneStudy = useMemo(() => new Set((data.learning?.sessions || []).map(s => s.id)), [data.learning])
+  const freeStudyPending = freeStudy.filter(u => !doneStudy.has('scheduled-study:' + u.key))
   const [showMore, setShowMore] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [selectedModule, setSelectedModule] = useState('')
@@ -86,12 +89,19 @@ export default function LearningDashboard({ data, semester, modules, onCheckin, 
       </section>
     </div>
 
-    <div className="learning-section-head"><div><span className="overline">NACH DEN VORLESUNGEN</span><h2>Kurzer Check-in</h2></div>{pending.length>3&&<button onClick={()=>setShowMore(v=>!v)}>{showMore?'Weniger':'Alle '+pending.length} <ChevronRight size={15}/></button>}</div>
-    {pending.length ? <div className="learning-checkins">{pending.slice(0,showMore?12:3).map(u => <article className="learning-checkin" key={u.key}>
+    <div className="learning-section-head"><div><span className="overline">NACH DEN VORLESUNGEN</span><h2>Kurzer Check-in</h2></div>{pending.length+freeStudyPending.length>3&&<button onClick={()=>setShowMore(v=>!v)}>{showMore?'Weniger':'Alle '+(pending.length+freeStudyPending.length)} <ChevronRight size={15}/></button>}</div>
+    {(pending.length || freeStudyPending.length) ? <div className="learning-checkins">{pending.slice(0,showMore?12:3).map(u => <article className="learning-checkin" key={u.key}>
       <div className="learning-checkin-top"><span>{modules.find(m=>m.id===u.moduleId)?.name || 'Modul'}</span><small>{formatDate(u.date,{day:'numeric',month:'short'})} · {u.label}</small></div>
       <h3>Wie gut hast du diese Einheit verstanden?</h3>
       <div className="learning-rating-row">{ratingOptions.map(option => <button key={option.value}
         className={'learning-rating '+option.value} onClick={()=>onCheckin({key:u.key,moduleId:u.moduleId,semesterId:semester.id,date:u.date,rating:option.value,updatedAt:Date.now()})}>
+        <span>{option.icon}</span>{option.text}</button>)}</div>
+    </article>)}
+    {freeStudyPending.slice(0,showMore?12:3).map(u=><article className="learning-checkin learning-study-checkin" key={u.key}>
+      <div className="learning-checkin-top"><span>Freies Lernen · {modules.find(m=>m.id===u.moduleId)?.name||'Modul'}</span><small>{formatDate(u.date,{day:'numeric',month:'short'})} · {u.from}–{u.to}</small></div>
+      <h3>Wie gut lief deine Lerneinheit?</h3>
+      <div className="learning-rating-row">{ratingOptions.map(option=><button className={'learning-rating '+option.value} key={option.value}
+        onClick={()=>onSession({id:'scheduled-study:'+u.key,moduleId:u.moduleId,semesterId:semester.id,date:u.date,duration:Math.max(5,minutes(u.to)-minutes(u.from)),kind:'review',outcome:option.value,createdAt:Date.now()})}>
         <span>{option.icon}</span>{option.text}</button>)}</div>
     </article>)}</div> : <div className="learning-all-clear"><CheckCircle2 size={19}/> Keine offenen Check-ins. Sehr gut!</div>}
 
