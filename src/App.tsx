@@ -510,14 +510,31 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     useEffect(()=>{const t=window.setInterval(()=>setClockNow(new Date()),30000);return()=>clearInterval(t)},[])
   useEffect(()=>{const blockDrag=(e:TouchEvent)=>{if(gesture.current?.active)e.preventDefault()};document.addEventListener('touchmove',blockDrag,{passive:false,capture:true});return()=>document.removeEventListener('touchmove',blockDrag,true)},[])
   useEffect(()=>setAnchor(today()<semester.start?semester.start:today()>semester.end?semester.end:today()),[semester.id])
+  const visible=(date:string)=>occurrencesOn(data.offerings,date).filter(o=>o.offering.semesterId===semester.id&&(!focusModuleId||o.offering.moduleId===focusModuleId))
+  const ghosts=(date:string)=>{
+    const active=visible(date)
+    return candidateOccurrencesOn(data.offerings,date,true).filter(o=>
+      o.offering.semesterId===semester.id && (!focusModuleId||o.offering.moduleId===focusModuleId) &&
+      !occurrenceAtOrigin(o.offering,o.origin,false) &&
+      // An occupied slot shows alternatives in the main card's detail panel.
+      !active.some(a=>intersects(a,o))
+    )
+  }
+  const visibleDays=(start:string)=>{
+    if(mode==='day')return [start]
+    if(mode==='two')return [start,addDays(start,1)]
+    const minimum=data.weekEndDay??4
+    const last=Math.max(minimum,...[5,6].filter(i=>visible(addDays(start,i)).length>0||ghosts(addDays(start,i)).length>0||data.assessments.some(a=>a.semesterId===semester.id&&a.date===addDays(start,i))))
+    return Array.from({length:last+1},(_,i)=>addDays(start,i))
+  }
   const step=mode==='week'?7:mode==='two'?2:1
   // One pinned header for all modes. In week view the range is unnecessary:
   // all seven dates are equally visible, and only the real "today" is marked.
   const stripMonday=weekStart(anchor)
-  const stripDates=Array.from({length:7},(_,index)=>addDays(stripMonday,index))
+  const stripDates=mode==='week'?visibleDays(stripMonday):Array.from({length:7},(_,index)=>addDays(stripMonday,index))
   const stripIndex=Math.max(0,stripDates.indexOf(anchor))
   const stripRangeIndex=stripIndex
-  const stripRangeDays=Math.min(step,7-stripRangeIndex)
+  const stripRangeDays=Math.min(step,stripDates.length-stripRangeIndex)
   const todayIndex=stripDates.indexOf(today())
   // Keep the outer strip mounted and slide previous/new date rows in opposite
   // directions whenever a horizontal swipe or arrow changes the displayed week.
@@ -578,10 +595,14 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const chooseStripDate=(date:string)=>{
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
     setFan(null)
+    if(mode==='week'){
+      // A weekday tap drills straight into its single-day timetable.
+      setMotion('idle')
+      setAnchor(date)
+      setMode('day')
+      return
+    }
     if(date===anchor)return
-    // In week mode a tap on another day of the same week only moves the
-    // liquid circle. The seven-column timetable doesn't need to reload.
-    if(mode==='week'&&weekStart(date)===stripMonday){setAnchor(date);return}
     animateCalendar(()=>setAnchor(date),date>anchor?'left':'right')
   }
   const changeMode=(next:CalendarView)=>{setFan(null);if(next!==mode)animateCalendar(()=>setMode(next),'switch')}
@@ -636,23 +657,6 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     setProposal(null)
   }
   const focusChoices=modules.filter(m=>m.status==='current'&&data.offerings.some(o=>o.moduleId===m.id&&o.semesterId===semester.id))
-  const visible=(date:string)=>occurrencesOn(data.offerings,date).filter(o=>o.offering.semesterId===semester.id&&(!focusModuleId||o.offering.moduleId===focusModuleId))
-  const ghosts=(date:string)=>{
-    const active=visible(date)
-    return candidateOccurrencesOn(data.offerings,date,true).filter(o=>
-      o.offering.semesterId===semester.id && (!focusModuleId||o.offering.moduleId===focusModuleId) &&
-      !occurrenceAtOrigin(o.offering,o.origin,false) &&
-      // An occupied slot shows alternatives in the main card's detail panel.
-      !active.some(a=>intersects(a,o))
-    )
-  }
-  const visibleDays=(start:string)=>{
-    if(mode==='day')return [start]
-    if(mode==='two')return [start,addDays(start,1)]
-    const minimum=data.weekEndDay??4
-    const last=Math.max(minimum,...[5,6].filter(i=>visible(addDays(start,i)).length>0||ghosts(addDays(start,i)).length>0||data.assessments.some(a=>a.semesterId===semester.id&&a.date===addDays(start,i))))
-    return Array.from({length:last+1},(_,i)=>addDays(start,i))
-  }
   // The tapped slot stays in front. Other days are listed behind it, never
   // portrayed as a different appointment occurring at this slot.
   const fanItems=fan ? [fan.occ,...linkedCandidates(data.offerings,fan.occ).map(x=>x.occ)]
@@ -741,21 +745,21 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         </div>
       </div>
     </div>
-    <div className={'uf-week-strip'+(mode==='week'?' uf-week-strip--week':'')} aria-label="Wochenauswahl">
+    <div className={'uf-week-strip'+(mode==='week'?' uf-week-strip--week':'')} aria-label="Wochenauswahl" style={{'--uf-days':stripDates.length} as CSSProperties}>
+      <div className="uf-week-strip-month">{fromDate(anchor).toLocaleDateString('de-DE',{month:'long',year:'numeric'})}</div>
       <div className="uf-week-strip-labels" aria-hidden="true">
-        {weekNames.map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
+        {weekNames.slice(0,stripDates.length).map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
       </div>
       <div className="uf-week-strip-viewport">
-        {weekSlide&&<div className={'uf-week-dates-previous uf-week-slide-out-'+weekSlide.direction} aria-hidden="true">
-          {Array.from({length:7},(_,index)=>{
-            const date=addDays(weekSlide.from,index)
-            return <span key={date} className={date===today()?'uf-week-previous-today':''}>{Number(date.slice(-2))}</span>
-          })}
+        {weekSlide&&<div className={'uf-week-dates-previous uf-week-slide-out-'+weekSlide.direction} aria-hidden="true" style={{'--uf-days':mode==='week'?visibleDays(weekSlide.from).length:7} as CSSProperties}>
+          {(mode==='week'?visibleDays(weekSlide.from):Array.from({length:7},(_,index)=>addDays(weekSlide.from,index))).map(date=>
+            <span key={date} className={date===today()?'uf-week-previous-today':''}>{Number(date.slice(-2))}</span>
+          )}
         </div>}
         <div key={stripMonday} className={'uf-week-strip-days'+(weekSlide?' uf-week-slide-in-'+weekSlide.direction:'')}>
-          {mode!=='week'&&<span className="uf-week-range" aria-hidden="true" style={{left:(stripRangeIndex/7*100)+'%',width:(stripRangeDays/7*100)+'%'}}/>}
-          {todayIndex!==-1&&(mode==='week'||anchor!==today())&&<span className="uf-week-today-marker" aria-hidden="true" style={{left:(todayIndex/7*100)+'%'}}/>}
-          {mode!=='week'&&<span className="uf-week-liquid" aria-hidden="true" style={{left:(stripIndex/7*100)+'%'}}>
+          {mode!=='week'&&<span className="uf-week-range" aria-hidden="true" style={{left:(stripRangeIndex/stripDates.length*100)+'%',width:(stripRangeDays/stripDates.length*100)+'%'}}/>}
+          {todayIndex!==-1&&(mode==='week'||anchor!==today())&&<span className="uf-week-today-marker" aria-hidden="true" style={{left:(todayIndex/stripDates.length*100)+'%'}}/>}
+          {mode!=='week'&&<span className="uf-week-liquid" aria-hidden="true" style={{left:(stripIndex/stripDates.length*100)+'%'}}>
             <span className={'uf-week-liquid-core'+(anchor===today()?' uf-week-liquid-today':'')} key={anchor}/>
           </span>}
           {stripDates.map(date=>{
