@@ -756,7 +756,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           </div>
         })}
       </div>
-    </div>}
+    </div>
     <div className={"calendar-lanes calendar-lanes-"+mode+" calendar-motion-"+motion}>
       <div className="time-ruler"><button className="ruler-head" title="Heute" onClick={()=>setAnchor(today())}>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'})}</button>
         <div className="ruler-track" style={{height}}>{times.map((h,i)=><span key={h} style={{top:i*heightPerSlot}}>{String(h).padStart(2,'0')}:00</span>)}
