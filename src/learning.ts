@@ -100,13 +100,20 @@ export function journeyFor(data:AppData, module:StudyModule, allLessons:Learning
   })
   // Learning after class can replace a poor first impression. The initial check-in
   // stays in the history; only the current, documented assessment changes.
-  const understanding=known.length?clamp(known.reduce((sum,l)=>{
+  const baseUnderstanding=known.length?clamp(known.reduce((sum,l)=>{
     const initial=ratingValue(statuses.get(l.key)!.rating)
     const linked=sessions.filter(s=>s.lessonKey===l.key).sort((a,b)=>a.updatedAt.localeCompare(b.updatedAt))
     if(!linked.length)return sum+initial
     const newest=ratingValue(linked[linked.length-1].rating)
     return sum+(linked.length>1?newest:0.2*initial+0.8*newest)
   },0)/known.length):null
+  // General study can help a weak module, but without a linked topic we must
+  // not pretend individual unknown/missed lectures are mastered.
+  const generalReviews=sessions.filter(s=>s.kind==='review'&&!s.lessonKey)
+  const usefulMinutes=generalReviews.reduce((sum,s)=>sum+s.duration*ratingValue(s.rating)/100,0)
+  const separateDays=new Set(generalReviews.map(s=>s.date)).size
+  const generalLift=Math.min(15,usefulMinutes/180*15)*(separateDays>=2?1:0.6)
+  const understanding=baseUnderstanding===null?null:clamp(baseUnderstanding+generalLift)
   const reviewed=new Set(sessions.filter(x=>x.kind==='review'&&x.lessonKey).map(x=>x.lessonKey!))
   const reviewQuality=sessions.filter(x=>x.kind==='review')
   const confidence=reviewQuality.length?reviewQuality.reduce((sum,x)=>sum+ratingValue(x.rating),0)/reviewQuality.length:0
