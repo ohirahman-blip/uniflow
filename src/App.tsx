@@ -9,6 +9,7 @@ import UniflowPicker from './UniflowPicker'
 import LearningDashboard from './LearningDashboard'
 import { journeyFor, pastLessons, type Journey, type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask } from './learning'
 import './styles.css'
+import './calendar-week-strip.css'
 
 type Page = 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
 type NewEntry = { date: string; from: string; to: string; category?: string; recurrence?: Repeat }
@@ -510,6 +511,11 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   useEffect(()=>{const blockDrag=(e:TouchEvent)=>{if(gesture.current?.active)e.preventDefault()};document.addEventListener('touchmove',blockDrag,{passive:false,capture:true});return()=>document.removeEventListener('touchmove',blockDrag,true)},[])
   useEffect(()=>setAnchor(today()<semester.start?semester.start:today()>semester.end?semester.end:today()),[semester.id])
   const step=mode==='week'?7:mode==='two'?2:1
+  // In the two-day view, the seven-day navigation stays outside the horizontally
+  // scrollable timetable. Its range follows anchor changes from taps and swipes.
+  const stripMonday=weekStart(anchor)
+  const stripDates=Array.from({length:7},(_,index)=>addDays(stripMonday,index))
+  const stripIndex=Math.max(0,stripDates.indexOf(anchor))
   const pageStart=(center:string)=>mode==='week'?weekStart(center):center
   const pages=useMemo(()=>[-1,0,1].map(n=>addDays(pageStart(anchor),n*step)),[anchor,step,mode])
   const times=Array.from({length:Math.max(1,Math.floor((data.lastHour-data.firstHour)/2))},(_,i)=>data.firstHour+i*2)
@@ -550,6 +556,12 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     },105)
   }
   const jump=(direction:number)=>{setFan(null);if(scrollTimeout.current)clearTimeout(scrollTimeout.current);animateCalendar(()=>setAnchor(addDays(pageStart(anchor),direction*step)),direction>0?'left':'right')}
+  const chooseStripDate=(date:string)=>{
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    setFan(null)
+    if(date===anchor)return
+    animateCalendar(()=>setAnchor(date),date>anchor?'left':'right')
+  }
   const changeMode=(next:CalendarView)=>{setFan(null);if(next!==mode)animateCalendar(()=>setMode(next),'switch')}
   const onDown=(e:ReactPointerEvent,occ?:Occurrence,source?:NewEntry)=>{
     if(e.pointerType==='mouse'&&e.button!==0)return
@@ -651,7 +663,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     const clockActive=isToday&&nowY>=0&&nowY<=height
     const assessmentsToday=data.assessments.filter(a=>a.semesterId===semester.id&&a.date===date&&(!focusModuleId||a.moduleId===focusModuleId))
     return <div className="day-column" key={date}>
-      <div className="assessment-day-head">
+      {mode!=='two'&&<div className="assessment-day-head">
         <button className={'day-heading '+(isToday?'is-today':'')} onClick={()=>setAnchor(weekStart(date))}><span>{weekNames[(fromDate(date).getDay()+6)%7]}</span><strong>{Number(date.slice(-2))}</strong></button>
         {assessmentsToday.length>0&&<div className="assessment-day-icons">
           {assessmentsToday.slice(0,3).map(item=><button key={item.id} type="button" className={'assessment-day-icon '+(item.completed?'done':'')}
@@ -660,7 +672,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             </button>)}
           {assessmentsToday.length>3&&<span className="assessment-more">+{assessmentsToday.length-3}</span>}
         </div>}
-      </div>
+      </div>}
       <div className="day-track" data-calendar-day={date} style={{height}}>
         {times.map((h,i)=>{const from=timeString(h*60),to=timeString((h+2)*60)
           return <div key={from} className="empty-slot" data-day={date} data-time={from} style={{height:heightPerSlot,top:i*heightPerSlot}}
@@ -707,9 +719,9 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         <button className={mode==='week'?'active':''} onClick={()=>changeMode('week')} title="Woche" aria-label="Wochenansicht"><CalendarCheck2 size={17}/></button>
       </div>
       <div className="calendar-tools">
-        <button className="calendar-today" onClick={()=>animateCalendar(()=>setAnchor(today()),'switch')} title="Zum heutigen Tag">Heute</button>
-        <button aria-label="Vorheriger Zeitraum" title="Zurück" onClick={()=>jump(-1)}><ChevronLeft size={19}/></button>
-        <button aria-label="Nächster Zeitraum" title="Weiter" onClick={()=>jump(1)}><ChevronRight size={19}/></button>
+        <button className="calendar-today" onClick={e=>{e.currentTarget.blur();chooseStripDate(today())}} title="Zum heutigen Tag">Heute</button>
+        <button aria-label="Vorheriger Zeitraum" title="Zurück" onClick={e=>{e.currentTarget.blur();jump(-1)}}><ChevronLeft size={19}/></button>
+        <button aria-label="Nächster Zeitraum" title="Weiter" onClick={e=>{e.currentTarget.blur();jump(1)}}><ChevronRight size={19}/></button>
         <div className="quick-task-wrap" ref={taskWrap}><button className="calendar-quick-add" title="Termin, Klausur oder Abgabe hinzufügen" aria-label="Termin, Klausur oder Abgabe hinzufügen" onClick={()=>setTaskMenu(v=>!v)}><Plus size={18}/></button>
           {taskMenu&&<div className="mini-popover"><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',recurrence:'once'})}}><CalendarDays size={16}/> Einmaliger Termin</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',category:'Klausur'})}}><GraduationCap size={16}/> Klausur</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'18:00',to:'18:30',category:'Hausaufgabe'})}}><ClipboardList size={16}/> Hausaufgabe</button></div>}
         </div>
@@ -718,7 +730,38 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         </div>
       </div>
     </div>
-    <div className={"calendar-lanes calendar-motion-"+motion}>
+    {mode==='two'&&<div className="uf-week-strip" aria-label="Wochenauswahl">
+      <div className="uf-week-strip-labels" aria-hidden="true">
+        {weekNames.map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
+      </div>
+      <div className="uf-week-strip-days" key={stripMonday}>
+        <span className="uf-week-range" aria-hidden="true" style={{left:(stripIndex/7*100)+'%',width:(Math.min(2,7-stripIndex)/7*100)+'%'}}/>
+        <span className="uf-week-liquid" aria-hidden="true" style={{left:(stripIndex/7*100)+'%'}}>
+          <span className="uf-week-liquid-core" key={anchor}/>
+        </span>
+        {stripDates.map(date=>{
+          const selected=date===anchor
+          const second=date===addDays(anchor,1)
+          const dayItems=data.assessments.filter(a=>a.semesterId===semester.id&&a.date===date&&(!focusModuleId||a.moduleId===focusModuleId))
+          return <div className="uf-week-strip-day" key={date}>
+            <button type="button" className={'uf-week-strip-button'+(selected?' uf-week-first':'')+(second?' uf-week-second':'')+(date===today()?' uf-week-today':'')}
+              aria-label={formatDate(date,{weekday:'long',day:'numeric',month:'long'})+' anzeigen'}
+              aria-pressed={selected} onClick={e=>{e.currentTarget.blur();chooseStripDate(date)}}>
+              {Number(date.slice(-2))}
+            </button>
+            {dayItems.length>0&&<div className="uf-week-strip-assessments">
+              {dayItems.slice(0,2).map(item=><button type="button" key={item.id}
+                title={item.title} aria-label={(item.type==='exam'?'Klausur: ':'Hausaufgabe: ')+item.title}
+                className={item.completed?'uf-week-assessment done':'uf-week-assessment'} onClick={e=>{e.stopPropagation();onEditAssessment(item)}}>
+                {item.type==='exam'?<GraduationCap size={11}/>:<ClipboardList size={11}/>}
+              </button>)}
+              {dayItems.length>2&&<span className="uf-week-assessment-more">+{dayItems.length-2}</span>}
+            </div>}
+          </div>
+        })}
+      </div>
+    </div>}
+    <div className={"calendar-lanes calendar-lanes-"+mode+" calendar-motion-"+motion}>
       <div className="time-ruler"><button className="ruler-head" title="Heute" onClick={()=>setAnchor(today())}>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'})}</button>
         <div className="ruler-track" style={{height}}>{times.map((h,i)=><span key={h} style={{top:i*heightPerSlot}}>{String(h).padStart(2,'0')}:00</span>)}
           {visibleDays(pages[1]).includes(today())&&nowY>=0&&nowY<=height&&<div className="now-ruler-line" style={{top:nowY}} aria-hidden="true"/>}
