@@ -63,3 +63,12 @@
 .learn-submit{display:flex;align-items:center;justify-content:center;gap:10px;background:#f4f4f4;border:0;border-radius:13px;color:#111;padding:16px;font-weight:750}
 @media(max-width:740px){.learn-dashboard{padding-top:30px}.learn-journeys{grid-template-columns:1fr}.learn-hero-grid{grid-template-columns:1fr 1fr}.learn-hero{min-height:120px;padding:16px}.learn-hero strong{font-size:17px}.learn-rating-options{grid-template-columns:repeat(2,minmax(0,1fr))}.learn-title h2{font-size:20px}}
 @media(max-width:440px){.learn-hero-grid{grid-template-columns:1fr}.learn-hero{min-height:105px}.learn-title{align-items:center}.learn-primary{padding:10px 12px}.learn-foot{flex-wrap:wrap}.learn-result-options{grid-template-columns:1fr}}
+
+.learn-suggestions{display:flex;flex-direction:column;margin-top:12px;gap:2px}
+.learn-suggestion{display:flex;align-items:center;gap:13px;padding:15px 2px;border-bottom:1px solid #252525}
+.learn-suggestion-num{color:#6e6e77;font-size:11px;font-weight:650}
+.learn-suggestion>div{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}
+.learn-suggestion>div strong{font-size:13px}
+.learn-suggestion>div small{font-size:11px;color:#9b9ba3;line-height:1.4}
+.learn-suggestion>button{display:grid;place-items:center;background:#252525;color:#eee;border:0;border-radius:9px;width:35px;height:35px;flex-shrink:0}
+.learn-suggestion>button:hover{background:#333}
