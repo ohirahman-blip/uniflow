@@ -730,7 +730,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
       <div className="uf-week-strip-labels" aria-hidden="true">
         {weekNames.map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
       </div>
-      <div className="uf-week-strip-days" key={stripMonday}>
+      <div className="uf-week-strip-days">
         <span className="uf-week-range" aria-hidden="true" style={{left:(stripRangeIndex/7*100)+'%',width:(stripRangeDays/7*100)+'%'}}/>
         <span className="uf-week-liquid" aria-hidden="true" style={{left:(stripIndex/7*100)+'%'}}>
           <span className="uf-week-liquid-core" key={anchor}/>
