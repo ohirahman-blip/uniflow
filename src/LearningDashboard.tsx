@@ -5,8 +5,8 @@ import {
   type AppData, type Semester, type StudyModule
 } from './model'
 import {
-  pastLessons, rankedJourneys,
-  type LearningLesson, type LearningRating, type LearningSession
+  pastLessons, pastFreeStudy, rankedJourneys,
+  type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask
 } from './learning'
 import './learning-dashboard.css'
 
@@ -16,6 +16,8 @@ type Props = {
   modules: StudyModule[]
   onCheckin: (lesson:LearningLesson,rating:LearningRating)=>void
   onSession: (session:Omit<LearningSession,'id'|'updatedAt'>)=>void
+  onPlan: (task:LearningPlanTask)=>void
+  onRemovePlan: (id:string)=>void
   onOpenModule: (id:string)=>void
 }
 const ratingLabels:{value:LearningRating;label:string}[]=[
@@ -27,7 +29,7 @@ const ratingLabels:{value:LearningRating;label:string}[]=[
 const shortDate=(iso:string)=>formatDate(iso,{day:'numeric',month:'short'})
 const percent=(n:number|null)=>n===null?'—':n+' %'
 
-export default function LearningDashboard({data,semester,modules,onCheckin,onSession,onOpenModule}:Props){
+export default function LearningDashboard({data,semester,modules,onCheckin,onSession,onPlan,onRemovePlan,onOpenModule}:Props){
   const [studyOpen,setStudyOpen]=useState(false)
   const [moduleId,setModuleId]=useState('')
   const [lessonKey,setLessonKey]=useState('')
@@ -35,11 +37,15 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
   const [duration,setDuration]=useState(45)
   const [result,setResult]=useState<Exclude<LearningRating,'absent'>>('understood')
   const [showAll,setShowAll]=useState(false)
+  const [activePlan,setActivePlan]=useState<string|undefined>()
   const allLessons=useMemo(()=>pastLessons(data,semester),[data.offerings,semester])
   const journeys=useMemo(()=>rankedJourneys(data,modules,semester),[data,modules,semester])
   const active=modules.filter(m=>m.status==='current'||m.status==='failed'||m.status==='open')
   const checkins=new Map((data.learningCheckins||[]).map(c=>[c.key,c]))
   const pending=allLessons.filter(l=>!checkins.has(l.key))
+  const planned=(data.learningPlans||[]).filter(t=>t.date===today())
+  const completedPlans=new Set((data.learningSessions||[]).map(s=>s.planId).filter(Boolean))
+  const freePending=pastFreeStudy(data,semester).filter(l=>!(data.learningSessions||[]).some(s=>s.scheduledKey===l.key))
   const recent=showAll?pending:pending.slice(0,3)
   const rankedModules=journeys.map(j=>({j,module:modules.find(m=>m.id===j.moduleId)!})).filter(x=>x.module)
   const focus=rankedModules[0]
@@ -63,11 +69,13 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
   const submitStudy=()=>{
     if(!chosenModule||!Number.isInteger(duration)||duration<5||duration>360)return
     onSession({moduleId:chosenModule.id,date:today(),duration,kind,rating:result,
-      lessonKey:kind==='review'&&lessonKey?lessonKey:undefined})
+      lessonKey:kind==='review'&&lessonKey?lessonKey:undefined,planId:activePlan})
     setStudyOpen(false)
+    setActivePlan(undefined)
     setLessonKey('')
   }
-  const beginStudy=(id?:string,key?:string,exam=false)=>{
+  const beginStudy=(id?:string,key?:string,exam=false,planId?:string)=>{
+    setActivePlan(planId)
     setModuleId(id||focus?.module.id||active[0]?.id||'')
     setLessonKey(key||'')
     setResult('understood')
@@ -111,6 +119,16 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
         {pending.length>3&&<button className="learn-text-action" onClick={()=>setShowAll(v=>!v)}>{showAll?'Weniger anzeigen':`Alle ${pending.length} Check-ins anzeigen`} <ChevronRight size={15}/></button>}
       </>}
     </section>
+    {freePending.length>0&&<section className="learn-section">
+      <div className="learn-title"><div><span className="overline">NACH DEM FREIEN LERNEN</span><h2>Wie lief dein Lernen?</h2></div><span className="learn-counter">{freePending.length} offen</span></div>
+      <p className="learn-muted">Auch deine geplanten freien Lerneinheiten können in die Lernreise einfließen.</p>
+      <div className="learn-checkins">{freePending.slice(0,showAll?freePending.length:3).map(l=><div className="learn-checkin" key={l.key}>
+        <div className="learn-checkin-heading"><div><strong>{modules.find(m=>m.id===l.moduleId)?.name||'Modul'}</strong><span>{l.label} · {shortDate(l.date)} · {l.from}–{l.to}</span></div><span className="learn-eyebrow">Wie lief's?</span></div>
+        <div className="learn-rating-options">{ratingLabels.filter(r=>r.value!=='absent').map(r=><button className={'learn-rating learn-rating-'+r.value} key={r.value}
+          onClick={()=>onSession({moduleId:l.moduleId,date:l.date,duration:Math.max(5,minutes(l.to)-minutes(l.from)),kind:'review',rating:r.value as Exclude<LearningRating,'absent'>,scheduledKey:l.key})}>{r.label}</button>)}</div>
+      </div>)}</div>
+      {freePending.length>3&&<button className="learn-text-action" onClick={()=>setShowAll(v=>!v)}>{showAll?'Weniger':'Weitere Lerneinheiten'} <ChevronRight size={15}/></button>}
+    </section>}
     <section className="learn-section">
       <div className="learn-title"><div><span className="overline">DEINE EMPFEHLUNGEN</span><h2>Lernplan</h2></div><button className="learn-primary" onClick={()=>beginStudy()} disabled={!active.length}><Plus size={16}/> Freies Lernen</button></div>
       <p className="learn-muted">Nach Klausurtermin, Wissenslücken und Wiederholungsbedarf priorisiert. Vorschläge, keine automatisch eingetragenen Kalendertermine.</p>
@@ -122,6 +140,17 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
           focus.j.weakLessons.length?'Einige Inhalte benötigen noch eine Wiederholung.':'Halte dein Wissen mit kurzen Wiederholungen frisch.'}</p>
         <div className="learn-recommendation-footer"><span>{focus.j.daysUntilExam!==undefined?`Klausur in ${focus.j.daysUntilExam} Tagen`:focus.j.status}</span><button onClick={()=>beginStudy(focus.module.id,focus.j.weakLessons[0]?.key)}>Lernen erfassen <ArrowRight size={15}/></button></div>
       </div>:<p className="learn-muted">Füge ein aktuelles Modul hinzu, um Empfehlungen zu erhalten.</p>}
+      {planned.length>0&&<div className="learn-planned">
+        <div className="learn-planned-title">Für heute übernommen · {planned.filter(t=>completedPlans.has(t.id)).length} von {planned.length} erledigt</div>
+        {planned.map(t=><div className="learn-planned-item" key={t.id}>
+          <span className="learn-planned-indicator">{completedPlans.has(t.id)?<Check size={17}/>:<Clock3 size={17}/>}</span>
+          <div className="learn-planned-content"><strong>{t.title}</strong><small>{modules.find(m=>m.id===t.moduleId)?.name} · {t.duration} Minuten</small></div>
+          {completedPlans.has(t.id)?<span className="learn-planned-done">Erledigt</span>:<>
+            <button className="learn-planned-finish" onClick={()=>{beginStudy(t.moduleId,t.lessonKey,t.kind==='exam',t.id);setDuration(t.duration)}}>Fertig?</button>
+            <button className="learn-planned-delete" aria-label="Lernziel entfernen" onClick={()=>onRemovePlan(t.id)}><X size={15}/></button>
+          </>}
+        </div>)}
+      </div>}
       {rankedModules.length>0&&<div className="learn-suggestions">
         {rankedModules.slice(0,3).map(({module,j},index)=>{
           const target=j.weakLessons[0]
@@ -129,7 +158,7 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
           return <div className="learn-suggestion" key={module.id}>
             <span className="learn-suggestion-num">{String(index+1).padStart(2,'0')}</span>
             <div><strong>{module.name}</strong><small>{target?'Wiederholen: '+target.label:examFocus?'Klausuraufgaben üben':'Wissen festigen'} · Vorschlag 45 Min.</small></div>
-            <button aria-label={'Lernen für '+module.name+' erfassen'} onClick={()=>beginStudy(module.id,target?.key,examFocus)}><Plus size={17}/></button>
+            <button aria-label={'Lernziel für '+module.name+' übernehmen'} title="Für heute einplanen" onClick={()=>onPlan({id:module.id+'-'+Date.now(),moduleId:module.id,date:today(),title:target?'Wiederholen: '+target.label:examFocus?'Klausuraufgaben üben':'Wissen festigen',kind:examFocus?'exam':'review',duration:45,lessonKey:target?.key})}><Plus size={17}/></button>
           </div>
         })}
       </div>}

@@ -12,7 +12,7 @@ const learning={exports:{}}
 new Function('module','exports','require',compile('src/learning.ts'))(learning,learning.exports,id=>id==='./model'?model.exports:require(id))
 const dashboard=ts.transpileModule(fs.readFileSync('src/LearningDashboard.tsx','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX},reportDiagnostics:true})
 assert.equal((dashboard.diagnostics||[]).filter(d=>d.category===ts.DiagnosticCategory.Error).length,0,'Dashboard TSX syntax')
-const {pastLessons,journeyFor}=learning.exports
+const {pastLessons,pastFreeStudy,journeyFor}=learning.exports
 const {emptyData}=model.exports
 const moduleA={id:'a',degreeId:'d',name:'A',shortName:'A',credits:6,color:'#fff',status:'current',grade:'',counted:true,hidden:false,semesterIds:['s']}
 const moduleB={...moduleA,id:'b',name:'B'}
@@ -38,4 +38,7 @@ data.learningSessions=[{id:'r1',moduleId:'b',date:'2026-10-13',duration:45,kind:
 const B2=journeyFor(data,moduleB,lessons,'2026-10-12')
 assert.ok(B2.understanding>B.understanding,'Study reviews must compensate poor initial check-ins')
 assert.ok(B2.repetition>B.repetition,'Spaced repetition improves score')
+const freeA={...makeOffer('freeA','a',true,'2026-10-05'),category:'Freies Lernen',contentId:'one-free-content'}
+const freeAlt={...makeOffer('freeAlt','a',true,'2026-10-05'),category:'Freies Lernen',contentId:'one-free-content'}
+assert.equal(pastFreeStudy({...data,offerings:[freeA,freeAlt]},semester,new Date('2026-10-12T12:00:00')).length,2,'Alternatives of weekly free learning count once per week')
 console.log('✔ learning journey: deduplication, exam priority, capped readiness, review compensation, TSX parsing')

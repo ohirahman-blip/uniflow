@@ -72,3 +72,18 @@
 .learn-suggestion>div small{font-size:11px;color:#9b9ba3;line-height:1.4}
 .learn-suggestion>button{display:grid;place-items:center;background:#252525;color:#eee;border:0;border-radius:9px;width:35px;height:35px;flex-shrink:0}
 .learn-suggestion>button:hover{background:#333}
+
+
+/* Saved daily study plans: isolated to dashboard; no calendar styling changed. */
+.learn-planned { background:#1b1b1e; border-radius:14px; padding:10px 15px; margin:13px 0; }
+.learn-planned-title { color:#aaa9af; font-size:11px; font-weight:600; padding:9px 2px; }
+.learn-planned-item { display:flex; gap:11px; align-items:center; padding:12px 0; border-top:1px solid #323136; }
+.learn-planned-indicator { display:grid; place-items:center; flex-shrink:0; width:33px; height:33px; border-radius:9px; color:#dab8c7; background:#302930; }
+.learn-planned-content { flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+.learn-planned-content strong { font-size:13px; color:#efedf0; font-weight:650; overflow-wrap:anywhere; }
+.learn-planned-content small { font-size:11px; color:#a4a1a8; }
+.learn-planned-done { color:#91d5aa; font-weight:650; font-size:11px; }
+.learn-planned-finish { color:#171617; background:#f3edf0; border:0; border-radius:8px; padding:10px 12px; font-weight:650; font-size:11px; cursor:pointer; }
+.learn-planned-delete { color:#8e8b93; background:transparent; border:0; padding:6px; cursor:pointer; display:grid; place-items:center; }
+.learn-suggestions button:disabled { opacity:.4; cursor:default; }
+@media(max-width:420px){ .learn-planned{padding:9px 11px} .learn-planned-item{gap:8px} .learn-planned-finish{padding:9px 8px} }
