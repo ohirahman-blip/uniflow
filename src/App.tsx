@@ -511,11 +511,14 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   useEffect(()=>{const blockDrag=(e:TouchEvent)=>{if(gesture.current?.active)e.preventDefault()};document.addEventListener('touchmove',blockDrag,{passive:false,capture:true});return()=>document.removeEventListener('touchmove',blockDrag,true)},[])
   useEffect(()=>setAnchor(today()<semester.start?semester.start:today()>semester.end?semester.end:today()),[semester.id])
   const step=mode==='week'?7:mode==='two'?2:1
-  // In the two-day view, the seven-day navigation stays outside the horizontally
-  // scrollable timetable. Its range follows anchor changes from taps and swipes.
+  // One consistent pinned seven-day header for day / two days / week.
+  // The dark selection spans the number of days shown in the current view,
+  // while the white liquid circle marks the explicitly selected date.
   const stripMonday=weekStart(anchor)
   const stripDates=Array.from({length:7},(_,index)=>addDays(stripMonday,index))
   const stripIndex=Math.max(0,stripDates.indexOf(anchor))
+  const stripRangeIndex=mode==='week'?0:stripIndex
+  const stripRangeDays=mode==='week'?7:Math.min(step,7-stripRangeIndex)
   const pageStart=(center:string)=>mode==='week'?weekStart(center):center
   const pages=useMemo(()=>[-1,0,1].map(n=>addDays(pageStart(anchor),n*step)),[anchor,step,mode])
   const times=Array.from({length:Math.max(1,Math.floor((data.lastHour-data.firstHour)/2))},(_,i)=>data.firstHour+i*2)
@@ -552,14 +555,17 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     scrollTimeout.current=setTimeout(()=>{
       const el=scroller.current;if(!el||scrollReset.current)return
       const page=Math.round(el.scrollLeft/Math.max(1,el.clientWidth))
-      if(page!==1) {scrollReset.current=true;setAnchor(addDays(pageStart(anchor),(page-1)*step))}
+      if(page!==1) {scrollReset.current=true;setAnchor(addDays(anchor,(page-1)*step))}
     },105)
   }
-  const jump=(direction:number)=>{setFan(null);if(scrollTimeout.current)clearTimeout(scrollTimeout.current);animateCalendar(()=>setAnchor(addDays(pageStart(anchor),direction*step)),direction>0?'left':'right')}
+  const jump=(direction:number)=>{setFan(null);if(scrollTimeout.current)clearTimeout(scrollTimeout.current);animateCalendar(()=>setAnchor(addDays(anchor,direction*step)),direction>0?'left':'right')}
   const chooseStripDate=(date:string)=>{
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
     setFan(null)
     if(date===anchor)return
+    // In week mode a tap on another day of the same week only moves the
+    // liquid circle. The seven-column timetable doesn't need to reload.
+    if(mode==='week'&&weekStart(date)===stripMonday){setAnchor(date);return}
     animateCalendar(()=>setAnchor(date),date>anchor?'left':'right')
   }
   const changeMode=(next:CalendarView)=>{setFan(null);if(next!==mode)animateCalendar(()=>setMode(next),'switch')}
@@ -661,18 +667,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     const inactiveKeys=new Set(inactiveEvents.map(o=>o.key))
     const isToday=date===today()
     const clockActive=isToday&&nowY>=0&&nowY<=height
-    const assessmentsToday=data.assessments.filter(a=>a.semesterId===semester.id&&a.date===date&&(!focusModuleId||a.moduleId===focusModuleId))
     return <div className="day-column" key={date}>
-      {mode!=='two'&&<div className="assessment-day-head">
-        <button className={'day-heading '+(isToday?'is-today':'')} onClick={()=>setAnchor(weekStart(date))}><span>{weekNames[(fromDate(date).getDay()+6)%7]}</span><strong>{Number(date.slice(-2))}</strong></button>
-        {assessmentsToday.length>0&&<div className="assessment-day-icons">
-          {assessmentsToday.slice(0,3).map(item=><button key={item.id} type="button" className={'assessment-day-icon '+(item.completed?'done':'')}
-            title={`${item.type==='exam'?'Klausur':'Hausaufgabe'}: ${item.title}`} aria-label={`${item.type==='exam'?'Klausur':'Hausaufgabe'} ${item.title} bearbeiten`} onClick={()=>onEditAssessment(item)}>
-              {item.type==='exam'?<GraduationCap size={14}/>:<ClipboardList size={14}/>}
-            </button>)}
-          {assessmentsToday.length>3&&<span className="assessment-more">+{assessmentsToday.length-3}</span>}
-        </div>}
-      </div>}
       <div className="day-track" data-calendar-day={date} style={{height}}>
         {times.map((h,i)=>{const from=timeString(h*60),to=timeString((h+2)*60)
           return <div key={from} className="empty-slot" data-day={date} data-time={from} style={{height:heightPerSlot,top:i*heightPerSlot}}
@@ -730,23 +725,23 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         </div>
       </div>
     </div>
-    {mode==='two'&&<div className="uf-week-strip" aria-label="Wochenauswahl">
+    <div className="uf-week-strip" aria-label="Wochenauswahl">
       <div className="uf-week-strip-labels" aria-hidden="true">
         {weekNames.map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
       </div>
       <div className="uf-week-strip-days" key={stripMonday}>
-        <span className="uf-week-range" aria-hidden="true" style={{left:(stripIndex/7*100)+'%',width:(Math.min(2,7-stripIndex)/7*100)+'%'}}/>
+        <span className="uf-week-range" aria-hidden="true" style={{left:(stripRangeIndex/7*100)+'%',width:(stripRangeDays/7*100)+'%'}}/>
         <span className="uf-week-liquid" aria-hidden="true" style={{left:(stripIndex/7*100)+'%'}}>
           <span className="uf-week-liquid-core" key={anchor}/>
         </span>
         {stripDates.map(date=>{
           const selected=date===anchor
-          const second=date===addDays(anchor,1)
+          const second=mode==='two'&&date===addDays(anchor,1)
           const dayItems=data.assessments.filter(a=>a.semesterId===semester.id&&a.date===date&&(!focusModuleId||a.moduleId===focusModuleId))
           return <div className="uf-week-strip-day" key={date}>
             <button type="button" className={'uf-week-strip-button'+(selected?' uf-week-first':'')+(second?' uf-week-second':'')+(date===today()?' uf-week-today':'')}
               aria-label={formatDate(date,{weekday:'long',day:'numeric',month:'long'})+' anzeigen'}
-              aria-pressed={selected} onClick={e=>{e.currentTarget.blur();chooseStripDate(date)}}>
+              aria-current={selected?'date':undefined} aria-pressed={mode==='week'||selected||second} onClick={e=>{e.currentTarget.blur();chooseStripDate(date)}}>
               {Number(date.slice(-2))}
             </button>
             {dayItems.length>0&&<div className="uf-week-strip-assessments">
