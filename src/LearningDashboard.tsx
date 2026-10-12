@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, BookOpen, CalendarClock, Check, ChevronRight, Clock3, GraduationCap, Plus, Sparkles, X } from 'lucide-react'
+import { ArrowRight, CalendarClock, Check, ChevronRight, Clock3, GraduationCap, Plus, Sparkles, X } from 'lucide-react'
 import {
   formatDate, fromDate, isAssessment, minutes, occurrencesOn, today,
   type AppData, type Semester, type StudyModule
 } from './model'
 import {
-  futureExam, journeyFor, pastLessons, rankedJourneys,
-  type LearningCheckin, type LearningLesson, type LearningRating, type LearningSession
+  pastLessons, rankedJourneys,
+  type LearningLesson, type LearningRating, type LearningSession
 } from './learning'
 import './learning-dashboard.css'
 
