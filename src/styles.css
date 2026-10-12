@@ -2148,8 +2148,7 @@ button:not(:disabled):active { transform: scale(.97); }
 .admin-form input,.admin-form select { flex:1 1 130px; min-width:0; background:#202020; border:0; border-radius:6px; color:#eee; font:inherit; padding:10px; }
 .admin-form button { background:#e7e7e7; color:#151515; }
 @media(max-width:720px) {
-  .mobile-navigation { grid-template-columns:repeat(3,minmax(0,1fr)); }
-  .mobile-navigation:has(button:nth-child(4)) { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .mobile-navigation { grid-template-columns:repeat(4,minmax(0,1fr)); }
   .module-degree-summary strong { font-size:20px; }
   .admin-screen .page-title-row h1 { font-size:34px; }
   .admin-list-row { flex-wrap:wrap; }
@@ -2786,3 +2785,18 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .wallet-context-menu button { width:100%; padding:9px 10px; display:flex; align-items:center; gap:8px; border:0; border-radius:6px; background:transparent; color:#f2f2f4; font-size:12px; text-align:left; }
 .wallet-context-menu button:hover,.wallet-context-menu button:focus-visible { background:#37373c; }
 .wallet-context-menu button:last-child { color:#f1a5a5; }
+
+/* Admin lives under Mehr on phones; the four-item navigation stays one row.
+   No calendar view/layout rules are changed by these selectors. */
+.admin-mobile-back { display:none; }
+.admin-settings-link .settings-action { display:flex; align-items:center; gap:12px; width:100%; }
+.admin-settings-link .settings-action svg:last-child { margin-left:auto; }
+@media (max-width:720px) {
+  .mobile-navigation { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .mobile-navigation button { min-width:0; }
+  .admin-mobile-back {
+    display:inline-flex; align-items:center; gap:7px; margin:0 0 20px;
+    padding:9px 0; border:0; background:none; color:#bebec2;
+    font-size:12px; font-weight:600;
+  }
+}
