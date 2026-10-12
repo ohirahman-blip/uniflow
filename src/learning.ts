@@ -1,6 +1,6 @@
 import {
   addDays, fromDate, isAssessment, minutes, occurrencesOn, today, weekStart,
-  type AppData, type Occurrence, type Semester, type StudyModule
+  type AppData, type Semester, type StudyModule
 } from './model'
 
 export type LearningRating = 'understood' | 'partial' | 'struggling' | 'absent'
@@ -95,7 +95,7 @@ export function journeyFor(data:AppData, module:StudyModule, allLessons:Learning
     const c=statuses.get(x.key)
     if(!c||c.rating==='absent')return true
     const linked=sessions.filter(s=>s.lessonKey===x.key).sort((a,b)=>a.updatedAt.localeCompare(b.updatedAt))
-    const latest=linked.at(-1)
+    const latest=linked.length?linked[linked.length-1]:undefined
     return (latest?ratingValue(latest.rating):ratingValue(c.rating))<75
   })
   // Learning after class can replace a poor first impression. The initial check-in
