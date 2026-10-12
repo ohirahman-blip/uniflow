@@ -12,17 +12,43 @@
   box-shadow:0 2px 8px #080808cc;
   -webkit-tap-highlight-color:transparent;
 }
+/* The month is a quiet two-line marker inside the vacant hour-rail gutter.
+   Absolute positioning avoids adding a third header row or shifting dates. */
 .uf-week-strip-month {
+  position:absolute;
+  z-index:2;
+  left:0;
+  top:25px;
+  width:51px;
+  height:36px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  margin:0;
+  padding:0 2px;
+  line-height:1;
+  text-align:center;
+  white-space:nowrap;
+  pointer-events:none;
+}
+.uf-week-strip-month strong {
   display:block;
-  min-height:14px;
-  line-height:14px;
-  margin:0 6px 1px 0;
-  text-align:right;
-  text-transform:uppercase;
-  font-size:10px;
-  font-weight:570;
+  max-width:100%;
+  overflow:hidden;
+  font-size:11px;
+  font-weight:650;
   letter-spacing:.65px;
-  color:#8f8f96;
+  text-transform:uppercase;
+  color:#d1d1d7;
+}
+.uf-week-strip-month span {
+  display:block;
+  font-size:9px;
+  font-weight:480;
+  letter-spacing:1px;
+  color:#74747d;
 }
 .uf-week-strip-labels {
   display:grid;
@@ -187,7 +213,8 @@
   outline-offset:0;
   background:transparent;
 }
-html[data-theme='light'] .uf-week-strip-month {color:#85858c;}
+html[data-theme='light'] .uf-week-strip-month strong {color:#3a3a3d;}
+html[data-theme='light'] .uf-week-strip-month span {color:#8b8b91;}
 html[data-theme='light'] .uf-week-strip { background:#f7f7f6; border-bottom-color:#dadada; box-shadow:0 5px 14px #f7f7f6aa; }
 html[data-theme='light'] .uf-week-strip-labels span {color:#272729;}
 html[data-theme='light'] .uf-week-strip-labels .uf-weekend {color:#959599;}
@@ -212,6 +239,9 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
     padding-left:46px;
     padding-right:0;
     background:#080808;
+  }
+  .uf-week-strip-month {
+    width:46px;
   }
   html[data-theme='light'] .uf-week-strip{background:#f7f7f6;}
 }
