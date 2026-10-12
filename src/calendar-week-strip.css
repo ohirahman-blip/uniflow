@@ -1,4 +1,4 @@
-/* Two-day calendar: the whole week stays visible while the timetable scrolls independently.
+/* Unified day/two-day/week calendar: all seven weekday choices stay pinned above the horizontally scrollable timetable.
    No changes to recurrence, alternatives, drag/drop or stored calendar data. */
 .uf-week-strip {
   position:sticky;
@@ -139,8 +139,8 @@
 }
 .uf-week-assessment.done{color:#85858a;}
 .uf-week-assessment-more{font-size:9px;color:#aaa;}
-/* Both dates continue to use the unchanged sliding snap pages below. */
-.calendar-lanes-two .ruler-head{display:none;}
+/* Date headers now live exclusively in the fixed strip, in every view. The timeline remains untouched. */
+.calendar-lanes .ruler-head {display:none;}
 /* Clear the lingering iOS :hover backdrop after Today / arrow navigation.
    Desktop keyboards keep their visible focus indicator. */
 .calendar-compact-toolbar .calendar-tools > .calendar-today,
