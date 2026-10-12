@@ -5,6 +5,7 @@ import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, setOfferingAttenda
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
+import { adjacentCalendarPage, alignCalendarStart, datesForCalendarPage, weekHeaderDates } from './calendar-navigation'
 import UniflowPicker from './UniflowPicker'
 import LearningDashboard from './LearningDashboard'
 import { journeyFor, pastLessons, type Journey, type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask } from './learning'
@@ -520,23 +521,23 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
       !active.some(a=>intersects(a,o))
     )
   }
-  const visibleDays=(start:string)=>{
-    if(mode==='day')return [start]
-    if(mode==='two')return [start,addDays(start,1)]
-    // Keep the week header and time grid strictly in sync with the user's
-    // "Woche anzeigen bis Fr/Sa/So" setting. Weekend appointments stay stored
-    // and can always be opened in the single-day or two-day view.
-    const last=Math.max(4,Math.min(6,data.weekEndDay??4))
-    return Array.from({length:last+1},(_,i)=>addDays(start,i))
-  }
-  const step=mode==='week'?7:mode==='two'?2:1
+  const visibleDays=(start:string)=>datesForCalendarPage(start,mode,data.weekEndDay)
+  // The same configured Friday/Saturday/Sunday cutoff applies to all views.
+  // Keep two-day windows complete and within the selected workweek.
+  const calendarPageStart=alignCalendarStart(anchor,mode,data.weekEndDay)
+  useEffect(()=>{
+    setAnchor(current=>{
+      const aligned=alignCalendarStart(current,mode,data.weekEndDay)
+      return current===aligned?current:aligned
+    })
+  },[mode,data.weekEndDay])
   // One pinned header for all modes. In week view the range is unnecessary:
   // all seven dates are equally visible, and only the real "today" is marked.
-  const stripMonday=weekStart(anchor)
-  const stripDates=mode==='week'?visibleDays(stripMonday):Array.from({length:7},(_,index)=>addDays(stripMonday,index))
-  const stripIndex=Math.max(0,stripDates.indexOf(anchor))
+  const stripMonday=weekStart(calendarPageStart)
+  const stripDates=weekHeaderDates(calendarPageStart,data.weekEndDay)
+  const stripIndex=Math.max(0,stripDates.indexOf(calendarPageStart))
   const stripRangeIndex=stripIndex
-  const stripRangeDays=Math.min(step,stripDates.length-stripRangeIndex)
+  const stripRangeDays=Math.min(mode==='two'?2:1,stripDates.length-stripRangeIndex)
   const todayIndex=stripDates.indexOf(today())
   // Keep the outer strip mounted and slide previous/new date rows in opposite
   // directions whenever a horizontal swipe or arrow changes the displayed week.
@@ -553,9 +554,11 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     const timeout=setTimeout(()=>setWeekSlide(null),420)
     return()=>clearTimeout(timeout)
   },[weekSlide])
-  const pageStart=(center:string)=>mode==='week'?weekStart(center):center
-  const calendarPageStart=pageStart(anchor)
-  const pages=useMemo(()=>[-1,0,1].map(n=>addDays(calendarPageStart,n*step)),[calendarPageStart,step])
+  const pages=useMemo(()=>[
+    adjacentCalendarPage(calendarPageStart,mode,-1,data.weekEndDay),
+    calendarPageStart,
+    adjacentCalendarPage(calendarPageStart,mode,1,data.weekEndDay)
+  ],[calendarPageStart,mode,data.weekEndDay])
   const times=Array.from({length:Math.max(1,Math.floor((data.lastHour-data.firstHour)/2))},(_,i)=>data.firstHour+i*2)
   const heightPerSlot=mode==='week'?82:114
   const height=times.length*heightPerSlot
@@ -567,7 +570,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     scrollReset.current=true
     el.style.scrollSnapType='none';el.scrollLeft=el.clientWidth
     requestAnimationFrame(()=>{el.style.scrollSnapType='x mandatory';scrollReset.current=false})
-  },[calendarPageStart,mode])
+  },[calendarPageStart,mode,data.weekEndDay])
   useEffect(()=>()=>{
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
     motionTimers.current.forEach(clearTimeout)
@@ -589,11 +592,11 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
     scrollTimeout.current=setTimeout(()=>{
       const el=scroller.current;if(!el||scrollReset.current)return
-      const page=Math.round(el.scrollLeft/Math.max(1,el.clientWidth))
-      if(page!==1) {scrollReset.current=true;setAnchor(addDays(anchor,(page-1)*step))}
+      const page=Math.max(0,Math.min(2,Math.round(el.scrollLeft/Math.max(1,el.clientWidth))))
+      if(page!==1) {scrollReset.current=true;setAnchor(pages[page])}
     },105)
   }
-  const jump=(direction:number)=>{setFan(null);if(scrollTimeout.current)clearTimeout(scrollTimeout.current);animateCalendar(()=>setAnchor(addDays(anchor,direction*step)),direction>0?'left':'right')}
+  const jump=(direction:number)=>{setFan(null);if(scrollTimeout.current)clearTimeout(scrollTimeout.current);animateCalendar(()=>setAnchor(adjacentCalendarPage(calendarPageStart,mode,direction>0?1:-1,data.weekEndDay)),direction>0?'left':'right')}
   const chooseStripDate=(date:string)=>{
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
     setFan(null)
@@ -604,10 +607,14 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
       setMode('day')
       return
     }
-    if(date===anchor)return
-    animateCalendar(()=>setAnchor(date),date>anchor?'left':'right')
+    const selected=alignCalendarStart(date,mode,data.weekEndDay)
+    if(selected===calendarPageStart)return
+    animateCalendar(()=>setAnchor(selected),selected>calendarPageStart?'left':'right')
   }
-  const changeMode=(next:CalendarView)=>{setFan(null);if(next!==mode)animateCalendar(()=>setMode(next),'switch')}
+  const changeMode=(next:CalendarView)=>{setFan(null);if(next!==mode)animateCalendar(()=>{
+    setAnchor(alignCalendarStart(anchor,next,data.weekEndDay))
+    setMode(next)
+  },'switch')}
   const onDown=(e:ReactPointerEvent,occ?:Occurrence,source?:NewEntry)=>{
     if(e.pointerType==='mouse'&&e.button!==0)return
     ignoreClick.current=false
@@ -756,8 +763,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         {weekNames.slice(0,stripDates.length).map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
       </div>
       <div className="uf-week-strip-viewport">
-        {weekSlide&&<div className={'uf-week-dates-previous uf-week-slide-out-'+weekSlide.direction} aria-hidden="true" style={{'--uf-days':mode==='week'?visibleDays(weekSlide.from).length:7} as CSSProperties}>
-          {(mode==='week'?visibleDays(weekSlide.from):Array.from({length:7},(_,index)=>addDays(weekSlide.from,index))).map(date=>
+        {weekSlide&&<div className={'uf-week-dates-previous uf-week-slide-out-'+weekSlide.direction} aria-hidden="true" style={{'--uf-days':stripDates.length} as CSSProperties}>
+          {weekHeaderDates(weekSlide.from,data.weekEndDay).map(date=>
             <span key={date} className={date===today()?'uf-week-previous-today':''}>{Number(date.slice(-2))}</span>
           )}
         </div>}
@@ -769,7 +776,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           </span>}
           {stripDates.map(date=>{
             const selected=mode!=='week'&&date===anchor
-            const second=mode==='two'&&date===addDays(anchor,1)
+            const second=mode==='two'&&date===addDays(calendarPageStart,1)
             const dayItems=data.assessments.filter(a=>a.semesterId===semester.id&&a.date===date&&(!focusModuleId||a.moduleId===focusModuleId))
             return <div className="uf-week-strip-day" key={date}>
               <button type="button" className={'uf-week-strip-button'+(selected?' uf-week-first':'')+(second?' uf-week-second':'')+(date===today()?' uf-week-today':'')}
