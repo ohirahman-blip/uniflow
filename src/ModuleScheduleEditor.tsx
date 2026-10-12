@@ -90,6 +90,7 @@ export default function ModuleScheduleEditor({
   const [preview,setPreview]=useState<QuickPreview|null>(null)
   const [advanced,setAdvanced]=useState(false)
   const [exceptionsOpen,setExceptionsOpen]=useState(false)
+  const [expandedTopics,setExpandedTopics]=useState<Record<string,boolean>>({})
   const [deleted,setDeleted]=useState<Offering[]>([])
   const [warning,setWarning]=useState('')
   const imported=useRef(false)
@@ -129,6 +130,7 @@ export default function ModuleScheduleEditor({
     const fresh=newOffering('',label,'Vorlesung',slot)
     fresh.contentId=fresh.id
     fresh.selected=!collides(fresh,offerings)
+    setExpandedTopics(prev=>({...prev,[fresh.contentId||fresh.id]:true}))
     commit([...own,fresh])
   }
   const addAlternative=(parent:Offering)=>{
@@ -238,12 +240,37 @@ export default function ModuleScheduleEditor({
       <button className="module-fast-remove" onClick={onDeleteModule}><Trash2 size={16}/> Modul löschen</button>
     </details>
 
-    <div className="module-fast-section-head"><h2>Veranstaltungen</h2><button onClick={addTopic}><Plus size={17}/> Veranstaltung</button></div>
-    <p className="module-fast-intro">Ein Inhalt, mehrere gleichwertige Gruppen. Änderungen werden automatisch gespeichert.</p>
+    <details className="module-fast-quick"><summary><ClipboardPaste size={18}/> Schnelleingabe <ChevronDown size={16}/></summary><div className="module-fast-quick-body">
+      <p>Beispiel: {module.name}: VL1 Mo 8 MA041 oder Di 10 MA043; VL2 Do 8 MA041</p>
+      <textarea rows={3} value={quickText} placeholder="VL1 Mo 8 MA041 oder Di 10 MA043; VL2 Do 8 MA041"
+        onChange={e=>{setQuickText(e.target.value);setPreview(null)}}/>
+      <button className="module-fast-preview-button" disabled={!quickText.trim()} onClick={()=>setPreview(parseModuleQuickInput(quickText,module.name))}>Vorschau anzeigen</button>
+      {preview&&<div className="module-fast-preview" role="region" aria-label="Vorschau Schnelleingabe">
+        <h3>Vorschau</h3>
+        {preview.topics.map(t=><div key={t.label}><strong>{t.label} · {t.category}</strong>
+          {t.slots.map((s,i)=><small key={i}>{dayNames[s.day]} {s.from}–{timeString(minutes(s.from)+s.duration)} · {s.room||'Ohne Raum'}</small>)}</div>)}
+        {preview.errors.map((message,i)=><p className="module-fast-warning" key={i}>{message}</p>)}
+        <div className="module-fast-preview-actions"><button onClick={()=>setPreview(null)}>Zurück</button>
+          <button className="module-fast-preview-button" disabled={!!preview.errors.length||!preview.topics.length} onClick={applyPreview}><Check size={16}/> Übernehmen</button>
+        </div>
+      </div>}
+    </div></details>
+
+
+    <div className="module-fast-section-head"><div><span className="overline">DEINE VERANSTALTUNGEN</span><h2>Vorlesungen & Übungen <small>{groups.length}</small></h2></div><button onClick={addTopic}><Plus size={17}/> Hinzufügen</button></div>
+    <p className="module-fast-intro">Alle Gruppen bleiben erhalten. Bearbeite Zeiten direkt – Ende automatisch aus Beginn und Dauer.</p>
     {groups.map((group,index)=>{
       const first=group.offerings[0]
-      return <section className="module-fast-topic" key={group.id}>
-        <div className="module-fast-topic-head">
+      const expanded=expandedTopics[group.id]??(index===0)
+      return <section className={'module-fast-topic '+(expanded?'topic-expanded':'topic-collapsed')} key={group.id}>
+        <div className="module-fast-topic-bar">
+          <button type="button" className="module-fast-topic-toggle" aria-expanded={expanded} onClick={()=>setExpandedTopics(prev=>({...prev,[group.id]:!expanded}))}>
+            <ChevronDown size={17} className={expanded?'expanded':''}/>
+            <span>{first.contentLabel||first.category}</span>
+            <small>{group.offerings.length} {group.offerings.length===1?'Termin':'Alternativen'}</small>
+          </button>
+        </div>
+        {expanded&&<><div className="module-fast-topic-head">
           <div className="module-fast-topic-inputs">
             <label>Inhalt<input aria-label={'Inhalt Veranstaltung '+(index+1)} value={first.contentLabel??first.category} onChange={e=>renameTopic(group.offerings,e.target.value)}/></label>
             <label>Art<select value={first.category} onChange={e=>recategorize(group.offerings,e.target.value)}>
@@ -297,29 +324,12 @@ export default function ModuleScheduleEditor({
                 {o.contentLabel||o.category} · {o.from}–{o.to}
               </button>)}</div>
           </details>
-        </div>
+        </div></>}
       </section>
     })}
     {!groups.length&&<div className="module-topic-empty">Noch keine Veranstaltungen. Du kannst eine Veranstaltung anlegen oder die Schnelleingabe verwenden.</div>}
     {deleted.length>0&&<div className="module-fast-undo">Gelöscht: {deleted.length} {deleted.length===1?'Gruppe':'Gruppen'} <button onClick={undoDelete}><RotateCcw size={15}/> Rückgängig</button></div>}
     {warning&&<p className="module-fast-warning" role="alert">{warning}</p>}
-
-    <section className="module-fast-quick">
-      <div className="module-fast-section-head"><h2>Schnelleingabe</h2><ClipboardPaste size={19}/></div>
-      <p>Beispiel: {module.name}: VL1 Mo 8 MA041 oder Di 10 MA043; VL2 Do 8 MA041</p>
-      <textarea rows={3} value={quickText} placeholder="VL1 Mo 8 MA041 oder Di 10 MA043; VL2 Do 8 MA041"
-        onChange={e=>{setQuickText(e.target.value);setPreview(null)}}/>
-      <button className="module-fast-preview-button" disabled={!quickText.trim()} onClick={()=>setPreview(parseModuleQuickInput(quickText,module.name))}>Vorschau anzeigen</button>
-      {preview&&<div className="module-fast-preview" role="region" aria-label="Vorschau Schnelleingabe">
-        <h3>Vorschau</h3>
-        {preview.topics.map(t=><div key={t.label}><strong>{t.label} · {t.category}</strong>
-          {t.slots.map((s,i)=><small key={i}>{dayNames[s.day]} {s.from}–{timeString(minutes(s.from)+s.duration)} · {s.room||'Ohne Raum'}</small>)}</div>)}
-        {preview.errors.map((message,i)=><p className="module-fast-warning" key={i}>{message}</p>)}
-        <div className="module-fast-preview-actions"><button onClick={()=>setPreview(null)}>Zurück</button>
-          <button className="module-fast-preview-button" disabled={!!preview.errors.length||!preview.topics.length} onClick={applyPreview}><Check size={16}/> Übernehmen</button>
-        </div>
-      </div>}
-    </section>
 
     <details className="module-fast-exceptions" open={exceptionsOpen} onToggle={e=>setExceptionsOpen(e.currentTarget.open)}>
       <summary>Zukünftige Ausnahmen · {futureExceptions.length}<ChevronDown size={17}/></summary>
