@@ -20,8 +20,19 @@ export type LearningSession = {
   targetKey?: string
   outcome: LearningRating
   createdAt: number
+  planId?: string
 }
-export type LearningData = { checkins: LearningCheckin[]; sessions: LearningSession[] }
+export type LearningPlanItem = {
+  id: string
+  moduleId: string
+  semesterId: string
+  date: string
+  title: string
+  duration: number
+  kind: LearningKind
+  targetKey?: string
+}
+export type LearningData = { checkins: LearningCheckin[]; sessions: LearningSession[]; plans?: LearningPlanItem[] }
 export type LearningUnit = {
   key: string
   moduleId: string
