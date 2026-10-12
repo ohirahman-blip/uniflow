@@ -5,7 +5,7 @@ export type Degree = { id: string; name: string; level: 'Bachelor' | 'Master' | 
 export type Semester = { id: string; degreeId: string; name: string; start: string; end: string; lectureEnd: string; archived: boolean }
 export type StudyModule = { emoji?: string; id: string; degreeId: string; name: string; shortName: string; credits: number; color: string; status: ModuleStatus; grade: string; counted: boolean; hidden: boolean; semesterIds: string[] }
 export type Override = { date?: string; from?: string; to?: string; cancelled?: boolean; selected?: boolean; scope?: 'single' | 'future'; reason?: 'selection' | 'move' | 'removal' | 'pause'; changeId?: string; previous?: Override | null }
-export type Offering = { scheduleChanges?: { fromOrigin: string; shiftDays: number; from: string; to: string }[]; familyId?: string; id: string; semesterId: string; moduleId: string; name: string; category: string; date: string; endDate: string; from: string; to: string; recurrence: Repeat; overrides: Record<string, Override>; room: string; organizer?: string; contentId?: string; contentLabel?: string; selected: boolean }
+export type Offering = { scheduleChanges?: { fromOrigin: string; shiftDays: number; from: string; to: string }[]; familyId?: string; id: string; semesterId: string; moduleId: string; name: string; category: string; date: string; endDate: string; from: string; to: string; recurrence: Repeat; overrides: Record<string, Override>; room: string; onlineLink?: string; organizer?: string; contentId?: string; contentLabel?: string; selected: boolean }
 export type Assessment = {
   id: string
   semesterId: string
