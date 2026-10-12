@@ -404,3 +404,18 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
   }
   .uf-week-dates-previous {display:none;}
 }
+
+
+/* The + and Focus menus belong to the toolbar's stacking context. Its former
+   z-index:9 kept both menus below the sticky week strip (z-index:20), even
+   though each menu had a high local z-index. Keep the whole toolbar above it. */
+.calendar-compact-toolbar {
+  z-index:40;
+}
+.calendar-compact-toolbar .quick-task-wrap,
+.calendar-compact-toolbar .focus-select-wrap {
+  z-index:1;
+}
+.calendar-compact-toolbar .mini-popover {
+  z-index:45;
+}
