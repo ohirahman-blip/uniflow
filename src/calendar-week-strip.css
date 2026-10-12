@@ -94,8 +94,8 @@
   width:100%;
   height:56px;
   color:#f1f1f2;
-  font-size:25px;
-  font-weight:480;
+  font-size:18px;
+  font-weight:400;
   line-height:1;
   font-variant-numeric:tabular-nums;
   cursor:pointer;
@@ -103,7 +103,7 @@
 }
 .uf-week-strip-button.uf-week-first {
   color:#080808;
-  font-weight:640;
+  font-weight:400;
 }
 .uf-week-strip-button.uf-week-today:not(.uf-week-first) {
   color:#f45866;
@@ -192,7 +192,7 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
 @media(max-width:420px){
   .uf-week-strip{padding-top:9px;padding-bottom:8px;}
   .uf-week-strip-labels{margin-bottom:8px;}
-  .uf-week-strip-button{font-size:22px;}
+  .uf-week-strip-button{font-size:17px;}
   .uf-week-range{height:50px;}
   .uf-week-liquid{height:56px;}
   .uf-week-liquid-core{height:52px;}
@@ -203,4 +203,25 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
 @media(prefers-reduced-motion:reduce){
   .uf-week-range,.uf-week-liquid,.uf-week-strip-button{transition:none!important;}
   .uf-week-liquid-core{animation:none!important;}
+}
+
+/* Keep the calendar's vertical starting position identical across all modes.
+   In particular, the old page-enter effect translated each new grid downward
+   for a moment, which was especially noticeable when switching to Week. */
+.calendar-page {
+  overflow-anchor:none;
+}
+.calendar-lanes,
+.calendar-lanes .snap-viewport,
+.calendar-lanes .snap-page,
+.calendar-lanes .days-grid,
+.calendar-lanes .day-column,
+.calendar-lanes .day-track,
+.calendar-lanes .ruler-track {
+  margin-top:0;
+  padding-top:0;
+}
+@keyframes uf-page-enter {
+  from { opacity:.32; transform:none; }
+  to { opacity:1; transform:none; }
 }
