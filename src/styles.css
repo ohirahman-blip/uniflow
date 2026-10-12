@@ -2734,3 +2734,20 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .assessment-check.completed > span {background:#ddd;color:#222;border-color:#ddd;}
 .empty-slot {touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .wallet-fan {transition:none;}
+
+/* Calendar category and one-off markers in every view. */
+.mode-week .course .course-category { font-size: 8px; }
+.course .course-recurrence {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 30%);
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mode-week .course .course-recurrence { padding: 1px 3px; font-size: 7px; }
+.detail-row a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
