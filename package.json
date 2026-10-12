@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node test-model.cjs && node test-v06.cjs && node test-groups.cjs && node test-v07.cjs && node test-v071.cjs && node test-v08.cjs"
+    "test": "node test-model.cjs && node test-v06.cjs && node test-groups.cjs && node test-v07.cjs && node test-v071.cjs && node test-v08.cjs && node test-widget.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
