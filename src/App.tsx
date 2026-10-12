@@ -14,6 +14,13 @@ const programs = ['Informatik', 'Wirtschaftsinformatik', 'Betriebswirtschaftsleh
 const universities = ['Technische Universität Berlin', 'Humboldt-Universität zu Berlin', 'Freie Universität Berlin', 'Berliner Hochschule für Technik', 'HTW Berlin', 'Universität der Künste Berlin', 'Universität Potsdam', 'Technische Universität München', 'Ludwig-Maximilians-Universität München', 'Universität Hamburg', 'Universität zu Köln', 'RWTH Aachen', 'Technische Universität Dresden', 'Universität Leipzig']
 const weekNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 const formDate = (iso: string) => formatDate(iso, { day: 'numeric', month: 'long', year: 'numeric' })
+const placeLabel = (offering: Offering) => [offering.room?.trim(), offering.onlineLink?.trim() ? 'Online' : ''].filter(Boolean).join(' + ')
+const onlineHref = (link: string) => /^https?:\/\//i.test(link.trim()) ? link.trim() : `https://${link.trim()}`
+const singleVisitLabel = (occ: Occurrence) => {
+  if (occ.offering.recurrence === 'once') return 'Einmalig'
+  const change = occ.offering.overrides?.[occ.origin]
+  return change && (change.scope === 'single' || (change.scope !== 'future' && (change.date || change.from || change.to || change.selected !== undefined))) ? 'Ausnahme' : ''
+}
 const ensureCredits = (txt: string) => Math.max(0, Number(txt.replace(',', '.')) || 0)
 const getDefaultCredits = (level: string) => level === 'Master' ? 120 : 180
 function IconButton({ children, onClick, label, disabled }: { children: ReactNode; onClick: () => void; label: string; disabled?: boolean }) { return <button className="icon-button" onClick={onClick} aria-label={label} title={label} disabled={disabled}>{children}</button> }
@@ -214,11 +221,11 @@ function Onboarding({ onDone, onInfo, catalog, onSignOut }: { onDone: (data: App
   </div></main>
 }
 function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModule }: { initial: NewEntry; modules: StudyModule[]; semester: Semester; onSave: (o: Offering) => void; onClose: () => void; onCreateModule: (name: string, credits: number) => string }) {
-  const [moduleId, setModuleId] = useState(modules[0]?.id || ''), [picker, setPicker] = useState(!modules.length), [draftModule, setDraftModule] = useState(''), [draftCredits, setDraftCredits] = useState('6'), [search, setSearch] = useState(''), [entryDate, setEntryDate] = useState(initial.date), [from, setFrom] = useState(initial.from), [to, setTo] = useState(initial.to), [repeat, setRepeat] = useState<Repeat>(initial.category && isAssessment(initial.category) ? 'once' : 'weekly'), [category, setCategory] = useState(initial.category || 'Vorlesung'), [custom, setCustom] = useState(false), [end, setEnd] = useState(semester.lectureEnd), [room, setRoom] = useState(''), [organizer, setOrganizer] = useState(''), [err, setErr] = useState('')
+  const [moduleId, setModuleId] = useState(modules[0]?.id || ''), [picker, setPicker] = useState(!modules.length), [draftModule, setDraftModule] = useState(''), [draftCredits, setDraftCredits] = useState('6'), [search, setSearch] = useState(''), [entryDate, setEntryDate] = useState(initial.date), [from, setFrom] = useState(initial.from), [to, setTo] = useState(initial.to), [repeat, setRepeat] = useState<Repeat>(initial.category && isAssessment(initial.category) ? 'once' : 'weekly'), [category, setCategory] = useState(initial.category || 'Vorlesung'), [custom, setCustom] = useState(false), [end, setEnd] = useState(semester.lectureEnd), [room, setRoom] = useState(''), [onlineLink, setOnlineLink] = useState(''), [organizer, setOrganizer] = useState(''), [err, setErr] = useState('')
   const current = modules.find(m => m.id === moduleId)
   const categorySuggestions = ['Vorlesung', 'Übung', 'Tutorium', 'Freies Lernen']
   const categoryValue = custom ? category.trim() : category
-  const save = () => { if (!moduleId && categoryValue !== 'Freies Lernen') { setErr('Bitte wähle zuerst ein Modul.'); return } if (minutes(to) <= minutes(from)) { setErr('Das Ende muss nach dem Beginn liegen.'); return } if (repeat !== 'once' && end < entryDate) { setErr('Das Wiederholungsende liegt vor dem ersten Termin.'); return } onSave({ id: uid(), semesterId: semester.id, moduleId: moduleId || '', name: current?.name || categoryValue, category: categoryValue || 'Sonstiges', date: entryDate, endDate: repeat === 'once' ? entryDate : end, from, to, recurrence: repeat, overrides: {}, room, organizer, selected: true }) }
+  const save = () => { if (!moduleId && categoryValue !== 'Freies Lernen') { setErr('Bitte wähle zuerst ein Modul.'); return } if (minutes(to) <= minutes(from)) { setErr('Das Ende muss nach dem Beginn liegen.'); return } if (repeat !== 'once' && end < entryDate) { setErr('Das Wiederholungsende liegt vor dem ersten Termin.'); return } onSave({ id: uid(), semesterId: semester.id, moduleId: moduleId || '', name: current?.name || categoryValue, category: categoryValue || 'Sonstiges', date: entryDate, endDate: repeat === 'once' ? entryDate : end, from, to, recurrence: repeat, overrides: {}, room, onlineLink: onlineLink.trim(), organizer, selected: true }) }
   return <BottomSheet title="Neuer Termin" onClose={onClose} footer={<button className="primary-action" onClick={save}>Hinzufügen <ArrowRight size={19} /></button>}>
     <div className="editor-field"><span className="field-label">Datum</span><DateControl value={entryDate} onChange={setEntryDate}/></div>
     <div className="editor-field"><span className="field-label">Modul</span><button className="big-choice" onClick={() => setPicker(x => !x)}><span>{current?.name || 'Modul auswählen'}</span><ChevronDown size={19} /></button>{picker && <div className="module-dropdown"><label className="search-field"><Search size={18} /><input placeholder="Module suchen" value={search} onChange={e => setSearch(e.target.value)} /></label><div className="module-pick-list">{modules.filter(m => m.name.toLowerCase().includes(search.toLowerCase())).map(m => <button key={m.id} onClick={() => { setModuleId(m.id); setPicker(false) }}><span className="color-mark" style={{ background: m.color }} />{m.name}{m.id === moduleId && <Check size={17} />}</button>)}<button onClick={() => { setModuleId(''); setCategory('Freies Lernen'); setPicker(false) }}><BookOpen size={17} />Ohne Modul (freie Lernzeit)</button></div><form className="quick-new-module" onSubmit={e => { e.preventDefault(); if (!draftModule.trim()) return; const id = onCreateModule(draftModule.trim(), ensureCredits(draftCredits)); setModuleId(id); setDraftModule(''); setPicker(false) }}><input placeholder="+ Neues Modul" value={draftModule} onChange={e => setDraftModule(e.target.value)} /><input type="number" aria-label="LP" min="0" step="0.5" value={draftCredits} onChange={e => setDraftCredits(e.target.value)} /><span>LP</span><button type="submit" aria-label="Modul erstellen"><Plus size={19} /></button></form></div>}</div>
@@ -227,6 +234,7 @@ function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModu
     <div className="editor-field"><span className="field-label">Wiederholung</span><div className="repeat-switch">{([{ key: 'once', text: 'Einmalig' }, { key: 'weekly', text: 'Wöchentlich' }, { key: 'biweekly', text: 'Alle 2 Wochen' }] as const).map(item => <button key={item.key} className={repeat === item.key ? 'selected' : ''} onClick={() => setRepeat(item.key)}>{item.text}</button>)}</div></div>
     {repeat !== 'once' && <div className="editor-field"><span className="field-label">Wiederholen bis</span><DateControl value={end} min={initial.date} onChange={setEnd} /><small>Vorgeschlagen: Vorlesungsende. Du kannst das Datum ändern.</small></div>}
     <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={room} onChange={e => setRoom(e.target.value)} /></div>
+    <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://meet.google.com/..." value={onlineLink} onChange={e => setOnlineLink(e.target.value)} /></div>
     <div className="editor-field"><span className="field-label">Veranstalter <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. Prof. Mustermann" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
     {err && <div className="inline-error">{err}</div>}
   </BottomSheet>
@@ -294,7 +302,7 @@ function EventDetails({occ,module,modules,offerings,onClose,onDelete,onSuspend,o
           return <div className="alternative-option" key={alt.key}>
             <div className="alternative-option-top"><span className="color-mark" style={{background:m?.color||'#888'}}/><strong>{m?.name||alt.offering.name}</strong>{alt.offering.organizer&&<span className="group-lecturer">{alt.offering.organizer}</span>}</div>
             <small>{formatDate(alt.date,{weekday:'short',day:'numeric',month:'short'})} · {alt.from}–{alt.to} · {alt.offering.category} · {alt.offering.recurrence==='biweekly'?'14-täglich':alt.offering.recurrence==='weekly'?'Wöchentlich':'Einmalig'}</small>
-            {(alt.offering.room||alt.offering.organizer)&&<small className="alternative-location">{alt.offering.room&&<>Raum: {alt.offering.room}</>}{alt.offering.room&&alt.offering.organizer?' · ':''}{alt.offering.organizer&&<>Veranstalter: {alt.offering.organizer}</>}</small>}
+            {(placeLabel(alt.offering)||alt.offering.organizer)&&<small className="alternative-location">{placeLabel(alt.offering)&&<>Ort: {placeLabel(alt.offering)}</>}{placeLabel(alt.offering)&&alt.offering.organizer?' · ':''}{alt.offering.organizer&&<>Veranstalter: {alt.offering.organizer}</>}</small>}
             <div className="alternative-option-actions"><button onClick={()=>onSelectAlternative(alt)}>Als Haupttermin wählen <ArrowRight size={15}/></button><button className="alternative-secondary" onClick={()=>onInspectAlternative(alt)}>Details / Bearbeiten</button></div>
           </div>
         })}
@@ -307,9 +315,10 @@ function EventDetails({occ,module,modules,offerings,onClose,onDelete,onSuspend,o
     <div className="detail-heading" style={{color:module?.color||'#EDEDED'}}>{module?.name||occ.offering.name}</div>
     <div className="detail-row"><CalendarDays size={18}/>{formatDate(occ.date)}</div>
     <div className="detail-row"><Clock3 size={18}/>{occ.from} – {occ.to}</div>
-    {occ.offering.room&&<div className="detail-row"><Info size={18}/>{occ.offering.room}</div>}
+    {placeLabel(occ.offering)&&<div className="detail-row"><Info size={18}/>{occ.offering.room?.trim()}{occ.offering.room?.trim()&&occ.offering.onlineLink?.trim()?' + ':''}{occ.offering.onlineLink?.trim()&&<a href={onlineHref(occ.offering.onlineLink)} target="_blank" rel="noopener noreferrer">Online</a>}</div>}
     {occ.offering.organizer&&<div className="detail-row"><GraduationCap size={18}/>{occ.offering.organizer}</div>}
     <div className="detail-row"><RotateCcw size={18}/>{occ.offering.recurrence==='weekly'?'Jede Woche':occ.offering.recurrence==='biweekly'?'Alle zwei Wochen':'Einmalig'}</div>
+    {singleVisitLabel(occ)==='Ausnahme'&&<div className="detail-row"><Info size={18}/>Einmalige Ausnahme</div>}
     <div className="detail-actions"><button onClick={onEdit}><Settings2 size={18}/>Bearbeiten</button><button onClick={onMove}><Grip size={19}/>Verschieben</button><button onClick={onSuspend}><PauseCircle size={18}/>Aussetzen</button><button onClick={onRestore}><RotateCcw size={18}/>Auswahl zurücknehmen</button><button className="danger-link" onClick={onDelete}><Trash2 size={18}/>Gruppe löschen</button></div>
     {block('slot','Andere Veranstaltung zur gleichen Zeit','Auch ein anderes Modul oder Freies Lernen kann hier zur Auswahl stehen.')}
     {block('group',`Gleicher Inhalt · ${groupCount+1} Gruppen`,'Die Gruppen sind gleichberechtigt: Eine auswählen oder mehrere besuchen. Keine Veranstaltung wird beim Wechsel gelöscht.')}
@@ -323,7 +332,7 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
   const [picker,setPicker]=useState(false),[search,setSearch]=useState('')
   const [category,setCategory]=useState(editing?.category || occ.offering.category),[custom,setCustom]=useState(false)
   const [date,setDate]=useState(editing?.date || occ.date),[from,setFrom]=useState(editing?.from || occ.from),[to,setTo]=useState(editing?.to || occ.to)
-  const [room,setRoom]=useState(editing?.room || ''),[organizer,setOrganizer]=useState(editing?.organizer || '')
+  const [room,setRoom]=useState(editing?.room || ''),[onlineLink,setOnlineLink]=useState(editing?.onlineLink || ''),[organizer,setOrganizer]=useState(editing?.organizer || '')
   const [recurrence,setRecurrence]=useState<Repeat>(editing?.recurrence || (kind==='group'?'weekly':'once'))
   const [endDate,setEndDate]=useState(editing?.endDate || occ.offering.endDate),[error,setError]=useState('')
   const chosenModule=modules.find(m=>m.id===moduleId)
@@ -338,7 +347,7 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
       moduleId, name:chosenModule?.name||category, category:category.trim(),
       contentId:editing?.contentId || (kind==='group'?(occ.offering.contentId||occ.offering.id):undefined),
       date, from, to, endDate:recurrence==='once'?date:endDate, recurrence,
-      room,organizer,overrides:editing?.overrides||{},selected:editing?.selected??false
+      room,onlineLink:onlineLink.trim(),organizer,overrides:editing?.overrides||{},selected:editing?.selected??false
     })
   }
   return <BottomSheet title={editing?'Termin bearbeiten':kind==='slot'?'Alternative zur gleichen Zeit':'Alternative Gruppe'} onClose={onClose} footer={<button className="primary-action" onClick={save}>{editing?'Speichern':'Alternative hinzufügen'}<ArrowRight size={18}/></button>}>
@@ -352,6 +361,7 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
     <div className="editor-field"><span className="field-label">Wiederholung</span><div className="repeat-switch">{([{v:'once',label:'Einmalig'},{v:'weekly',label:'Wöchentlich'},{v:'biweekly',label:'Alle 2 Wochen'}] as const).map(x=><button key={x.v} className={recurrence===x.v?'chosen':''} onClick={()=>setRecurrence(x.v)}>{x.label}</button>)}</div></div>
     {recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><DateControl value={endDate} min={date} onChange={setEndDate}/></div>}
     <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" value={room} onChange={e=>setRoom(e.target.value)}/></div>
+    <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://meet.google.com/..." value={onlineLink} onChange={e=>setOnlineLink(e.target.value)}/></div>
     <div className="editor-field"><span className="field-label">Veranstalter <span className="optional">optional</span></span><input className="line-input" placeholder="Lehrperson oder Organisation" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
     {editing&&onDelete&&<button type="button" className="danger-simple" onClick={onDelete}><Trash2 size={18}/> Ganze Veranstaltungsreihe löschen</button>}
     {error&&<p className="inline-error">{error}</p>}
@@ -423,7 +433,7 @@ function ModuleGroupEditor({module,semester,existing,parent,defaultLabel,onSave,
   const [from,setFrom]=useState(existing?.from||'10:00'),[to,setTo]=useState(existing?.to||'12:00')
   const [repeat,setRepeat]=useState<Repeat>(existing?.recurrence||'weekly')
   const [end,setEnd]=useState(existing?.endDate||semester.lectureEnd)
-  const [room,setRoom]=useState(existing?.room||''),[organizer,setOrganizer]=useState(existing?.organizer||'')
+  const [room,setRoom]=useState(existing?.room||''),[onlineLink,setOnlineLink]=useState(existing?.onlineLink||''),[organizer,setOrganizer]=useState(existing?.organizer||'')
   const [error,setError]=useState('')
   const save=()=>{
     if(!category.trim()||!label.trim())return setError('Bitte Veranstaltungsart und Inhalt angeben.')
@@ -434,7 +444,7 @@ function ModuleGroupEditor({module,semester,existing,parent,defaultLabel,onSave,
       id, semesterId:semester.id,moduleId:module.id,name:module.name,
       category:category.trim(),contentId:parent?.contentId||parent?.familyId||parent?.id||existing?.contentId||id,
       contentLabel:parent?.contentLabel||label.trim(),date,from,to,
-      endDate:repeat==='once'?date:end,recurrence:repeat,room:room.trim(),organizer:organizer.trim(),
+      endDate:repeat==='once'?date:end,recurrence:repeat,room:room.trim(),onlineLink:onlineLink.trim(),organizer:organizer.trim(),
       selected:existing?.selected??!parent,
       overrides:existing?.overrides||{},scheduleChanges:existing?.scheduleChanges||[]
     })
@@ -450,6 +460,7 @@ function ModuleGroupEditor({module,semester,existing,parent,defaultLabel,onSave,
     {repeat!=='once'&&<div className="editor-field"><span className="field-label">Wiederholen bis</span><DateControl value={end} min={date} max={semester.end} onChange={setEnd}/></div>}
     <div className="editor-field"><span className="field-label">Lehrperson / Veranstalter <span className="optional">optional</span></span><input className="line-input" value={organizer} onChange={e=>setOrganizer(e.target.value)} placeholder="z. B. Winkert"/></div>
     <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" value={room} onChange={e=>setRoom(e.target.value)} placeholder="z. B. MA 041"/></div>
+    <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://meet.google.com/..." value={onlineLink} onChange={e=>setOnlineLink(e.target.value)}/></div>
     {error&&<p className="inline-error">{error}</p>}
     {existing&&onRequestDelete&&<button className="danger-simple" onClick={onRequestDelete}><Trash2 size={17}/> Gruppe löschen</button>}
   </BottomSheet>
@@ -495,7 +506,7 @@ function ModuleDetail({module,semester,offerings,onBack,onUpdateModule,onDeleteM
         {open&&<div className="content-topic-body">{g.offerings.map(o=>{
           const occ=occurrenceInWeek(o,previewWeek,true)||occurrenceAtOrigin(o,o.date,true)
           const active=occ&&!!occurrenceAtOrigin(o,occ.origin,false)
-          return <div className="topic-offering" key={o.id}><span className={'topic-status-dot '+(active?'active':'')}/><div className="topic-offering-main"><strong>{o.organizer||'Ohne Veranstalter'}</strong><small>{['So','Mo','Di','Mi','Do','Fr','Sa'][fromDate(o.date).getDay()]} · {o.from}–{o.to} · {o.room||'Raum offen'}</small><small>{o.recurrence==='weekly'?'Wöchentlich':o.recurrence==='biweekly'?'Alle 2 Wochen':'Einmalig'}{active?' · Im Plan':' · Alternative'}</small></div><button onClick={()=>setEditor({existing:o,label:o.contentLabel||label})} aria-label="Gruppe bearbeiten"><Settings2 size={17}/></button></div>
+          return <div className="topic-offering" key={o.id}><span className={'topic-status-dot '+(active?'active':'')}/><div className="topic-offering-main"><strong>{o.organizer||'Ohne Veranstalter'}</strong><small>{['So','Mo','Di','Mi','Do','Fr','Sa'][fromDate(o.date).getDay()]} · {o.from}–{o.to} · {placeLabel(o)||'Raum offen'}</small><small>{o.recurrence==='weekly'?'Wöchentlich':o.recurrence==='biweekly'?'Alle 2 Wochen':'Einmalig'}{active?' · Im Plan':' · Alternative'}</small></div><button onClick={()=>setEditor({existing:o,label:o.contentLabel||label})} aria-label="Gruppe bearbeiten"><Settings2 size={17}/></button></div>
         })}<button className="topic-add-group" onClick={()=>setEditor({parent:first,label})}><Plus size={17}/> Gleichwertige Gruppe hinzufügen</button>
           <button className="topic-link-existing" onClick={()=>setShowLink(showLink===g.id?null:g.id)}><Layers2 size={16}/> Bestehende Reihe zuordnen</button>
           {showLink===g.id&&<div className="topic-link-list">{offerings.filter(o=>o.moduleId===module.id&&o.semesterId===semester.id&&!g.offerings.some(x=>x.id===o.id)&&o.category===first.category&&!o.contentId?.startsWith('assessment:')&&!isAssessment(o.category)).map(o=><button key={o.id} onClick={()=>{onLinkOffering(o.id,first);setShowLink(null)}}>{o.contentLabel||o.category} · {o.organizer||'Ohne Dozent'} · {o.from}–{o.to}<ArrowRight size={15}/></button>)}{groups.length<2&&<small>Keine weiteren Reihen vorhanden.</small>}</div>}
@@ -512,15 +523,23 @@ function ModuleDetail({module,semester,offerings,onBack,onUpdateModule,onDeleteM
   </div>
 }
 
-function Calendar({data,semester,modules,focusModuleId,onFocusChange,onNew,onEditOccurrence,onEditAssessment,onSelectGroup,onSuspendVisit,onRestoreVisit,onOfferingsChange,onNotice}:{
-  data:AppData;semester:Semester;modules:StudyModule[];focusModuleId:string;onFocusChange:(id:string)=>void;
+function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNew,onEditOccurrence,onEditAssessment,onSelectGroup,onSuspendVisit,onRestoreVisit,onOfferingsChange,onNotice}:{
+  data:AppData;semester:Semester;modules:StudyModule[];userId:string;focusModuleId:string;onFocusChange:(id:string)=>void;
   onNew:(slot:NewEntry)=>void;onEditOccurrence:(occ:Occurrence)=>void;onEditAssessment:(assessment:Assessment)=>void;
   onSelectGroup:(source:Occurrence|null,target:Occurrence,scope:'single'|'future',both:boolean)=>void;
   onSuspendVisit:(occ:Occurrence,scope:'single'|'future')=>void;
   onRestoreVisit:(occ:Occurrence)=>void;
   onOfferingsChange:(offers:Offering[])=>void;onNotice:(text:string)=>void
 }) {
-  const [mode,setMode]=useState<CalendarView>('week')
+  const [mode,setMode]=useState<CalendarView>(() => {
+    try {
+      const previous = localStorage.getItem(`uniflow-calendar-view-${userId}`)
+      return previous === 'day' || previous === 'two' || previous === 'week' ? previous : 'week'
+    } catch { return 'week' }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(`uniflow-calendar-view-${userId}`, mode) } catch { /* Storage may be disabled. */ }
+  }, [mode, userId])
   const [anchor,setAnchor]=useState(()=>today()<semester.start?semester.start:today()>semester.end?semester.end:today())
   const [proposal,setProposal]=useState<MoveProposal|null>(null),[dragUI,setDragUI]=useState<MoveProposal|null>(null),[pressed,setPressed]=useState('')
   const [focusOpen,setFocusOpen]=useState(false),[taskMenu,setTaskMenu]=useState(false),[clockNow,setClockNow]=useState(()=>new Date())
@@ -751,8 +770,9 @@ function Calendar({data,semester,modules,focusModuleId,onFocusChange,onNew,onEdi
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ,e.currentTarget as HTMLElement)}} onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(occ)}} onKeyDown={e=>{if(e.key==='Enter')openFan(occ,e.currentTarget as HTMLElement)}}>
             <strong className="course-title">{isAssessment(occ.offering.category)?<span className="course-kind-icon">{/klausur|prüfung/i.test(occ.offering.category)?<GraduationCap size={compact?12:16}/>:<ClipboardList size={compact?12:16}/>}</span>:null}{module?.emoji?<span className="course-emoji">{module.emoji}</span>:null}{compact?module?.shortName||acronym(occ.offering.name):module?.name||occ.offering.name}</strong>
             {numberOfAlternatives>0&&<span className="stack-indicator" title={`${numberOfAlternatives} Alternativen`}><Layers2 size={12}/><span>{numberOfAlternatives}</span></span>}
-            {!compact&&<span className="course-category">{occ.offering.category}</span>}
-            {(occ.offering.room||occ.offering.organizer)&&<span className="course-place">{occ.offering.room&&<span title={occ.offering.room}>{occ.offering.room}</span>}{occ.offering.organizer&&<span title={occ.offering.organizer}>{occ.offering.organizer}</span>}</span>}
+            <span className="course-category" title={occ.offering.category}>{occ.offering.category}</span>
+             {singleVisitLabel(occ)&&<span className="course-recurrence" title={singleVisitLabel(occ)==='Einmalig'?'Nur einmaliger Termin':'Einmalige Ausnahme'}>{singleVisitLabel(occ)}</span>}
+            {(placeLabel(occ.offering)||occ.offering.organizer)&&<span className="course-place">{placeLabel(occ.offering)&&<span title={placeLabel(occ.offering)}>{placeLabel(occ.offering)}</span>}{occ.offering.organizer&&<span title={occ.offering.organizer}>{occ.offering.organizer}</span>}</span>}
             <small className="course-hours">{occ.from}–{occ.to}</small>
           </div>
         })}
@@ -814,7 +834,7 @@ function Calendar({data,semester,modules,focusModuleId,onFocusChange,onNew,onEdi
             onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(item)}}
             onKeyDown={e=>{if(e.key==='Enter')onFanTap(item)}}>
             <div className="wallet-card-top"><strong>{module?.shortName||module?.name||item.offering.name} · {item.offering.contentLabel||item.offering.category}</strong><span>{selected?'✓':'○'}</span></div>
-            <small>{item.offering.organizer||'Ohne Dozent'} · {item.offering.room||'Raum offen'}</small>
+            <small>{item.offering.organizer||'Ohne Dozent'} · {placeLabel(item.offering)||'Raum offen'}</small>
             <small>{formatDate(item.date,{weekday:'short',day:'numeric',month:'short'})} · {item.from}–{item.to}</small>
             <span className="wallet-card-caption">{selected?'Aktuell ausgewählt':equivalent?'Gleicher Inhalt':'Andere Veranstaltung · gleiche Zeit'}</span>
           </div>
@@ -1074,7 +1094,7 @@ export default function App() {
   if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); setPage('calendar') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
   return <div className="app-root"><div className="app-desktop-side"><div className="brand-side">{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</div><nav>{([{ id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'modules', title: 'Module', icon: BookOpen }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => setPage(n.id)}><n.icon size={19} />{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
     <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => setPage('calendar')}>{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
-      {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onEditAssessment={setEditingAssessment} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
+      {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onEditAssessment={setEditingAssessment} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
       {page === 'modules' && !selectedModuleId && <ModuleHub degree={degree} modules={degreeModules} assessments={data.assessments} currentSemesterId={semester?.id||''} creditsPassed={creditsPassed} average={average} onAdd={()=>setNewModule(true)} editing={newModule} onEdit={m=>setSelectedModuleId(m.id)} newName={newName} setNewName={setNewName} newCredits={newCredits} setNewCredits={setNewCredits} saveNewModule={saveNewModule} cancelNew={()=>setNewModule(false)} />}
       {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleDetail key={selectedModuleId} module={data.modules.find(m=>m.id===selectedModuleId)!} semester={semester} offerings={data.offerings}
         onBack={()=>setSelectedModuleId(null)} onUpdateModule={()=>setEditingModule(data.modules.find(m=>m.id===selectedModuleId)||null)}
@@ -1125,7 +1145,7 @@ export default function App() {
         ? 'Beide Termine gehören zum gleichen Inhalt. Du kannst zu einer anderen Gruppe wechseln oder beide besuchen.'
         : 'Hier liegt ein anderes Modul zur selben Zeit. Du kannst wechseln oder beide Termine sichtbar lassen.'}
         {pendingAlternative.conflict&&' Achtung: Am Ziel gibt es eine zeitliche Überschneidung.'}</p>
-      <div className="move-summary"><strong>{pendingAlternative.alt.offering.name}{pendingAlternative.alt.offering.organizer?' · '+pendingAlternative.alt.offering.organizer:''}</strong><span>{formatDate(pendingAlternative.alt.date)} · {pendingAlternative.alt.from}–{pendingAlternative.alt.to}{pendingAlternative.alt.offering.room?' · '+pendingAlternative.alt.offering.room:''}</span></div>
+      <div className="move-summary"><strong>{pendingAlternative.alt.offering.name}{pendingAlternative.alt.offering.organizer?' · '+pendingAlternative.alt.offering.organizer:''}</strong><span>{formatDate(pendingAlternative.alt.date)} · {pendingAlternative.alt.from}–{pendingAlternative.alt.to}{placeLabel(pendingAlternative.alt.offering)?' · '+placeLabel(pendingAlternative.alt.offering):''}</span></div>
       {pendingAlternative.occ&&<div className="attendance-modes" role="group" aria-label="Besuchsentscheidung">
         <button className={choiceAttendance==='replace'?'chosen':''} onClick={()=>setChoiceAttendance('replace')}><Check size={17}/><span><strong>Zur anderen Gruppe wechseln</strong><small>Die bisherige Veranstaltung bleibt im Hintergrund als Alternative erhalten.</small></span></button>
         <button className={choiceAttendance==='both'?'chosen':''} onClick={()=>setChoiceAttendance('both')}><Plus size={17}/><span><strong>Beide besuchen</strong><small>Beide Termine erscheinen im Plan{pendingAlternative.conflict?' – auch bei Überschneidung.':'.'}</small></span></button>
