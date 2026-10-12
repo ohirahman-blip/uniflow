@@ -1,6 +1,6 @@
 {
- "name":"UniFlow – Dein Studium. Dein Rhythmus.",
- "short_name":"UniFlow",
+ "name":"uniflow – Dein Studium. Dein Rhythmus.",
+ "short_name":"uniflow",
  "description":"Dein persönlicher Stundenplan fürs Studium.",
  "start_url":"/",
  "scope":"/",
