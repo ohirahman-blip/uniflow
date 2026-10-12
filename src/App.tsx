@@ -783,8 +783,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ,e.currentTarget as HTMLElement)}} onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(occ)}} onKeyDown={e=>{if(e.key==='Enter')openFan(occ,e.currentTarget as HTMLElement)}}>
             <div className="course-head"><strong className="course-title">{isAssessment(occ.offering.category)?<span className="course-kind-icon">{/klausur|prüfung/i.test(occ.offering.category)?<GraduationCap size={compact?12:16}/>:<ClipboardList size={compact?12:16}/>}</span>:null}{module?.emoji?<span className="course-emoji">{module.emoji}</span>:null}{compact?module?.shortName||acronym(occ.offering.name):module?.name||occ.offering.name}</strong>
               {(singleVisitLabel(occ)||numberOfAlternatives>0)&&<span className="course-head-badges">
-                {singleVisitLabel(occ)&&<span className="course-recurrence" title={singleVisitLabel(occ)==='Einmalig'?'Nur einmaliger Termin':'Einmalige Ausnahme'}>{singleVisitLabel(occ)}</span>}
-                {numberOfAlternatives>0&&<span className="stack-indicator" title={`${numberOfAlternatives} Alternativen`}><Layers2 size={12}/><span>{numberOfAlternatives}</span></span>}
+                {singleVisitLabel(occ)&&<span className="course-recurrence" title={singleVisitLabel(occ)==='Einmalig'?'Nur einmaliger Termin':'Einmalige Ausnahme'}>{compact?'x1':singleVisitLabel(occ)}</span>}
+                {numberOfAlternatives>0&&<span className="stack-indicator" title={`${numberOfAlternatives} Alternativen`}><Layers2 size={compact?8:12}/>{!compact&&<span>{numberOfAlternatives}</span>}</span>}
               </span>}
             </div>
             <div className="course-meta">

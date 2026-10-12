@@ -2776,6 +2776,9 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .course .course-meta .course-meta-divider { flex:0 0 auto; }
 .mode-week .course .course-head { gap:2px; }
 .mode-week .course .course-head-badges { gap:2px; }
+.mode-week .course .course-head-badges .course-recurrence { font-size:7px; line-height:1.15; padding:1px 2px; }
+.mode-week .course .course-head-badges .stack-indicator { padding:1px; gap:0; }
+.mode-week .course .course-head-badges .stack-indicator svg { width:8px; height:8px; }
 .mode-week .course .course-meta { gap:2px; }
 .mode-week .course .course-meta .course-organizer { font-size:8px; }
 /* Mouse/trackpad shortcut for Wallet cards; destructive action still needs confirmation. */
