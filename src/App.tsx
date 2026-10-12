@@ -520,7 +520,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const stripRangeIndex=mode==='week'?0:stripIndex
   const stripRangeDays=mode==='week'?7:Math.min(step,7-stripRangeIndex)
   const pageStart=(center:string)=>mode==='week'?weekStart(center):center
-  const pages=useMemo(()=>[-1,0,1].map(n=>addDays(pageStart(anchor),n*step)),[anchor,step,mode])
+  const calendarPageStart=pageStart(anchor)
+  const pages=useMemo(()=>[-1,0,1].map(n=>addDays(calendarPageStart,n*step)),[calendarPageStart,step])
   const times=Array.from({length:Math.max(1,Math.floor((data.lastHour-data.firstHour)/2))},(_,i)=>data.firstHour+i*2)
   const heightPerSlot=mode==='week'?82:114
   const height=times.length*heightPerSlot
@@ -532,7 +533,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     scrollReset.current=true
     el.style.scrollSnapType='none';el.scrollLeft=el.clientWidth
     requestAnimationFrame(()=>{el.style.scrollSnapType='x mandatory';scrollReset.current=false})
-  },[anchor,mode])
+  },[calendarPageStart,mode])
   useEffect(()=>()=>{
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
     motionTimers.current.forEach(clearTimeout)
