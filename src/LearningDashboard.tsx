@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ArrowRight, BookOpen, CalendarClock, Check, CheckCircle2, ChevronRight, Clock3, GraduationCap, Plus, Sparkles, Target, X } from 'lucide-react'
 import { addDays, formatDate, isAssessment, minutes, occurrencesOn, today, uid, type AppData, type Semester, type StudyModule } from './model'
-import { deriveLearningJourneys, pastLearningUnits, type LearningCheckin, type LearningKind, type LearningRating, type LearningSession } from './learning'
+import { deriveLearningJourneys, pastLearningUnits, type LearningCheckin, type LearningKind, type LearningRating, type LearningSession, type LearningPlanItem } from './learning'
 import './learning-dashboard.css'
 
 type Props = {
@@ -10,6 +10,8 @@ type Props = {
   modules: StudyModule[]
   onCheckin: (checkin: LearningCheckin) => void
   onSession: (session: LearningSession) => void
+  onPlan: (plan: LearningPlanItem) => void
+  onRemovePlan: (id: string) => void
   onModules: () => void
   onOpenModule: (id: string) => void
 }
@@ -20,7 +22,7 @@ const ratingOptions: { value: LearningRating; text: string; icon: string }[] = [
 ]
 const formatMinutes = (duration: number) => duration >= 60 ? `${duration / 60} Std.` : `${duration} Min.`
 
-export default function LearningDashboard({ data, semester, modules, onCheckin, onSession, onModules, onOpenModule }: Props) {
+export default function LearningDashboard({ data, semester, modules, onCheckin, onSession, onPlan, onRemovePlan, onModules, onOpenModule }: Props) {
   const journeys = useMemo(() => deriveLearningJourneys(data, semester, modules), [data, semester, modules])
   const units = useMemo(() => pastLearningUnits(data, semester), [data, semester])
   const rated = useMemo(() => new Set((data.learning?.checkins || []).map(c => c.key)), [data.learning])
@@ -36,6 +38,27 @@ export default function LearningDashboard({ data, semester, modules, onCheckin, 
   const [duration, setDuration] = useState(45)
   const [step, setStep] = useState<'details'|'feedback'>('details')
   const [feedback, setFeedback] = useState<LearningRating>('good')
+  const [sessionPlan, setSessionPlan] = useState<string | undefined>(undefined)
+  const planned = (data.learning?.plans || []).filter(p => p.semesterId === semester.id && p.date === today())
+  const completedPlanIds = new Set((data.learning?.sessions || []).map(s => s.planId).filter(Boolean))
+  const recommendations = journeys.filter(j => !['passed','recognized','planned','open'].includes(j.module.status))
+    .slice(0,3).map(j => {
+      const exam = j.daysToExam !== undefined && j.daysToExam <= 14 && j.examTraining < 70
+      const gap = j.openUnits[0]?.unit
+      return { moduleId:j.module.id, title:exam ? 'Klausuraufgaben üben' : gap ? gap.label+' wiederholen' : 'Stoff gezielt wiederholen',
+        targetKey:exam ? undefined : gap?.key, kind:exam ? 'exam' as const : 'review' as const,
+        duration:exam ? 60 : 45 }
+    }).filter(suggestion => !planned.some(p => p.moduleId===suggestion.moduleId && p.title===suggestion.title && p.kind===suggestion.kind))
+  const beginPlanned = (plan:LearningPlanItem) => {
+    setSelectedModule(plan.moduleId)
+    setTarget(plan.targetKey||'')
+    setKind(plan.kind)
+    setDuration(plan.duration)
+    setFeedback('good')
+    setSessionPlan(plan.id)
+    setStep('feedback')
+    setAddOpen(true)
+  }
 
   const next = useMemo(() => {
     const now = new Date()
@@ -52,6 +75,7 @@ export default function LearningDashboard({ data, semester, modules, onCheckin, 
   const examJourneys = journeys.filter(j => j.examDate)
   const urgent = examJourneys[0]
   const startSession = () => {
+    setSessionPlan(undefined)
     setSelectedModule(urgent?.module.id || modules[0]?.id || '')
     setTarget('')
     setDuration(45)
@@ -65,7 +89,7 @@ export default function LearningDashboard({ data, semester, modules, onCheckin, 
     if (!selectedModule || !Number.isFinite(duration) || duration < 5 || duration > 480) return
     onSession({ id: uid(), moduleId: selectedModule, semesterId: semester.id, date: today(),
       duration, kind, targetKey: kind === 'review' ? target || undefined : undefined,
-      outcome: feedback, createdAt: Date.now() })
+      outcome: feedback, createdAt: Date.now(), planId: sessionPlan })
     setAddOpen(false)
     setStep('details')
   }
@@ -88,6 +112,26 @@ export default function LearningDashboard({ data, semester, modules, onCheckin, 
           : <><strong>In deinem Tempo.</strong><p>Kein anstehender Klausurtermin – wiederhole offene Themen.</p></>}
       </section>
     </div>
+
+    <div className="learning-section-head"><div><span className="overline">HEUTE IM FOKUS</span><h2>Dein Lernplan</h2></div><button onClick={startSession}><Plus size={15}/> Freies Lernen</button></div>
+    <section className="learning-plan">
+      {planned.length>0&&<div className="learning-plan-summary">{planned.filter(p=>completedPlanIds.has(p.id)).length} von {planned.length} Lerneinheiten abgeschlossen</div>}
+      {planned.map(plan=><div className={'learning-plan-item '+(completedPlanIds.has(plan.id)?'done':'')} key={plan.id}>
+        <span className="learning-plan-mark">{completedPlanIds.has(plan.id)?<Check size={16}/>:<BookOpen size={16}/>}</span>
+        <div className="learning-plan-body"><strong>{plan.title}</strong><small>{modules.find(m=>m.id===plan.moduleId)?.name || 'Modul'} · {formatMinutes(plan.duration)}</small></div>
+        {completedPlanIds.has(plan.id) ? <span className="learning-plan-complete">Erledigt</span> : <>
+          <button className="learning-plan-done" onClick={()=>beginPlanned(plan)}>Abschließen</button>
+          <button className="learning-plan-remove" aria-label="Lernziel entfernen" onClick={()=>onRemovePlan(plan.id)}><X size={15}/></button>
+        </>}
+      </div>)}
+      {!!recommendations.length&&<div className="learning-plan-suggestions"><div className="learning-plan-caption"><Sparkles size={15}/> Empfohlen nach Lernstand und Klausurterminen</div>
+        {recommendations.slice(0,2).map(item=><div key={item.moduleId} className="learning-plan-suggestion">
+          <div><strong>{item.title}</strong><small>{modules.find(m=>m.id===item.moduleId)?.name} · {formatMinutes(item.duration)}</small></div>
+          <button onClick={()=>onPlan({...item,id:uid(),semesterId:semester.id,date:today()})}><Plus size={15}/> Übernehmen</button>
+        </div>)}
+      </div>}
+      {!planned.length&&!recommendations.length&&<p className="learning-plan-empty">Noch kein Lernziel für heute. Erfasse bei Bedarf eine freie Lerneinheit.</p>}
+    </section>
 
     <div className="learning-section-head"><div><span className="overline">NACH DEN VORLESUNGEN</span><h2>Kurzer Check-in</h2></div>{pending.length+freeStudyPending.length>3&&<button onClick={()=>setShowMore(v=>!v)}>{showMore?'Weniger':'Alle '+(pending.length+freeStudyPending.length)} <ChevronRight size={15}/></button>}</div>
     {(pending.length || freeStudyPending.length) ? <div className="learning-checkins">{pending.slice(0,showMore?12:3).map(u => <article className="learning-checkin" key={u.key}>
