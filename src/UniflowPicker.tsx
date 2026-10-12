@@ -18,7 +18,7 @@ const isoDay = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)
 const dateLabel = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso)
   ? new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short', year: 'numeric' }).format(parseDate(iso))
   : 'Datum wählen'
-const presets = [30, 45, 60, 90, 120, 150, 180, 240]
+const presets = [15, 30, 45, 60, 90, 120, 150, 180, 240]
 const minutesLabel = (n: number) => n === 120 ? '2 Stunden' : n >= 60
   ? `${Math.floor(n / 60)} Std.${n % 60 ? ` ${n % 60} Min.` : ''}` : `${n} Min.`
 
@@ -78,10 +78,11 @@ export default function UniflowPicker(props: Props) {
   const monthName = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(month)
   const dayCount = new Date(y, m + 1, 0).getDate()
   const offset = (new Date(y, m, 1).getDay() + 6) % 7
-  const min = kind === 'date' ? props.min : undefined
-  const max = kind === 'date' ? props.max : undefined
+  const min = 'min' in props ? props.min : undefined
+  const max = 'max' in props ? props.max : undefined
   const canPrev = !min || isoDay(y, m, 1) > min.slice(0, 7) + '-01'
-  const canNext = !max || isoDay(y, m + 1, 0) < max.slice(0, 7) + '-01'
+  const nextMonth = new Date(y, m + 1, 1)
+  const canNext = !max || isoDay(nextMonth.getFullYear(), nextMonth.getMonth(), 1) <= max.slice(0, 7) + '-01'
 
   return <>
     <button ref={trigger} type="button" className="uf-picker-trigger" aria-label={props.label} aria-haspopup="dialog" aria-expanded={open} disabled={props.disabled} onClick={openPicker}>
