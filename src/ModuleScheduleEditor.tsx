@@ -1,0 +1,333 @@
+import { useMemo, useRef, useState } from 'react'
+import { ArrowLeft, BookOpen, Check, ChevronDown, ClipboardPaste, Copy, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import {
+  addDays, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
+  intersects, isAssessment, minutes, occurrenceAtOrigin, timeString, today, uid,
+  weekday, weekStart,
+  type Offering, type Repeat, type Semester, type StudyModule, type Occurrence
+} from './model'
+import './module-schedule.css'
+
+const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
+const weekdayAliases: Record<string,number> = {
+  mo:0,montag:0,di:1,dienstag:1,mi:2,mittwoch:2,do:3,donnerstag:3,
+  fr:4,freitag:4,sa:5,samstag:5,so:6,sonntag:6
+}
+type Slot = { day:number; from:string; duration:number; room:string }
+type QuickTopic = { label:string; category:string; slots:Slot[] }
+type QuickPreview = { topics:QuickTopic[]; errors:string[] }
+const prettyLabel = (type:string,n:number) => type+' '+String(n).padStart(2,'0')
+const norm = (value:string) => value.toLocaleLowerCase('de-DE').replace(/[\s_-]/g,'').replace(/0+(\d+)$/, '$1')
+const durationOf = (o:Offering) => Math.max(1,minutes(o.to)-minutes(o.from))
+const initialDate = (semester:Semester, day:number) =>
+  addDays(semester.start,(day-weekday(semester.start)+7)%7)
+const typeFromPrefix = (text:string) => {
+  const p=text.toLocaleUpperCase('de-DE')
+  if(p==='VL'||p==='VORLESUNG')return {prefix:'VL',category:'Vorlesung'}
+  if(p==='Ü'||p==='UE'||p==='ÜBUNG')return {prefix:'Ü',category:'Übung'}
+  if(p==='TUT'||p==='TUTORIUM')return {prefix:'TUT',category:'Tutorium'}
+  if(p==='SE'||p==='SEMINAR')return {prefix:'SE',category:'Seminar'}
+  return {prefix:'LERN',category:'Freies Lernen'}
+}
+const clock = (value:string):string|null => {
+  if(!/^\d{1,2}(?::\d{1,2}|\.\d{1,2})?$/.test(value))return null
+  const [h,m='0']=value.replace('.',':').split(':')
+  const hh=Number(h),mm=Number(m)
+  return hh>=0&&hh<=23&&mm>=0&&mm<=59?timeString(hh*60+mm):null
+}
+export function parseModuleQuickInput(raw:string, expectedModule:string):QuickPreview {
+  const errors:string[]=[]
+  const topics:QuickTopic[]=[]
+  let source=raw.trim()
+  const header=source.match(/^([^:\n]+):\s*(?=(?:VL|VORLESUNG|Ü|UE|ÜBUNG|TUT|TUTORIUM|SE|SEMINAR)\s*\d+)/i)
+  if(header){
+    if(norm(header[1])!==norm(expectedModule))errors.push('Die Überschrift "'+header[1].trim()+'" passt nicht zu '+expectedModule+'.')
+    source=source.slice(header[0].length)
+  }
+  const entries=source.split(/[;\n]+/).map(x=>x.trim()).filter(Boolean)
+  if(!entries.length)errors.push('Bitte mindestens eine Veranstaltung angeben.')
+  for(const [index,entry] of entries.entries()){
+    const match=entry.match(/^(VL|VORLESUNG|Ü|UE|ÜBUNG|TUT|TUTORIUM|SE|SEMINAR)\s*0*(\d+)\s+(.+)$/i)
+    if(!match){errors.push('Zeile '+(index+1)+': Erwartet z. B. VL1 Mo 8 MA041 oder Di 10 MA043.');continue}
+    const kind=typeFromPrefix(match[1]),label=prettyLabel(kind.prefix,Number(match[2]))
+    const alternatives=match[3].split(/\s+oder\s+/i)
+    const slots:Slot[]=[]
+    for(const alt of alternatives){
+      const parsed=alt.trim().match(/^(Mo|Montag|Di|Dienstag|Mi|Mittwoch|Do|Donnerstag|Fr|Freitag|Sa|Samstag|So|Sonntag)\s+(\d{1,2}(?::\d{1,2}|\.\d{1,2})?)(?:\s+|$)(.*)$/i)
+      if(!parsed){errors.push(label+': Tag oder Uhrzeit fehlt in "'+alt.trim()+'".');continue}
+      const day=weekdayAliases[parsed[1].toLocaleLowerCase('de-DE')]
+      const from=clock(parsed[2])
+      let tail=parsed[3].trim()
+      let duration=120
+      const length=tail.match(/(?:^|\s)(\d{1,3})\s*(?:min(?:uten)?|m)(?=\s|$)/i)
+      if(length){duration=Number(length[1]);tail=tail.replace(length[0],' ').trim()}
+      if(!from||!Number.isInteger(duration)||duration<5||duration>1440||minutes(from)+duration>1440){
+        errors.push(label+': Ungültige Zeit oder Dauer in "'+alt.trim()+'".');continue
+      }
+      slots.push({day,from,duration,room:tail})
+    }
+    if(slots.length){
+      const existing=topics.find(t=>norm(t.label)===norm(label)&&t.category===kind.category)
+      if(existing)existing.slots.push(...slots)
+      else topics.push({label,category:kind.category,slots})
+    }
+  }
+  return {topics,errors}
+}
+type Props = {
+  module:StudyModule;semester?:Semester;offerings:Offering[];
+  onBack:()=>void;onUpdateModule:(next:StudyModule)=>void;onDeleteModule:()=>void;
+  onChangeOfferings:(next:Offering[])=>void;
+  onOpenOccurrence:(occ:Occurrence)=>void;
+  onClearException:(offeringId:string,origin:string)=>void;
+  cloudStatus:'loading'|'saving'|'synced'|'error';cloudError:string;onRetrySync:()=>void;
+}
+export default function ModuleScheduleEditor({
+  module,semester,offerings,onBack,onUpdateModule,onDeleteModule,
+  onChangeOfferings,onOpenOccurrence,onClearException,cloudStatus,cloudError,onRetrySync
+}:Props) {
+  const [quickText,setQuickText]=useState('')
+  const [preview,setPreview]=useState<QuickPreview|null>(null)
+  const [advanced,setAdvanced]=useState(false)
+  const [exceptionsOpen,setExceptionsOpen]=useState(false)
+  const [deleted,setDeleted]=useState<Offering[]>([])
+  const [warning,setWarning]=useState('')
+  const imported=useRef(false)
+  const own=useMemo(()=>offerings.filter(o=>
+    o.moduleId===module.id&&o.semesterId===semester?.id&&!isAssessment(o.category)
+  ),[offerings,module.id,semester?.id])
+  const groups=useMemo(()=>contentGroups(own,module.id,semester?.id||''),[own,module.id,semester?.id])
+  if(!semester)return <div className="screen secondary-screen"><button className="text-back" onClick={onBack}>← Module</button><p>Bitte zuerst ein Semester auswählen.</p></div>
+
+  const commit=(next:Offering[])=>{setWarning('');onChangeOfferings(next)}
+  const update=(id:string,changes:Partial<Offering>)=>
+    commit(own.map(o=>o.id===id?{...o,...changes}:o))
+  const newOffering=(contentId:string,label:string,category:string,slot:Slot,selected=false):Offering=>{
+    const date=initialDate(semester,slot.day)
+    const id=uid()
+    return {
+      id,semesterId:semester.id,moduleId:module.id,name:module.name,category,
+      contentId,contentLabel:label,date,
+      endDate:semester.lectureEnd>=date?semester.lectureEnd:date,
+      from:slot.from,to:timeString(minutes(slot.from)+slot.duration),
+      recurrence:'weekly',overrides:{},scheduleChanges:[],
+      room:slot.room,onlineLink:'',organizer:'',selected
+    }
+  }
+  const collides=(candidate:Offering,others:Offering[])=>{
+    for(let date=candidate.date,i=0;i<150&&date<=candidate.endDate;i++,date=addDays(date,7)){
+      if(candidateOccurrencesOn(others,date).some(x=>x.offering.semesterId===semester.id&&intersects(x,candidate)))return true
+    }
+    return false
+  }
+  const addTopic=()=>{
+    const used=groups.map(g=>g.offerings[0]?.contentLabel||'')
+    let n=1
+    while(used.some(s=>norm(s)===norm(prettyLabel('VL',n))))n++
+    const label=prettyLabel('VL',n)
+    const slot={day:0,from:'08:00',duration:120,room:''}
+    const fresh=newOffering('',label,'Vorlesung',slot)
+    fresh.contentId=fresh.id
+    fresh.selected=!collides(fresh,offerings)
+    commit([...own,fresh])
+  }
+  const addAlternative=(parent:Offering)=>{
+    const slot={day:(weekday(parent.date)+1)%7,from:parent.from,duration:120,room:''}
+    const fresh=newOffering(parent.contentId||parent.familyId||parent.id,parent.contentLabel||parent.category,parent.category,slot,false)
+    commit([...own,fresh])
+  }
+  const cloneAlternative=(original:Offering)=>{
+    const fresh={...original,id:uid(),overrides:{},scheduleChanges:[],selected:false}
+    commit([...own,fresh])
+  }
+  const duplicateTopic=(topic:Offering[])=>{
+    const newId=uid()
+    const copies=topic.map((o,i)=>({
+      ...o,id:i===0?newId:uid(),contentId:newId,
+      contentLabel:(o.contentLabel||o.category)+' Kopie',
+      selected:false,overrides:{},scheduleChanges:[]
+    }))
+    commit([...own,...copies])
+  }
+  const remove=(items:Offering[])=>{
+    const ids=new Set(items.map(o=>o.id))
+    setDeleted(items)
+    commit(own.filter(o=>!ids.has(o.id)))
+  }
+  const undoDelete=()=>{
+    if(!deleted.length)return
+    const ids=new Set(own.map(o=>o.id))
+    commit([...own,...deleted.filter(o=>!ids.has(o.id))])
+    setDeleted([])
+  }
+  const setDay=(o:Offering,day:number)=>{
+    let next=addDays(weekStart(o.date),day)
+    if(next<semester.start)next=initialDate(semester,day)
+    if(next>semester.end){setWarning('Dieser Wochentag liegt außerhalb des Semesters.');return}
+    const shift=Math.round((fromDate(next).getTime()-fromDate(o.date).getTime())/86400000)
+    const overrides=Object.fromEntries(Object.entries(o.overrides||{}).map(([key,value])=>[addDays(key,shift),value]))
+    const scheduleChanges=o.scheduleChanges?.map(change=>({...change,fromOrigin:addDays(change.fromOrigin,shift)}))
+    update(o.id,{date:next,endDate:o.recurrence==='once'?next:next>o.endDate?next:o.endDate,overrides,scheduleChanges})
+  }
+  const setClock=(o:Offering,from:string)=>{
+    if(!from||minutes(from)+durationOf(o)>1440){setWarning('Die Veranstaltung muss am selben Tag enden.');return}
+    update(o.id,{from,to:timeString(minutes(from)+durationOf(o))})
+  }
+  const setDuration=(o:Offering,value:number)=>{
+    if(!Number.isInteger(value)||value<5||value>1440||minutes(o.from)+value>1440){
+      setWarning('Dauer: 5 bis 1440 Minuten, ohne Tageswechsel.');return
+    }
+    update(o.id,{to:timeString(minutes(o.from)+value)})
+  }
+  const renameTopic=(items:Offering[],label:string)=>
+    commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,contentLabel:label}:o))
+  const recategorize=(items:Offering[],category:string)=>
+    commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,category}:o))
+  const applyPreview=()=>{
+    if(!preview||preview.errors.length||!preview.topics.length||imported.current)return
+    imported.current=true
+    const added:Offering[]=[]
+    for(const topic of preview.topics){
+      const current=[...own,...added].filter(o=>
+        norm(o.contentLabel||'')===norm(topic.label)&&o.category===topic.category
+      )
+      const contentId=current[0]?.contentId||current[0]?.familyId||current[0]?.id||uid()
+      for(const slot of topic.slots){
+        const fresh=newOffering(contentId,topic.label,topic.category,slot,false)
+        const duplicate=[...own,...added].some(o=>
+          (o.contentId||o.familyId||o.id)===contentId&&
+          weekday(o.date)===slot.day&&o.from===fresh.from&&o.to===fresh.to&&
+          o.room.trim().toLocaleLowerCase('de-DE')===slot.room.trim().toLocaleLowerCase('de-DE')
+        )
+        if(duplicate)continue
+        fresh.selected=current.length===0&&![...own,...added].some(o=>
+          (o.contentId||o.familyId||o.id)===contentId)&&!collides(fresh,[...offerings,...added])
+        added.push(fresh)
+      }
+    }
+    if(added.length)commit([...own,...added])
+    else setWarning('Alle erkannten Termine sind bereits vorhanden.')
+    setPreview(null);setQuickText('')
+    imported.current=false
+  }
+  const futureExceptions=own.flatMap(o=>Object.entries(o.overrides||{})
+    .filter(([date,value])=>date>=today()&&(value.scope==='single'||(!value.scope&&(!!value.cancelled||!!value.date||!!value.from))))
+    .map(([origin,value])=>({o,origin,value}))).sort((a,b)=>a.origin.localeCompare(b.origin))
+
+  return <div className="screen secondary-screen module-detail-screen module-fast">
+    <button className="text-back" onClick={onBack}><ArrowLeft size={18}/> Alle Module</button>
+    <div className="module-detail-heading">
+      <span className="module-emoji" style={{background:module.color}}>{module.emoji||<BookOpen size={20}/>}</span>
+      <div><span className="overline">MODUL</span><h1>{module.name}</h1><p>{module.credits} LP · {module.shortName}</p></div>
+    </div>
+    <div className="module-fast-state" role="status">
+      {cloudStatus==='error'?<><span>Cloud-Speicherung fehlgeschlagen · Eingaben bleiben lokal erhalten.</span><button onClick={onRetrySync}>Erneut synchronisieren</button><small>{cloudError}</small></>:
+        <span>{cloudStatus==='saving'?'Synchronisiere …':cloudStatus==='synced'?'Automatisch gespeichert':'Speichere lokal …'}</span>}
+    </div>
+    <details className="module-fast-meta" open={advanced} onToggle={e=>setAdvanced(e.currentTarget.open)}>
+      <summary><span>Modulangaben bearbeiten</span><ChevronDown size={17}/></summary>
+      <div className="module-fast-meta-grid">
+        <label>Name<input value={module.name} onChange={e=>onUpdateModule({...module,name:e.target.value})}/></label>
+        <label>Kurzname<input value={module.shortName} maxLength={10} onChange={e=>onUpdateModule({...module,shortName:e.target.value})}/></label>
+        <label>Leistungspunkte<input type="number" min="0" step="0.5" value={module.credits} onChange={e=>onUpdateModule({...module,credits:Math.max(0,Number(e.target.value)||0)})}/></label>
+        <label>Emoji<input value={module.emoji||''} maxLength={8} onChange={e=>onUpdateModule({...module,emoji:e.target.value})}/></label>
+        <label>Status<select value={module.status} onChange={e=>onUpdateModule({...module,status:e.target.value as StudyModule['status']})}>{[['current','Aktuell'],['planned','Geplant'],['open','Offen'],['passed','Bestanden'],['failed','Nicht bestanden'],['recognized','Anerkannt']].map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
+        <label>Note<input value={module.grade} onChange={e=>onUpdateModule({...module,grade:e.target.value})}/></label>
+      </div>
+      <div className="module-fast-colors">{colors.map(c=><button key={c} title={c} aria-label={'Modulfarbe '+c} className={module.color===c?'picked':''} style={{background:c}} onClick={()=>onUpdateModule({...module,color:c})}>{module.color===c&&<Check size={15}/>}</button>)}</div>
+      <button className="module-fast-remove" onClick={onDeleteModule}><Trash2 size={16}/> Modul löschen</button>
+    </details>
+
+    <div className="module-fast-section-head"><h2>Veranstaltungen</h2><button onClick={addTopic}><Plus size={17}/> Veranstaltung</button></div>
+    <p className="module-fast-intro">Ein Inhalt, mehrere gleichwertige Gruppen. Änderungen werden automatisch gespeichert.</p>
+    {groups.map((group,index)=>{
+      const first=group.offerings[0]
+      return <section className="module-fast-topic" key={group.id}>
+        <div className="module-fast-topic-head">
+          <div className="module-fast-topic-inputs">
+            <label>Inhalt<input aria-label={'Inhalt Veranstaltung '+(index+1)} value={first.contentLabel||first.category} onChange={e=>renameTopic(group.offerings,e.target.value)}/></label>
+            <label>Art<select value={first.category} onChange={e=>recategorize(group.offerings,e.target.value)}>
+              {!['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].includes(first.category)&&<option value={first.category}>{first.category}</option>}
+              {['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].map(c=><option key={c}>{c}</option>)}
+            </select></label>
+          </div>
+          <div className="module-fast-icon-actions">
+            <button title="Veranstaltung duplizieren" aria-label="Veranstaltung duplizieren" onClick={()=>duplicateTopic(group.offerings)}><Copy size={17}/></button>
+            <button title="Veranstaltung löschen" aria-label="Veranstaltung löschen" onClick={()=>remove(group.offerings)}><Trash2 size={17}/></button>
+          </div>
+        </div>
+        <div className="module-fast-slot-list">
+          {group.offerings.map((o,i)=>{
+            const active=!!occurrenceAtOrigin(o,o.date,false)
+            return <div className="module-fast-slot" key={o.id}>
+              <div className="module-fast-slot-caption">
+                <span className={'module-fast-dot '+(active?'active':'')}/>
+                <strong>{i===0?'Gruppe 1':'Alternative '+i}</strong>
+                <span>{active?'Im Plan':'Alternative'}</span>
+                <div className="module-fast-icon-actions">
+                  <button title="Alternative duplizieren" aria-label="Alternative duplizieren" onClick={()=>cloneAlternative(o)}><Copy size={16}/></button>
+                  <button title="Alternative löschen" aria-label="Alternative löschen" onClick={()=>remove([o])}><Trash2 size={16}/></button>
+                </div>
+              </div>
+              <div className="module-fast-fields">
+                <label>Wochentag<select value={weekday(o.date)} onChange={e=>setDay(o,Number(e.target.value))}>{dayNames.map((day,n)=><option key={day} value={n}>{day}</option>)}</select></label>
+                <label>Beginn<input type="time" step="300" value={o.from} onChange={e=>setClock(o,e.target.value)}/></label>
+                <label>Dauer (Min.)<input type="number" min="5" max="1440" step="5" value={durationOf(o)} onChange={e=>setDuration(o,Number(e.target.value))}/></label>
+                <label>Raum<input placeholder="z. B. MA 041" value={o.room} onChange={e=>update(o.id,{room:e.target.value})}/></label>
+              </div>
+              <div className="module-fast-time"><span>{dayNames[weekday(o.date)]} · {o.from}–{o.to}</span><span>{o.recurrence==='once'?'Einmalig':o.recurrence==='biweekly'?'14-täglich':'Wöchentlich'}</span></div>
+              <details className="module-fast-slot-advanced"><summary>Weitere Angaben <ChevronDown size={14}/></summary>
+                <div className="module-fast-fields">
+                  <label>Lehrperson<input value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></label>
+                  <label>Online-Link<input type="url" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></label>
+                  <label>Wiederholung<select value={o.recurrence} onChange={e=>update(o.id,{recurrence:e.target.value as Repeat,endDate:e.target.value==='once'?o.date:o.endDate<o.date?semester.lectureEnd:o.endDate})}><option value="weekly">Wöchentlich</option><option value="biweekly">Alle 2 Wochen</option><option value="once">Einmalig</option></select></label>
+                  {o.recurrence==='once'
+                    ?<label>Datum<input type="date" min={semester.start} max={semester.end} value={o.date} onChange={e=>{if(e.target.value>=semester.start&&e.target.value<=semester.end)update(o.id,{date:e.target.value,endDate:e.target.value})}}/></label>
+                    :<label>Bis<input type="date" min={o.date} max={semester.end} value={o.endDate} onChange={e=>{if(e.target.value>=o.date)update(o.id,{endDate:e.target.value})}}/></label>}
+                </div>
+              </details>
+            </div>
+          })}
+        </div>
+        <div className="module-fast-topic-foot">
+          <button className="module-fast-add-alt" onClick={()=>addAlternative(first)}><Plus size={16}/> Alternative hinzufügen</button>
+          <details className="module-fast-link"><summary>Bestehende Gruppe zuordnen</summary>
+            <div>{own.filter(o=>!group.offerings.some(g=>g.id===o.id)&&o.category===first.category).map(o=>
+              <button key={o.id} onClick={()=>commit(own.map(x=>x.id===o.id?{...x,contentId:first.contentId||first.familyId||first.id,contentLabel:first.contentLabel}:x))}>
+                {o.contentLabel||o.category} · {o.from}–{o.to}
+              </button>)}</div>
+          </details>
+        </div>
+      </section>
+    })}
+    {!groups.length&&<div className="module-topic-empty">Noch keine Veranstaltungen. Du kannst eine Veranstaltung anlegen oder die Schnelleingabe verwenden.</div>}
+    {deleted.length>0&&<div className="module-fast-undo">Gelöscht: {deleted.length} {deleted.length===1?'Gruppe':'Gruppen'} <button onClick={undoDelete}><RotateCcw size={15}/> Rückgängig</button></div>}
+    {warning&&<p className="module-fast-warning" role="alert">{warning}</p>}
+
+    <section className="module-fast-quick">
+      <div className="module-fast-section-head"><h2>Schnelleingabe</h2><ClipboardPaste size={19}/></div>
+      <p>Beispiel: {module.name}: VL1 Mo 8 MA041 oder Di 10 MA043; VL2 Do 8 MA041</p>
+      <textarea rows={3} value={quickText} placeholder="VL1 Mo 8 MA041 oder Di 10 MA043; VL2 Do 8 MA041"
+        onChange={e=>{setQuickText(e.target.value);setPreview(null)}}/>
+      <button className="module-fast-preview-button" disabled={!quickText.trim()} onClick={()=>setPreview(parseModuleQuickInput(quickText,module.name))}>Vorschau anzeigen</button>
+      {preview&&<div className="module-fast-preview" role="region" aria-label="Vorschau Schnelleingabe">
+        <h3>Vorschau</h3>
+        {preview.topics.map(t=><div key={t.label}><strong>{t.label} · {t.category}</strong>
+          {t.slots.map((s,i)=><small key={i}>{dayNames[s.day]} {s.from}–{timeString(minutes(s.from)+s.duration)} · {s.room||'Ohne Raum'}</small>)}</div>)}
+        {preview.errors.map((message,i)=><p className="module-fast-warning" key={i}>{message}</p>)}
+        <div className="module-fast-preview-actions"><button onClick={()=>setPreview(null)}>Zurück</button>
+          <button className="module-fast-preview-button" disabled={!!preview.errors.length||!preview.topics.length} onClick={applyPreview}><Check size={16}/> Übernehmen</button>
+        </div>
+      </div>}
+    </section>
+
+    <details className="module-fast-exceptions" open={exceptionsOpen} onToggle={e=>setExceptionsOpen(e.currentTarget.open)}>
+      <summary>Zukünftige Ausnahmen · {futureExceptions.length}<ChevronDown size={17}/></summary>
+      {futureExceptions.length===0?<p>Keine zukünftigen Einzelausnahmen.</p>:futureExceptions.map(({o,origin,value})=>
+        <div className="module-fast-exception" key={o.id+origin}><span>{formatDate(origin)} · {o.contentLabel||o.category}<small>{value.cancelled?'Entfällt':value.reason==='move'?'Einmalig verschoben':value.selected?'Einmalig besuchen':'Einmalig nicht besuchen'}</small></span>
+          <button onClick={()=>{const occ=occurrenceAtOrigin(o,origin,true);if(occ)onOpenOccurrence(occ)}}>Ansehen</button>
+          <button onClick={()=>onClearException(o.id,origin)}>Zurücksetzen</button>
+        </div>)}
+    </details>
+  </div>
+}
