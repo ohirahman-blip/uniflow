@@ -2735,11 +2735,22 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .empty-slot {touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .wallet-fan {transition:none;}
 
-/* Calendar category and one-off markers in every view. */
+/* Keep event type left and single-visit indicators right on one line. */
+.course .course-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+.course .course-meta .course-category { flex: 1 1 auto; min-width: 0; }
+.mode-week .course .course-meta { gap: 2px; }
 .mode-week .course .course-category { font-size: 8px; }
 .course .course-recurrence {
-  align-self: flex-start;
-  max-width: 100%;
+  flex: 0 0 auto;
+  margin-left: auto;
+  max-width: 65%;
   padding: 2px 5px;
   border-radius: 3px;
   background: rgb(255 255 255 / 30%);
