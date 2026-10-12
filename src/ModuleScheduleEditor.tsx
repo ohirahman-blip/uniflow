@@ -7,6 +7,7 @@ import {
   type Offering, type Repeat, type Semester, type StudyModule, type Occurrence
 } from './model'
 import type { Journey } from './learning'
+import UniflowPicker from './UniflowPicker'
 import './module-schedule.css'
 
 const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
@@ -239,7 +240,7 @@ export default function ModuleScheduleEditor({
         <label>Kurzname<input value={module.shortName} maxLength={10} onChange={e=>onUpdateModule({...module,shortName:e.target.value})}/></label>
         <label>Leistungspunkte<input type="number" min="0" step="0.5" value={module.credits} onChange={e=>onUpdateModule({...module,credits:Math.max(0,Number(e.target.value)||0)})}/></label>
         <label>Emoji<input value={module.emoji||''} maxLength={8} onChange={e=>onUpdateModule({...module,emoji:e.target.value})}/></label>
-        <label>Status<select value={module.status} onChange={e=>onUpdateModule({...module,status:e.target.value as StudyModule['status']})}>{[['current','Aktuell'],['planned','Geplant'],['open','Offen'],['passed','Bestanden'],['failed','Nicht bestanden'],['recognized','Anerkannt']].map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
+        <label>Status<UniflowPicker label="Modulstatus" value={module.status} onChange={value=>onUpdateModule({...module,status:value as StudyModule['status']})} options={([['current','Aktuell'],['planned','Geplant'],['open','Offen'],['passed','Bestanden'],['failed','Nicht bestanden'],['recognized','Anerkannt']] as const).map(([value,label])=>({value,label}))}/></label>
         <label>Note<input value={module.grade} onChange={e=>onUpdateModule({...module,grade:e.target.value})}/></label>
       </div>
       <div className="module-fast-colors">{colors.map(c=><button key={c} title={c} aria-label={'Modulfarbe '+c} className={module.color===c?'picked':''} style={{background:c}} onClick={()=>onUpdateModule({...module,color:c})}>{module.color===c&&<Check size={15}/>}</button>)}</div>
@@ -279,10 +280,8 @@ export default function ModuleScheduleEditor({
         {expanded&&<><div className="module-fast-topic-head">
           <div className="module-fast-topic-inputs">
             <label>Inhalt<input aria-label={'Inhalt Veranstaltung '+(index+1)} value={first.contentLabel??first.category} onChange={e=>renameTopic(group.offerings,e.target.value)}/></label>
-            <label>Art<select value={first.category} onChange={e=>recategorize(group.offerings,e.target.value)}>
-              {!['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].includes(first.category)&&<option value={first.category}>{first.category}</option>}
-              {['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].map(c=><option key={c}>{c}</option>)}
-            </select></label>
+            <label>Art<UniflowPicker label="Veranstaltungsart" value={first.category} onChange={value=>recategorize(group.offerings,value)}
+              options={[...(!['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].includes(first.category)?[first.category]:[]),'Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].map(value=>({value,label:value}))}/></label>
           </div>
           <div className="module-fast-icon-actions">
             <button title="Veranstaltung duplizieren" aria-label="Veranstaltung duplizieren" onClick={()=>duplicateTopic(group.offerings)}><Copy size={17}/></button>
@@ -303,9 +302,9 @@ export default function ModuleScheduleEditor({
                 </div>
               </div>
               <div className="module-fast-fields">
-                <label>Wochentag<select value={weekday(o.date)} onChange={e=>setDay(o,Number(e.target.value))}>{dayNames.map((day,n)=><option key={day} value={n}>{day}</option>)}</select></label>
-                <label>Beginn<input type="time" step="300" value={o.from} onChange={e=>setClock(o,e.target.value)}/></label>
-                <label>Dauer (Min.)<input type="number" min="5" max="1440" step="5" value={durationOf(o)} onChange={e=>setDuration(o,Number(e.target.value))}/></label>
+                <label>Wochentag<UniflowPicker label="Wochentag" value={String(weekday(o.date))} onChange={value=>setDay(o,Number(value))} options={dayNames.map((label,n)=>({value:String(n),label}))}/></label>
+                <label>Beginn<UniflowPicker kind="time" label="Beginn" value={o.from} maxMinutes={1440-durationOf(o)} onChange={value=>setClock(o,value)}/></label>
+                <label>Dauer<UniflowPicker kind="duration" label="Dauer" value={String(durationOf(o))} maxMinutes={1440-minutes(o.from)} onChange={value=>setDuration(o,Number(value))}/></label>
                 <label>Raum<input placeholder="z. B. MA 041" value={o.room} onChange={e=>update(o.id,{room:e.target.value})}/></label>
               </div>
               <div className="module-fast-time"><span>{dayNames[weekday(o.date)]} · {o.from}–{o.to}</span><span>{o.recurrence==='once'?'Einmalig':o.recurrence==='biweekly'?'14-täglich':'Wöchentlich'}</span></div>
@@ -313,10 +312,10 @@ export default function ModuleScheduleEditor({
                 <div className="module-fast-fields">
                   <label>Lehrperson<input value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></label>
                   <label>Online-Link<input type="url" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></label>
-                  <label>Wiederholung<select value={o.recurrence} onChange={e=>update(o.id,{recurrence:e.target.value as Repeat,endDate:e.target.value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}><option value="weekly">Wöchentlich</option><option value="biweekly">Alle 2 Wochen</option><option value="once">Einmalig</option></select></label>
+                  <label>Wiederholung<UniflowPicker label="Wiederholung" value={o.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>update(o.id,{recurrence:value as Repeat,endDate:value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}/></label>
                   {o.recurrence==='once'
-                    ?<label>Datum<input type="date" min={semester.start} max={semester.end} value={o.date} onChange={e=>{if(e.target.value>=semester.start&&e.target.value<=semester.end)update(o.id,{date:e.target.value,endDate:e.target.value})}}/></label>
-                    :<label>Bis<input type="date" min={o.date} max={semester.end} value={o.endDate} onChange={e=>{if(e.target.value>=o.date)update(o.id,{endDate:e.target.value})}}/></label>}
+                    ?<label>Datum<UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={o.date} onChange={value=>{if(value>=semester.start&&value<=semester.end)update(o.id,{date:value,endDate:value})}}/></label>
+                    :<label>Bis<UniflowPicker kind="date" label="Bis" min={o.date} max={semester.end} value={o.endDate} onChange={value=>{if(value>=o.date&&value<=semester.end)update(o.id,{endDate:value})}}/></label>}
                 </div>
               </details>
             </div>
