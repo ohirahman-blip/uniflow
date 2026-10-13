@@ -27,7 +27,9 @@ assert.equal(norm.assessments.length,4); // 2 exams + 1 homework + 1 existing
 assert.equal(norm.assessments.filter(x=>x.type==='exam').length,3);
 assert.ok(norm.assessments.some(x=>x.date==='2026-10-26'&&x.type==='exam'));
 assert.ok(!norm.assessments.some(x=>x.date==='2026-10-19'&&x.type==='exam'));
-assert.ok(app.includes('onEditAssessment={setEditingAssessment}'));
+assert.ok(app.includes('onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}'),'Calendar must open deadline preview first');
+assert.ok(app.includes('onEdit={()=>{setEditingAssessment(previewAssessment);setPreviewAssessmentId(null)}}'),'Preview Edit must open existing editor');
+assert.ok(app.includes('onToggle={()=>mutate(d=>({...d,assessments:d.assessments.map(item=>'),'Completion checkbox saves through existing cloud mutation');
 assert.ok(app.includes('onDelete={()=>{setDeletingAssessment(editingAssessment)'));
 assert.ok(app.includes('onDelete={()=>{setDeleteProposal({occ:editingOffering'));
 assert.ok(app.includes('onClick={()=>onNew({date,from,to})}'));
