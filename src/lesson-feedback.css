@@ -54,3 +54,34 @@
  .lesson-feedback{padding:15px 12px;}
  .lesson-feedback-options{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
+
+/* Soft sentiment palette for individual classes. Neutral absent is not a
+   knowledge failure, and changing the rating can be done at any time. */
+.lesson-feedback-options button {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  text-align:center;
+  min-height:62px;
+  transition:background-color .15s,border-color .15s;
+}
+.lesson-feedback-options button .lesson-rating-emoji {
+  font-size:18px;
+  line-height:1.15;
+  filter:saturate(.8);
+}
+.lesson-feedback-options button.lesson-feedback-rating-understood {color:#b2dfb9;}
+.lesson-feedback-options button.lesson-feedback-rating-partial {color:#f3d58c;}
+.lesson-feedback-options button.lesson-feedback-rating-struggling {color:#efafb1;}
+.lesson-feedback-options button.lesson-feedback-rating-absent {color:#b5b5be;}
+.lesson-feedback-options button.lesson-feedback-rating-understood.chosen {color:#c5efd0;background:#23402c;border-color:#4a8158;}
+.lesson-feedback-options button.lesson-feedback-rating-partial.chosen {color:#f7e1a2;background:#44391e;border-color:#8d743b;}
+.lesson-feedback-options button.lesson-feedback-rating-struggling.chosen {color:#f5bdc1;background:#46282e;border-color:#975762;}
+.lesson-feedback-options button.lesson-feedback-rating-absent.chosen {color:#e4e4e9;background:#343438;border-color:#777780;}
+.lesson-feedback-options button.chosen {font-weight:750;}
+.lesson-feedback-options button:disabled {opacity:.42;}
+@media(min-width:650px){
+  .lesson-feedback-compact .lesson-feedback-options button {min-height:58px;}
+}
