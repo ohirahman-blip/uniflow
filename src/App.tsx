@@ -1333,7 +1333,7 @@ export default function App() {
         {ai.consent&&!ai.working&&ai.advice&&<div className="settings-ai-result" role="status">
           <span><Sparkles size={14}/> uniflow+</span><strong>{ai.advice.title}</strong><p>{ai.advice.message}</p>
         </div>}
-        {ai.consent&&ai.errorMessage&&<p className="auth-error" role="alert">{ai.errorMessage}</p>
+        {ai.consent&&ai.errorMessage&&<p className="auth-error" role="alert">{ai.errorMessage}</p>}
         <details className="settings-ai-details"><summary>Datenschutz</summary>
           <p className="settings-ai-privacy">Bei Aktivierung werden für die Empfehlung relevante Modulnamen, Themen, Bewertungen und Prüfungstermine über Supabase an DeepSeek übermittelt. Keine E-Mail-Adresse und kein vollständiger Stundenplan.</p>
         </details>
