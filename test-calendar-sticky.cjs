@@ -15,7 +15,7 @@ const strip = header.indexOf('<div className={\'uf-week-strip\'')
 assert.ok(wrapper>0 && wrapper<toolbar && toolbar<strip,'Toolbar and dates must share the same parent')
 assert.ok(header.indexOf('className="quick-task-wrap"')>toolbar && header.indexOf('className="quick-task-wrap"')<strip,'Add menu must belong to pinned toolbar')
 assert.ok(header.indexOf('className="focus-select-wrap"')>toolbar && header.indexOf('className="focus-select-wrap"')<strip,'Focus menu must belong to pinned toolbar')
-assert.ok(/<\/div>\s*<\/div>\s*$/.test(header),'Sticky wrapper must close before the timetable')
+assert.ok(/<\/div>}\s*<\/div>\s*\{monthOpen\?<CalendarMonthOverview/.test(header),'Sticky wrapper must close before the month or timetable')
 
 assert.match(css,/\.calendar-sticky-header\s*\{[^}]*position:\s*sticky;[^}]*z-index:\s*90;/s)
 assert.match(css,/\.calendar-sticky-header\s*>\s*\.calendar-compact-toolbar\s*\{[^}]*z-index:\s*3;/s)
