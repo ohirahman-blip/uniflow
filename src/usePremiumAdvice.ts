@@ -114,7 +114,7 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
       setUnavailable(false)
       void (async()=>{
         try {
-          const response=await supabase.functions.invoke('uniflow-ai-advice',{
+          const response=await supabase!.functions.invoke('uniflow-ai-advice',{
             body:{context},signal:controller.signal
           })
           if(response.error)throw response.error
