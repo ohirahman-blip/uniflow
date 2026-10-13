@@ -736,6 +736,9 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     </div>
   }
   return <section className="calendar-page">
+    {/* Keep the toolbar, date strip and their menus inside one sticky stacking
+        context while the timetable scrolls underneath. */}
+    <div className="calendar-sticky-header">
     <div className="calendar-compact-toolbar">
       <div className="view-switch" role="group" aria-label="Kalenderansicht">
         <button className={mode==='day'?'active':''} onClick={()=>changeMode('day')} title="Tag" aria-label="Tagesansicht"><CalendarDays size={17}/></button>
@@ -746,11 +749,11 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         <button className="calendar-today" onClick={e=>{e.currentTarget.blur();chooseStripDate(today())}} title="Zum heutigen Tag">Heute</button>
         <button aria-label="Vorheriger Zeitraum" title="Zurück" onClick={e=>{e.currentTarget.blur();jump(-1)}}><ChevronLeft size={19}/></button>
         <button aria-label="Nächster Zeitraum" title="Weiter" onClick={e=>{e.currentTarget.blur();jump(1)}}><ChevronRight size={19}/></button>
-        <div className="quick-task-wrap" ref={taskWrap}><button className="calendar-quick-add" title="Termin, Klausur oder Abgabe hinzufügen" aria-label="Termin, Klausur oder Abgabe hinzufügen" onClick={()=>setTaskMenu(v=>!v)}><Plus size={18}/></button>
-          {taskMenu&&<div className="mini-popover"><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',recurrence:'once'})}}><CalendarDays size={16}/> Einmaliger Termin</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',category:'Klausur'})}}><GraduationCap size={16}/> Klausur</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'18:00',to:'18:30',category:'Hausaufgabe'})}}><ClipboardList size={16}/> Hausaufgabe</button></div>}
+        <div className="quick-task-wrap" ref={taskWrap}><button className="calendar-quick-add" title="Termin, Klausur oder Abgabe hinzufügen" aria-label="Termin, Klausur oder Abgabe hinzufügen" aria-expanded={taskMenu} aria-haspopup="menu" onClick={()=>{setFocusOpen(false);setTaskMenu(v=>!v)}}><Plus size={18}/></button>
+          {taskMenu&&<div className="mini-popover" role="menu" aria-label="Neuen Kalendereintrag hinzufügen"><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',recurrence:'once'})}}><CalendarDays size={16}/> Einmaliger Termin</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',category:'Klausur'})}}><GraduationCap size={16}/> Klausur</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'18:00',to:'18:30',category:'Hausaufgabe'})}}><ClipboardList size={16}/> Hausaufgabe</button></div>}
         </div>
-        <div className="focus-select-wrap" ref={focusWrap}><button className={'calendar-focus '+(focusModuleId?'chosen':'')} onClick={()=>setFocusOpen(v=>!v)} aria-label="Modulfokus auswählen" title="Fokusmodus"><Focus size={18}/></button>
-          {focusOpen&&<div className="mini-popover focus-popover"><button onClick={()=>{onFocusChange('');setFocusOpen(false)}}>Alle Module {focusModuleId===''&&<Check size={15}/>}</button>{focusChoices.map(m=><button key={m.id} onClick={()=>{onFocusChange(m.id);setFocusOpen(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}{focusModuleId===m.id&&<Check size={15}/>}</button>)}</div>}
+        <div className="focus-select-wrap" ref={focusWrap}><button className={'calendar-focus '+(focusModuleId?'chosen':'')} onClick={()=>{setTaskMenu(false);setFocusOpen(v=>!v)}} aria-label="Modulfokus auswählen" aria-expanded={focusOpen} aria-haspopup="menu" title="Fokusmodus"><Focus size={18}/></button>
+          {focusOpen&&<div className="mini-popover focus-popover" role="menu" aria-label="Nach Modul filtern"><button onClick={()=>{onFocusChange('');setFocusOpen(false)}}>Alle Module {focusModuleId===''&&<Check size={15}/>}</button>{focusChoices.map(m=><button key={m.id} onClick={()=>{onFocusChange(m.id);setFocusOpen(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}{focusModuleId===m.id&&<Check size={15}/>}</button>)}</div>}
         </div>
       </div>
     </div>
@@ -796,6 +799,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           })}
         </div>
       </div>
+    </div>
     </div>
     <div className={"calendar-lanes calendar-lanes-"+mode+" calendar-motion-"+motion}>
       <div className="time-ruler"><button className="ruler-head" title="Heute" onClick={()=>setAnchor(today())}>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'})}</button>
