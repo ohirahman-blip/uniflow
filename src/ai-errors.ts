@@ -52,7 +52,8 @@ export async function describeAiRequestError(error:unknown,functionName:string):
     return aiFailureText(code,context.status,upstreamStatus)
   }
   if(name==='FunctionsFetchError'||/Failed to send a request to the Edge Function|failed to fetch|networkerror|load failed/i.test(message)){
-    return 'Netzwerk- oder CORS-Fehler: '+functionName+' wurde nicht erreicht. Prüfe, ob die Funktion in Supabase bereitgestellt ist, ihre OPTIONS-Antwort 204 ohne Body sendet und die aktuelle Website unter UNIFLOW_ALLOWED_ORIGINS erlaubt ist.'
+    const origin=typeof window!=='undefined'?window.location.origin:'unbekannt'
+    return 'Netzwerk- oder CORS-Fehler bei '+functionName+' (Website: '+origin+'). Der Browser konnte keine gültige Antwort lesen. Prüfe im Browser unter Entwicklertools → Netzwerk den OPTIONS- und POST-Status; bei fehlendem CORS-Header die in Supabase deployte Funktion aktualisieren.'
   }
   if(name==='FunctionsRelayError')return 'Supabase konnte die Edge Function nicht starten oder weiterleiten. Prüfe die Logs der Funktion '+functionName+'.'
   if(name==='AbortError')return 'Die KI-Anfrage wurde abgebrochen oder hat zu lange gedauert.'

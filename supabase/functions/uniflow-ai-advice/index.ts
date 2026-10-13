@@ -7,6 +7,17 @@ import { createClient } from 'npm:@supabase/supabase-js@2.58.0'
 const allowedOrigins=(Deno.env.get('UNIFLOW_ALLOWED_ORIGINS')||
   'http://localhost:5173,http://127.0.0.1:5173,https://uniflow-jet.vercel.app')
   .split(',').map(s=>s.trim()).filter(Boolean)
+const allowOrigin=(origin:string)=>{
+  if(!origin)return true
+  if(allowedOrigins.includes(origin))return true
+  // Vite selects 5174, 5175, ... when 5173 is busy. Local development
+  // still requires a valid user's JWT and server-side Premium verification.
+  try{
+    const url=new URL(origin)
+    return url.protocol==='http:'&&
+      (url.hostname==='localhost'||url.hostname==='127.0.0.1'||url.hostname==='[::1]')
+  }catch{return false}
+}
 type Plain=Record<string,unknown>
 const asRecord=(v:unknown):Plain|null=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Plain:null
 const takeString=(v:unknown,max=100)=>
@@ -50,8 +61,8 @@ function sanitizeContext(value:unknown){
 const cors=(req:Request)=>{
   const origin=req.headers.get('origin')||''
   return {
-    ...(origin&&allowedOrigins.includes(origin)?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{}),
-    'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type',
+    ...(origin&&allowOrigin(origin)?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{}),
+    'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage',
     'Access-Control-Allow-Methods':'POST, OPTIONS',
     'Content-Type':'application/json; charset=utf-8',
     'Cache-Control':'no-store'
@@ -78,7 +89,7 @@ Deno.serve(async req=>{
   if(req.method!=='POST')return reply(req,405,{error:'METHOD_NOT_ALLOWED'})
   // Do not allow access via JS from arbitrary third-party origins.
   const origin=req.headers.get('origin')
-  if(origin&&!allowedOrigins.includes(origin))return reply(req,403,{error:'ORIGIN_NOT_ALLOWED'})
+  if(origin&&!allowOrigin(origin))return reply(req,403,{error:'ORIGIN_NOT_ALLOWED'})
   const token=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'').trim()
   if(!token)return reply(req,401,{error:'NOT_AUTHENTICATED'})
   const url=Deno.env.get('SUPABASE_URL')

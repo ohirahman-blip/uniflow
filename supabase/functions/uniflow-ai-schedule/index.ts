@@ -9,11 +9,22 @@ const object=(value:unknown):Plain|null=>
 const origins=(Deno.env.get('UNIFLOW_ALLOWED_ORIGINS')||
   'http://localhost:5173,http://127.0.0.1:5173,https://uniflow-jet.vercel.app')
   .split(',').map(x=>x.trim()).filter(Boolean)
+const allowOrigin=(origin:string)=>{
+  if(!origin)return true
+  if(origins.includes(origin))return true
+  // Vite selects 5174, 5175, ... when 5173 is busy. Local development
+  // still requires a valid user's JWT and server-side Premium verification.
+  try{
+    const url=new URL(origin)
+    return url.protocol==='http:'&&
+      (url.hostname==='localhost'||url.hostname==='127.0.0.1'||url.hostname==='[::1]')
+  }catch{return false}
+}
 const headers=(req:Request)=>{
   const origin=req.headers.get('origin')||''
   return {
-    ...(origin&&origins.includes(origin)?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{}),
-    'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type',
+    ...(origin&&allowOrigin(origin)?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{}),
+    'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage',
     'Access-Control-Allow-Methods':'POST, OPTIONS',
     'Content-Type':'application/json; charset=utf-8',
     'Cache-Control':'no-store'
@@ -70,7 +81,7 @@ Deno.serve(async(req)=>{
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers:headers(req)})
   if(req.method!=='POST')return reply(req,405,{error:'METHOD_NOT_ALLOWED'})
   const origin=req.headers.get('origin')
-  if(origin&&!origins.includes(origin))return reply(req,403,{error:'ORIGIN_NOT_ALLOWED'})
+  if(origin&&!allowOrigin(origin))return reply(req,403,{error:'ORIGIN_NOT_ALLOWED'})
   const token=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'').trim()
   if(!token)return reply(req,401,{error:'NOT_AUTHENTICATED'})
   const url=Deno.env.get('SUPABASE_URL'),anon=Deno.env.get('SUPABASE_ANON_KEY')
