@@ -25,6 +25,9 @@ html[data-uniflow-tier='plus']{
   -webkit-background-clip:text;background-clip:text;
   -webkit-text-fill-color:transparent!important;color:transparent!important;
 }
+/* The free mark is white with the familiar orange-to-pink plus. */
+.uf-brandmark--free .uf-logo-word{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.uf-brandmark--free .uf-logo-plus{background:var(--uf-primary-gradient)}
 .uf-brandmark--plus .uf-logo-word{
   background:var(--uf-primary-gradient)!important;
   -webkit-background-clip:text!important;background-clip:text!important;
