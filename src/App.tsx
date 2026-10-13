@@ -11,6 +11,7 @@ import LearningDashboard from './LearningDashboard'
 import { journeyFor, pastLessons, type Journey, type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask } from './learning'
 import './styles.css'
 import './calendar-week-strip.css'
+import './ui-polish.css'
 
 type Page = 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
 type NewEntry = { date: string; from: string; to: string; category?: string; recurrence?: Repeat }
