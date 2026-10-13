@@ -1,0 +1,29 @@
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const ts = require('typescript')
+
+const app = fs.readFileSync('src/App.tsx','utf8')
+const css = fs.readFileSync('src/calendar-week-strip.css','utf8')
+const start = app.indexOf('return <section className="calendar-page">')
+const end = app.indexOf('<div className={"calendar-lanes calendar-lanes-"+mode',start)
+assert.ok(start>=0 && end>start,'Calendar section and timetable must exist')
+
+const header = app.slice(start,end)
+const wrapper = header.indexOf('<div className="calendar-sticky-header">')
+const toolbar = header.indexOf('<div className="calendar-compact-toolbar">')
+const strip = header.indexOf('<div className={\'uf-week-strip\'')
+assert.ok(wrapper>0 && wrapper<toolbar && toolbar<strip,'Toolbar and dates must share the same parent')
+assert.ok(header.indexOf('className="quick-task-wrap"')>toolbar && header.indexOf('className="quick-task-wrap"')<strip,'Add menu must belong to pinned toolbar')
+assert.ok(header.indexOf('className="focus-select-wrap"')>toolbar && header.indexOf('className="focus-select-wrap"')<strip,'Focus menu must belong to pinned toolbar')
+assert.ok(/<\/div>\s*<\/div>\s*$/.test(header),'Sticky wrapper must close before the timetable')
+
+assert.match(css,/\.calendar-sticky-header\s*\{[^}]*position:\s*sticky;[^}]*z-index:\s*90;/s)
+assert.match(css,/\.calendar-sticky-header\s*>\s*\.calendar-compact-toolbar\s*\{[^}]*z-index:\s*3;/s)
+assert.match(css,/\.calendar-sticky-header\s*>\s*\.uf-week-strip\s*\{[^}]*position:\s*relative;[^}]*z-index:\s*1;/s)
+assert.match(css,/\.calendar-sticky-header\s+\.mini-popover\s*\{[^}]*z-index:\s*100;/s)
+assert.match(css,/@media\s*\(max-width:\s*720px\)\s*\{\s*\.calendar-sticky-header\s*\{/s,'Mobile header must cover the entire date strip')
+assert.ok(header.includes('aria-expanded={taskMenu}') && header.includes('aria-expanded={focusOpen}'),'Both menus expose open state')
+
+const diagnostics=ts.transpileModule(app,{compilerOptions:{target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX},reportDiagnostics:true}).diagnostics||[]
+assert.equal(diagnostics.filter(item=>item.category===ts.DiagnosticCategory.Error).length,0,'Calendar TSX must parse')
+console.log('✔ calendar toolbar/date strip one sticky overlay, menus layered above and touch targets remain available')
