@@ -110,9 +110,22 @@ automatisch auf Supabase angewandt.
 ## Weitere Premium- und Kalenderfunktionen
 
 - In **Module** ist die Schnelleingabe ausschließlich mit uniflow+ nutzbar.
-  Der Beispieltext entfällt; während der Vorschauanalyse zeigt sie eine dezente
-  Premium-Animation. Die Eingabe wird derzeit von einem **lokalen Parser**,
-  nicht von DeepSeek interpretiert.
+  Sie sendet nur den eingegebenen Text und Modulnamen über die separate
+  Supabase-Funktion `uniflow-ai-schedule` an DeepSeek und zeigt anschließend
+  **bearbeitbare** Veranstaltungen, Wochentage, Uhrzeiten, Dauer und Räume.
+  Erst „Übernehmen“ speichert die geprüften Vorschläge. Die klassische
+  Kalender- und Alternativenlogik bleibt unverändert.
+- Dazu die neue Edge Function einmalig zusätzlich bereitstellen:
+  ```bash
+  supabase functions deploy uniflow-ai-schedule
+  ```
+  Die bestehende Funktion `uniflow-ai-advice`, der `DEEPSEEK_API_KEY`,
+  die Premium-Kontrolle, erlaubte Origins und der bestehende Quota-RPC
+  werden weiterverwendet. Beide KI-Funktionen teilen sich das serverseitige
+  25-Anfragen-Tageslimit. Der DeepSeek-Standardmodellname für die neue
+  Funktion lautet `deepseek-chat`; falls `DEEPSEEK_MODEL` gesetzt ist,
+  muss dessen Wert ein von DeepSeek unterstütztes Modell sein.
+  Ein GitHub-Push allein deployed **keine** Supabase-Funktionen.
 - Vorlesungen und Übungen sind beim Öffnen des Modul-Editors standardmäßig
   eingeklappt.
 - Der Zeit-Picker nutzt vertikale Scrollräder für Stunden und alle

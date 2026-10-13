@@ -8,6 +8,8 @@ import {
 } from './model'
 import type { Journey } from './learning'
 import UniflowPicker from './UniflowPicker'
+import { supabase } from './supabase'
+import { aiScheduleCategories, parseAiSchedulePreview, type AiScheduleSlot, type AiScheduleTopic, type AiSchedulePreview } from './ai-schedule'
 import './module-schedule.css'
 
 const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
@@ -15,9 +17,9 @@ const weekdayAliases: Record<string,number> = {
   mo:0,montag:0,di:1,dienstag:1,mi:2,mittwoch:2,do:3,donnerstag:3,
   fr:4,freitag:4,sa:5,samstag:5,so:6,sonntag:6
 }
-type Slot = { day:number; from:string; duration:number; room:string }
-type QuickTopic = { label:string; category:string; slots:Slot[] }
-type QuickPreview = { topics:QuickTopic[]; errors:string[] }
+type Slot = AiScheduleSlot
+type QuickTopic = AiScheduleTopic
+type QuickPreview = AiSchedulePreview
 const prettyLabel = (type:string,n:number) => type+' '+String(n).padStart(2,'0')
 const norm = (value:string) => value.toLocaleLowerCase('de-DE').replace(/[\s_-]/g,'').replace(/0+(\d+)$/, '$1')
 const durationOf = (o:Offering) => Math.max(1,minutes(o.to)-minutes(o.from))
@@ -96,8 +98,9 @@ export default function ModuleScheduleEditor({
   const [deleted,setDeleted]=useState<Offering[]>([])
   const [warning,setWarning]=useState('')
   const [thinking,setThinking]=useState(false)
-  const previewTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
-  useEffect(()=>()=>{if(previewTimer.current)clearTimeout(previewTimer.current)},[])
+  const [quickError,setQuickError]=useState('')
+  const previewRequest=useRef<AbortController|null>(null)
+  useEffect(()=>()=>{previewRequest.current?.abort()},[])
   const imported=useRef(false)
   const own=useMemo(()=>offerings.filter(o=>
     o.moduleId===module.id&&o.semesterId===semester?.id&&!isAssessment(o.category)
@@ -190,24 +193,72 @@ export default function ModuleScheduleEditor({
     commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,contentLabel:label}:o))
   const recategorize=(items:Offering[],category:string)=>
     commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,category}:o))
-  const generatePreview=()=>{
+  const updateQuickTopic=(index:number,changes:Partial<QuickTopic>)=>
+    setPreview(prev=>prev?{...prev,topics:prev.topics.map((x,i)=>i===index?{...x,...changes}:x)}:null)
+  const updateQuickSlot=(topicIndex:number,slotIndex:number,changes:Partial<Slot>)=>
+    setPreview(prev=>prev?{...prev,topics:prev.topics.map((topic,i)=>i===topicIndex?
+      {...topic,slots:topic.slots.map((slot,j)=>j===slotIndex?{...slot,...changes}:slot)}:topic)}:null)
+  const generatePreview=async()=>{
     if(!premium||!quickText.trim()||thinking)return
     setPreview(null)
+    setQuickError('')
+    if(!supabase){setQuickError('Supabase ist nicht eingerichtet.');return}
+    const controller=new AbortController()
+    previewRequest.current=controller
     setThinking(true)
-    previewTimer.current=setTimeout(()=>{
-      // Deterministic parser, not a paid AI call. The premium loading cue only
-      // communicates that the free-text schedule is being interpreted.
-      setPreview(parseModuleQuickInput(quickText,module.name))
-      setThinking(false)
-      previewTimer.current=null
-    },700)
+    try{
+      // An explicit button click sends only this module name and input text,
+      // never the full timetable or private workspace, to our secure Edge Function.
+      const {data,error}=await supabase.functions.invoke('uniflow-ai-schedule',{
+        body:{moduleName:module.name,text:quickText.trim()},
+        signal:controller.signal
+      })
+      if(controller.signal.aborted)return
+      if(error){
+        let reason=''
+        let status=0
+        const context=error.context
+        if(typeof Response!=='undefined'&&context instanceof Response){
+          status=context.status
+          const detail=await context.clone().json().catch(()=>null)
+          if(detail&&typeof detail==='object'&&'error' in detail&&typeof detail.error==='string')
+            reason=detail.error
+        }
+        const hints:Record<string,string>={
+          PREMIUM_REQUIRED:'Die KI-Schnelleingabe ist nur für aktive uniflow+-Konten verfügbar.',
+          QUOTA_OR_ACCESS_LIMIT:'Das gemeinsame KI-Tageslimit ist erreicht (maximal 25 Anfragen). Versuche es morgen erneut.',
+          DEEPSEEK_NOT_CONFIGURED:'Der DeepSeek-Schlüssel fehlt in den Supabase-Secrets.',
+          QUOTA_NOT_CONFIGURED:'Die Supabase-KI-Kontingentfunktion ist noch nicht eingerichtet.',
+          INVALID_MODEL_REPLY:'Die KI-Antwort hatte kein gültiges Terminformat. Bitte versuche es erneut.',
+          EMPTY_MODEL_REPLY:'Die KI hat keine Termine zurückgegeben. Bitte versuche es erneut.',
+          MODEL_UNAVAILABLE:'DeepSeek ist derzeit nicht erreichbar. Bitte versuche es später erneut.',
+          NOT_AUTHENTICATED:'Bitte melde dich erneut an.',
+          BAD_INPUT:'Bitte beschreibe deine Termine mit Wochentag und Uhrzeit.',
+          ORIGIN_NOT_ALLOWED:'Die aktuelle Website ist in Supabase noch nicht als erlaubte Herkunft eingetragen.'
+        }
+        throw new Error(hints[reason]||(status===404||/not found/i.test(error.message)?
+          'Die Supabase-Funktion uniflow-ai-schedule muss noch bereitgestellt werden.':error.message||'KI-Erkennung fehlgeschlagen.'))
+      }
+      setPreview(parseAiSchedulePreview(data))
+    }catch(error){
+      if(!controller.signal.aborted)
+        setQuickError(error instanceof Error?error.message:'Die KI-Erkennung ist fehlgeschlagen.')
+    }finally{
+      if(previewRequest.current===controller){
+        previewRequest.current=null
+        setThinking(false)
+      }
+    }
   }
   const applyPreview=()=>{
-    if(!premium)return
-    if(!preview||preview.errors.length||!preview.topics.length||imported.current)return
+    if(!premium||!preview||imported.current)return
+    let validated:QuickPreview
+    try{validated=parseAiSchedulePreview(preview)}
+    catch(error){setQuickError(error instanceof Error?error.message:'Bitte prüfe die Termine.');return}
+    if(validated.errors.length||!validated.topics.length)return
     imported.current=true
     const added:Offering[]=[]
-    for(const topic of preview.topics){
+    for(const topic of validated.topics){
       const current=[...own,...added].filter(o=>
         norm(o.contentLabel||'')===norm(topic.label)&&o.category===topic.category
       )
@@ -227,7 +278,7 @@ export default function ModuleScheduleEditor({
     }
     if(added.length)commit([...own,...added])
     else setWarning('Alle erkannten Termine sind bereits vorhanden.')
-    setPreview(null);setQuickText('')
+    setPreview(null);setQuickText('');setQuickError('')
     imported.current=false
   }
   const futureExceptions=own.flatMap(o=>Object.entries(o.overrides||{})
@@ -269,18 +320,41 @@ export default function ModuleScheduleEditor({
         <div className="module-fast-quick-body">
           <textarea rows={3} aria-label="Veranstaltungen per Schnelleingabe erfassen" value={quickText}
             placeholder="Veranstaltungen, Wochentage, Zeiten und Räume eingeben …"
-            onChange={e=>{setQuickText(e.target.value);setPreview(null)}}/>
+            maxLength={3500}
+            onChange={e=>{previewRequest.current?.abort();previewRequest.current=null;setThinking(false);setQuickText(e.target.value);setPreview(null);setQuickError('')}}/>
+          <p className="module-fast-ai-disclosure">Dein Text wird zur Terminerkennung über Supabase an DeepSeek gesendet. Prüfe die Vorschau vor dem Speichern.</p>
           <button className="module-fast-preview-button" disabled={!quickText.trim()||thinking}
-            onClick={generatePreview}>{thinking?<><Sparkles size={16}/> Wird analysiert …</>:<><Sparkles size={16}/> Termine erkennen</>}</button>
+            onClick={()=>void generatePreview()}>{thinking?<><Sparkles size={16}/> Wird analysiert …</>:<><Sparkles size={16}/> Termine erkennen</>}</button>
           {thinking&&<div className="module-quick-thinking" aria-live="polite" role="status">
             <span className="module-quick-thinking-symbol"><Sparkles size={23}/></span>
             <div><strong>Eingabe wird analysiert</strong><span>Veranstaltungen und Alternativen werden zugeordnet.</span></div>
             <span className="module-quick-thinking-track" aria-hidden="true"><i/></span>
           </div>}
+          {quickError&&<p className="module-fast-warning" role="alert">{quickError}</p>}
           {!thinking&&preview&&<div className="module-fast-preview" role="region" aria-label="Vorschau Schnelleingabe">
             <h3>Vorschau</h3>
-            {preview.topics.map(t=><div key={t.label}><strong>{t.label} · {t.category}</strong>
-              {t.slots.map((s,i)=><small key={i}>{dayNames[s.day]} {s.from}–{timeString(minutes(s.from)+s.duration)} · {s.room||'Ohne Raum'}</small>)}</div>)}
+            {preview.topics.map((t,ti)=><div className="module-fast-ai-topic" key={ti}>
+              <div className="module-fast-ai-topic-head">
+                <label>Veranstaltung<input aria-label={'Veranstaltung '+(ti+1)} value={t.label}
+                  maxLength={90} onChange={e=>updateQuickTopic(ti,{label:e.target.value})}/></label>
+                <label>Art<select aria-label={'Art '+(ti+1)} value={t.category}
+                  onChange={e=>updateQuickTopic(ti,{category:e.target.value})}>
+                  {aiScheduleCategories.map(cat=><option key={cat} value={cat}>{cat}</option>)}
+                </select></label>
+              </div>
+              {t.slots.map((s,si)=><div className="module-fast-ai-slot" key={si}>
+                <label>Wochentag<select aria-label={t.label+' Wochentag '+(si+1)} value={s.day}
+                  onChange={e=>updateQuickSlot(ti,si,{day:Number(e.target.value)})}>
+                  {dayNames.map((day,i)=><option value={i} key={day}>{day}</option>)}
+                </select></label>
+                <label>Beginn<input aria-label={t.label+' Beginn '+(si+1)} type="time" value={s.from}
+                  onChange={e=>updateQuickSlot(ti,si,{from:e.target.value})}/></label>
+                <label>Dauer (Min.)<input aria-label={t.label+' Dauer '+(si+1)} type="number" min={5} max={1440}
+                  value={s.duration} onChange={e=>updateQuickSlot(ti,si,{duration:Number(e.target.value)})}/></label>
+                <label>Raum<input aria-label={t.label+' Raum '+(si+1)} value={s.room} maxLength={100}
+                  placeholder="Optional" onChange={e=>updateQuickSlot(ti,si,{room:e.target.value})}/></label>
+              </div>)}
+            </div>)}
             {preview.errors.map((message,i)=><p className="module-fast-warning" key={i}>{message}</p>)}
             <div className="module-fast-preview-actions"><button onClick={()=>setPreview(null)}>Zurück</button>
               <button className="module-fast-preview-button" disabled={!!preview.errors.length||!preview.topics.length}
