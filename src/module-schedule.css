@@ -71,7 +71,7 @@
 .module-fast-warning { color:#e9a2aa; font-size:12px; line-height:1.4; }
 .module-fast-quick { margin-top:32px; padding-top:1px; border-top:1px solid #303034; }
 .module-fast-quick > p { color:#9a9aa0; font-size:12px; line-height:1.6; }
-.module-fast-quick textarea { width:100%; box-sizing:border-box; display:block; padding:13px; resize:vertical; font-size:13px; line-height:1.6; }
+.module-fast-quick textarea { width:100%; box-sizing:border-box; display:block; padding:10px 14px; resize:none; overflow-y:hidden; font-size:16px; line-height:24px; }
 .module-fast-preview-button { display:inline-flex; gap:7px; align-items:center; justify-content:center; background:#eee8eb; color:#19191b; border:0; font-size:12px; font-weight:650; border-radius:10px; padding:11px 15px; margin-top:11px; }
 .module-fast-preview-button:disabled { opacity:.4; cursor:default; }
 .module-fast-preview { background:#202023; margin-top:13px; padding:15px; border-radius:14px; }
@@ -130,7 +130,7 @@
 .module-fast .module-fast-quick[open]>summary svg:last-child{transform:rotate(180deg)}
 .module-fast .module-fast-quick-body{padding:0 18px 18px}
 .module-fast .module-fast-quick-body p{font-size:11px;line-height:1.6;color:#9a9a9e;margin:0 0 12px}
-.module-fast .module-fast-quick textarea{background:#212121;border:0;border-radius:10px;min-height:86px}
+.module-fast .module-fast-quick textarea{background:#212121;border:0;border-radius:16px;height:44px;min-height:44px}
 .module-fast .module-fast-section-head{margin:23px 0 11px}
 .module-fast .module-fast-section-head h2{font-size:21px;margin-top:6px;letter-spacing:-.65px}
 .module-fast .module-fast-section-head h2 small{font-size:12px;font-weight:400;color:#777;margin-left:5px}

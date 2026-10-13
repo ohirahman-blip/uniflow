@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, BookOpen, Check, ChevronDown, Copy, Lock, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
 import {
   addDays, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
@@ -91,6 +91,14 @@ export default function ModuleScheduleEditor({
   onChangeOfferings,onOpenOccurrence,onClearException,cloudStatus,cloudError,onRetrySync
 }:Props) {
   const [quickText,setQuickText]=useState('')
+  const quickInputRef=useRef<HTMLTextAreaElement|null>(null)
+  const resizeQuickInput=()=>{
+    const field=quickInputRef.current
+    if(!field)return
+    field.style.height='auto'
+    field.style.height=Math.max(44,field.scrollHeight)+'px'
+  }
+  useLayoutEffect(()=>{resizeQuickInput()},[quickText])
   const [preview,setPreview]=useState<QuickPreview|null>(null)
   const [advanced,setAdvanced]=useState(false)
   const [exceptionsOpen,setExceptionsOpen]=useState(false)
@@ -315,10 +323,11 @@ export default function ModuleScheduleEditor({
     </details>
 
     {premium?
-      <details className="module-fast-quick module-fast-quick-premium">
+      <details className="module-fast-quick module-fast-quick-premium"
+        onToggle={e=>{if(e.currentTarget.open)requestAnimationFrame(resizeQuickInput)}}>
         <summary><Sparkles size={17}/> Schnelleingabe <span className="module-quick-premium-label">uniflow+</span><ChevronDown size={16}/></summary>
         <div className="module-fast-quick-body">
-          <textarea rows={3} aria-label="Veranstaltungen per Schnelleingabe erfassen" value={quickText}
+          <textarea ref={quickInputRef} rows={1} aria-label="Veranstaltungen per Schnelleingabe erfassen" value={quickText}
             placeholder="Veranstaltungen, Wochentage, Zeiten und Räume eingeben …"
             maxLength={3500}
             onChange={e=>{previewRequest.current?.abort();previewRequest.current=null;setThinking(false);setQuickText(e.target.value);setPreview(null);setQuickError('')}}/>
