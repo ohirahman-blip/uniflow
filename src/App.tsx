@@ -1269,6 +1269,7 @@ export default function App() {
         semester={semester}
         offerings={data.offerings}
         journey={journeysByModule[selectedModuleId]}
+        premium={premium}
         onBack={()=>setSelectedModuleId(null)}
         onUpdateModule={updated=>mutate(d=>({...d,modules:d.modules.map(m=>m.id===updated.id?updated:m)}))}
         onDeleteModule={()=>setConfirmDeleteModule(data.modules.find(m=>m.id===selectedModuleId)||null)}
