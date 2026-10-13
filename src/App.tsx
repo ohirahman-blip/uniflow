@@ -20,8 +20,16 @@ import './calendar-week-strip.css'
 import './ui-polish.css'
 import './onboarding-refine.css'
 import './premium-ai.css'
+import './brand-theme.css'
 
 type Page = 'dashboard' | 'calendar' | 'modules' | 'mail' | 'settings' | 'admin'
+/** Entitlements are checked elsewhere; this component is only a visual mark. */
+function BrandMark({premium,page}:{premium:boolean;page:Page}){
+  return <span className={'uf-brandmark '+(premium?'uf-brandmark--plus':'uf-brandmark--free')}>
+    <span className="uf-logo-word">uniflow</span>
+    <span className="uf-logo-plus" key={premium?page:'static'} aria-hidden="true">+</span>
+  </span>
+}
 type NewEntry = { date: string; from: string; to: string; category?: string; recurrence?: Repeat }
 type MoveProposal = { occ: Occurrence; date: string; from: string; to: string }
 type ToastState = { id: string; text: string; action?: () => void; actionLabel?: string }
@@ -1125,6 +1133,10 @@ export default function App() {
   const [confirmDeleteSemester, setConfirmDeleteSemester] = useState<Semester | null>(null)
   const [cloudBusy, setCloudBusy] = useState(false)
   useEffect(() => { document.documentElement.dataset.theme = 'dark' }, [data.theme])
+  useEffect(()=>{
+    document.documentElement.dataset.uniflowTier=premium?'plus':'free'
+    return ()=>{delete document.documentElement.dataset.uniflowTier}
+  },[premium])
   const fileRef = useRef<HTMLInputElement>(null)
   const activeUserRef = useRef<string | null>(null)
   const authEpoch = useRef(0)
@@ -1384,8 +1396,8 @@ export default function App() {
   if (!user) return <><AuthScreen/>{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(null)}/>}</>
   if (!cloudReady) return <main className="auth-loading auth-cloud-loading"><div><div className="wordmark">uniflow<span className="wordmark-dot">.</span></div><p>{cloudStatus === 'error' ? cloudError : 'Deine Daten werden sicher geladen …'}</p>{cloudStatus === 'error' && <><button className="primary-action" onClick={() => void loadUserWorkspace(user, authEpoch.current)}>Erneut versuchen</button><button className="auth-secondary" onClick={() => void logOut()}>Abmelden</button></>}</div></main>
   if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); setPage('calendar') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
-  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side">{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</div><nav>{([{ id: 'dashboard' as const, title: 'Übersicht', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'modules', title: 'Module', icon: BookOpen }, { id: 'mail', title: 'Postfach', icon: Mail }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><n.icon size={19} />{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
-    <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}>{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
+  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{ id: 'dashboard' as const, title: 'Übersicht', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'modules', title: 'Module', icon: BookOpen }, { id: 'mail', title: 'Postfach', icon: Mail }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><n.icon size={19} />{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
+    <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
       {page === 'dashboard' && <LearningDashboard
         data={data} semester={semester} modules={semesterModules} aiAdvice={ai.advice} context={currentStudyContext}
@@ -1440,21 +1452,21 @@ export default function App() {
         <button className="settings-action" onClick={()=>navigatePage('admin')}><Settings2 size={19}/> Adminbereich öffnen <ArrowRight size={17}/></button>
         <p className="quiet-copy">Nur für dein Administratorkonto sichtbar.</p>
       </section>}<section className="settings-section"><h2>Design</h2><div className="setting-line"><span>Darstellung</span><div className="inline-toggle theme-icon-switch"><button className="selected" aria-label="Dunkler Modus" title="Dunkler Modus" onClick={()=>mutate(d=>({...d,theme:'dark'}))}><Moon size={17}/></button><button disabled aria-label="Heller Modus – folgt später" title="Heller Modus folgt später"><Sun size={17}/></button></div></div></section>{premium&&<section className="settings-section settings-ai-section" aria-label="KI-Modus">
-        <div className="settings-ai-heading"><span className="settings-ai-icon"><Sparkles size={17}/></span><div><h2>KI-Modus</h2><p>uniflow+</p></div></div>
-        <div className="settings-ai-choice">
-          <span><strong>Intelligente Empfehlungen</strong></span>
+        <div className="settings-ai-inline">
+          <Sparkles className="settings-ai-sparkles" size={21} aria-hidden="true"/>
+          <strong>KI-Modus</strong>
+          <span className="module-quick-premium-label">uniflow+</span>
           <button type="button" role="switch" aria-label="KI-Modus aktivieren" aria-checked={ai.consent}
+            aria-describedby="settings-ai-data-note"
             className={'settings-ai-toggle'+(ai.consent?' is-on':'')}
             onClick={()=>ai.setConsent(!ai.consent)}><span/></button>
         </div>
+        <span className="uf-visually-hidden" id="settings-ai-data-note">Bei Aktivierung werden relevante Modulnamen, Themen, Bewertungen und Prüfungstermine über Supabase an DeepSeek übermittelt.</span>
         {ai.consent&&ai.working&&<p className="settings-ai-status" role="status"><Sparkles size={14}/> Deine KI-Empfehlung wird erstellt …</p>}
         {ai.consent&&!ai.working&&ai.advice&&<div className="settings-ai-result" role="status">
           <span><Sparkles size={14}/> uniflow+</span><strong>{ai.advice.title}</strong><p>{ai.advice.message}</p>
         </div>}
         {ai.consent&&ai.errorMessage&&<p className="auth-error" role="alert">{ai.errorMessage}</p>}
-        <details className="settings-ai-details"><summary>Datenschutz</summary>
-          <p className="settings-ai-privacy">Bei Aktivierung werden für die Empfehlung relevante Modulnamen, Themen, Bewertungen und Prüfungstermine über Supabase an DeepSeek übermittelt. Keine E-Mail-Adresse und kein vollständiger Stundenplan.</p>
-        </details>
       </section>}<section className="settings-section"><h2>Stundenplan</h2><div className="setting-line"><span>Erste Stunde</span><div className="small-picker"><button disabled={data.firstHour <= 0} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour - 2 }))}>−</button><strong>{timeString(data.firstHour * 60)}</strong><button disabled={data.firstHour >= data.lastHour - 2} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Letzte Stunde</span><div className="small-picker"><button disabled={data.lastHour <= data.firstHour + 2} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour - 2 }))}>−</button><strong>{timeString(data.lastHour * 60)}</strong><button disabled={data.lastHour >= 24} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Woche anzeigen bis</span><div className="inline-toggle week-end-toggle">{([{v:4,label:'Fr'},{v:5,label:'Sa'},{v:6,label:'So'}] as const).map(x=><button key={x.v} className={(data.weekEndDay??4)===x.v?'selected':''} onClick={()=>mutate(d=>({...d,weekEndDay:x.v}))}>{x.label}</button>)}</div></div><small className="setting-hint">Die Wochenansicht endet am gewählten Tag. Spätere Termine bleiben über die Tages- oder Zwei-Tage-Ansicht erreichbar.</small><small className="setting-hint">Das Raster bleibt in Zwei-Stunden-Schritten. Veranstaltungen können minutengenau beginnen und enden.</small></section><section className="settings-section"><h2>Semester</h2><div className="semester-picker-list">{data.semesters.filter(s => s.degreeId === degree?.id).map(s => <button key={s.id} className={s.id === semester?.id ? 'current' : ''} onClick={() => { mutate(d => ({ ...d, activeSemesterId: s.id })); note(`${s.name} geöffnet.`) }}><span><strong>{s.name}</strong><small>{formDate(s.start)} – {formDate(s.end)}</small></span>{s.id === semester?.id && <Check size={18} />}</button>)}</div>{semester && <label className="setting-input"><span>Letzter Vorlesungstag</span><DateControl value={semester.lectureEnd} min={semester.start} max={semester.end} onChange={v => mutate(d => ({ ...d, semesters: d.semesters.map(s => s.id === semester.id ? { ...s, lectureEnd: v } : s) }))} /></label>}<button className="underlined-link" onClick={() => { if (!degree) return; const recent = data.semesters.filter(s => s.degreeId === degree.id).sort((a, b) => b.end.localeCompare(a.end))[0]; const start = recent ? addDays(recent.end, 1) : currentSemesterDates().start; const next = semesterFromStart(start); if (data.semesters.some(s => s.degreeId === degree.id && overlaps(s.start, s.end, next.start, next.end))) { note('Dieses Semester ist bereits vorhanden.'); return } const newSemester: Semester = { ...next, id: uid(), degreeId: degree.id, archived: false }; mutate(d => ({ ...d, semesters: [...d.semesters, newSemester], activeSemesterId: d.activeSemesterId })); note('Nächstes Semester gespeichert. Das aktuelle bleibt ausgewählt.') }}>Nächstes Semester hinzufügen <Plus size={17} /></button><div className="semester-management"><h3>Semester verwalten</h3>{data.semesters.filter(x=>x.degreeId===degree?.id).map(x=><div key={x.id} className="semester-manage-row"><span><strong>{x.name}</strong><small>{x.id===semester?.id?'Ausgewählt':x.start>today()?'Geplant':x.end<today()?'Vergangen':'Laufend'} · {formDate(x.start)} – {formDate(x.end)}</small></span><button aria-label={`${x.name} löschen`} onClick={()=>setConfirmDeleteSemester(x)}><Trash2 size={18}/></button></div>)}</div></section><section className="settings-section"><h2>Deine Daten</h2><button className="settings-action" onClick={saveBackup}><Download size={19} /> Backup herunterladen <ArrowRight size={17} /></button><button className="settings-action" onClick={() => fileRef.current?.click()}><Upload size={19} /> Backup importieren <ArrowRight size={17} /></button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => { void readBackup(e.target.files?.[0]); e.target.value = '' }} /><button className="settings-action settings-danger" onClick={() => setConfirmReset(true)}><RotateCcw size={19} /> Alles zurücksetzen <ArrowRight size={17} /></button><div className="cloud-account-state"><div><strong>Supabase Cloud</strong><small>{cloudStatus === 'synced' ? 'Alle Änderungen gespeichert' : cloudStatus === 'saving' ? 'Synchronisiere …' : cloudStatus === 'error' ? 'Synchronisierung fehlgeschlagen' : 'Verbunden'}</small></div>{cloudStatus === 'synced' ? <Check size={19}/> : <RefreshCw size={19}/>}</div>{cloudStatus === 'error' && <p className="auth-error">{cloudError}</p>}<button className="settings-action" disabled={cloudBusy || cloudStatus === 'saving'} onClick={() => void syncNow()}><RefreshCw size={19}/> Jetzt synchronisieren <ArrowRight size={17}/></button><button className="settings-action" onClick={() => void logOut()}><LogOut size={19}/> Abmelden <ArrowRight size={17}/></button><p className="quiet-copy">Angemeldet als {user.email || user.id.slice(0,8) + '…'}. Deine Daten werden beim Öffnen geladen und bei Änderungen automatisch nach Supabase gespeichert. Bei gleichzeitigen Änderungen auf mehreren Geräten kann der zuletzt gespeicherte Stand gewinnen.</p></section></div>}
       </div>
     </div>

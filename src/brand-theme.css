@@ -1,0 +1,108 @@
+/* UniFlow branding, derived solely from the account's server-fetched premium flag.
+   Default/free stays orange-pink; plus alone gets purple and metallic gold. */
+:root,
+html[data-uniflow-tier='free']{
+  --uf-primary:#f94f72;
+  --uf-secondary:#ffad68;
+  --uf-primary-gradient:linear-gradient(115deg,#ff8c37 0%,#ff5270 63%,#ec4085 100%);
+  --uf-secondary-gradient:linear-gradient(115deg,#ffc483,#ff8b4e 64%,#ff6172);
+}
+html[data-uniflow-tier='plus']{
+  --uniflow-accent:#b38af2;
+  --uniflow-accent-deep:#8255dd;
+  --uf-primary:#b38af2;
+  --uf-secondary:#f1c879;
+  --uf-primary-gradient:linear-gradient(118deg,#cc9df6 0%,#a477ec 46%,#7952ce 100%);
+  --uf-secondary-gradient:linear-gradient(118deg,#fff0b9 0%,#e9bd66 46%,#c28b35 100%);
+}
+.uf-brandmark{display:inline-flex;align-items:baseline;gap:0;white-space:nowrap;font:inherit;font-weight:800;letter-spacing:-.85px;line-height:1}
+.uf-brandmark .uf-logo-word{color:#fff!important;background:none!important;-webkit-text-fill-color:#fff!important}
+.uf-brandmark .uf-logo-plus{
+  display:inline-block;flex:none;position:relative;margin-left:.06em;
+  font:inherit;font-size:1.1em;font-weight:750;line-height:.92;
+  transform-origin:50% 50%;
+  background:var(--uf-primary-gradient);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent!important;color:transparent!important;
+}
+.uf-brandmark--plus .uf-logo-word{
+  background:var(--uf-primary-gradient)!important;
+  -webkit-background-clip:text!important;background-clip:text!important;
+  -webkit-text-fill-color:transparent!important;color:transparent!important;
+}
+.uf-brandmark--plus .uf-logo-plus{background:var(--uf-secondary-gradient)}
+/* Remount the single glyph by page key, not the entire app or logo word. */
+.uf-brandmark--plus .uf-logo-plus{animation:uf-brand-plus-turn 630ms cubic-bezier(.2,.85,.25,1) both}
+@keyframes uf-brand-plus-turn{
+  0%{transform:rotate(-240deg) scale(.75);opacity:.65}
+  68%{transform:rotate(20deg) scale(1.16);opacity:1}
+  100%{transform:rotate(0) scale(1);opacity:1}
+}
+/* Plus controls: violet is primary, gold is the restrained second accent. */
+html[data-uniflow-tier='plus'] .mobile-navigation button.active{color:var(--uf-primary)}
+html[data-uniflow-tier='plus'] .mobile-navigation button.active svg{
+  stroke:var(--uf-primary);
+  fill:color-mix(in srgb,var(--uf-primary) 21%,transparent);
+}
+html[data-uniflow-tier='plus'] .mobile-navigation button.active::before{
+  background:color-mix(in srgb,var(--uf-primary) 17%,transparent);
+}
+html[data-uniflow-tier='plus'] .app-desktop-side nav button.active{
+  background:color-mix(in srgb,var(--uf-primary) 13%,#111);color:#e0cafb;
+}
+html[data-uniflow-tier='plus'] .settings-ai-section{
+  border-color:#42354d;
+  background:linear-gradient(122deg,#211a28 0%,#1a1620 58%,#151416 100%);
+}
+html[data-uniflow-tier='plus'] .settings-ai-sparkles{
+  stroke:var(--uf-secondary);
+}
+html[data-uniflow-tier='plus'] .settings-ai-toggle.is-on{
+  background:var(--uf-primary-gradient);border-color:#b58ae8;
+}
+html[data-uniflow-tier='plus'] .settings-ai-result>span,
+html[data-uniflow-tier='plus'] .settings-ai-status{
+  color:var(--uf-secondary);
+}
+html[data-uniflow-tier='plus'] .settings-ai-result>span svg{
+  stroke:var(--uf-secondary);
+}
+html[data-uniflow-tier='plus'] .module-quick-premium-label{
+  border:1px solid rgba(194,145,242,.19);
+  background:linear-gradient(112deg,#32253e,#2b2337 68%,#35293a);
+  color:#f3d58b;
+}
+html[data-uniflow-tier='plus'] .module-fast .module-fast-quick-premium{
+  border-color:#44354d;
+  background:linear-gradient(125deg,#211c27 0%,#1a1720 58%,#161617);
+}
+html[data-uniflow-tier='plus'] .module-fast .module-fast-quick-premium>summary>svg:first-child{
+  color:var(--uf-secondary);
+}
+html[data-uniflow-tier='plus'] .module-fast .module-fast-quick-premium .module-fast-preview-button{
+  background:var(--uf-primary-gradient);color:#180e22;
+}
+html[data-uniflow-tier='plus'] .module-quick-thinking-symbol,
+html[data-uniflow-tier='plus'] .module-fast .module-fast-ai-extras>summary svg,
+html[data-uniflow-tier='plus'] .learn-recommendation-dynamic.learn-recommendation-ai .learn-eyebrow svg{
+  color:var(--uf-secondary);
+}
+html[data-uniflow-tier='plus'] .learn-recommendation-dynamic.learn-recommendation-ai{
+  background:linear-gradient(120deg,#211b2c 0%,#1d1827 55%,#18161c 100%);
+  border-color:rgba(177,121,237,.25);
+}
+html[data-uniflow-tier='plus'] .learn-recommendation-dynamic.learn-recommendation-ai .learn-eyebrow{
+  color:#f0cf8a;background:#30263c;
+}
+html[data-uniflow-tier='plus'] .now-day-line,
+html[data-uniflow-tier='plus'] .now-ruler-line,
+html[data-uniflow-tier='plus'] .now-day-line::before{background:var(--uf-primary)}
+html[data-uniflow-tier='plus'] .mail-create-thread>svg,
+html[data-uniflow-tier='plus'] .mail-reply-preview>svg{stroke:var(--uf-secondary)}
+/* Free access still has the original orange-pink accent, not premium gold. */
+html[data-uniflow-tier='free'] .mobile-navigation button.active{
+  color:var(--uniflow-accent,#f94f72);
+}
+@media(prefers-reduced-motion:reduce){
+  .uf-brandmark--plus .uf-logo-plus{animation:none!important}
+}
