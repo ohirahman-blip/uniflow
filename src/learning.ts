@@ -1,6 +1,6 @@
 import {
   addDays, fromDate, isAssessment, minutes, occurrencesOn, today, weekStart,
-  type AppData, type Semester, type StudyModule
+  type AppData, type Occurrence, type Semester, type StudyModule
 } from './model'
 
 export type LearningRating = 'understood' | 'partial' | 'struggling' | 'absent'
@@ -10,6 +10,15 @@ export type LearningCheckin = {
   contentId: string
   date: string
   rating: LearningRating
+  updatedAt: string
+}
+export type LessonTopic = {
+  /** Stable per teaching-content/week key; NOT a rename of the whole recurring series. */
+  key: string
+  moduleId: string
+  contentId: string
+  date: string
+  title: string
   updatedAt: string
 }
 export type LearningSession = {
@@ -63,6 +72,25 @@ export type Journey = {
 const clamp = (n:number) => Math.max(0,Math.min(100,Math.round(n)))
 const ratingValue = (v:LearningRating) =>
   v==='understood'?100:v==='partial'?55:v==='struggling'?10:0
+/** Same lesson across alternative groups in a given teaching week.
+ * This key matches all previous check-ins, so saved ratings do not migrate. */
+export const lessonKeyForOccurrence = (occ:Occurrence) => {
+  const o=occ.offering
+  return o.moduleId+':'+(o.contentId||o.familyId||o.id)+':'+weekStart(occ.origin)
+}
+export function lessonForOccurrence(occ:Occurrence,data:AppData):LearningLesson {
+  const o=occ.offering
+  const key=lessonKeyForOccurrence(occ)
+  const topic=(data.lessonTopics||[]).find(t=>t.key===key)?.title?.trim()
+  return {
+    key,moduleId:o.moduleId,contentId:o.contentId||o.familyId||o.id,
+    label:topic||o.contentLabel||o.category,date:occ.date,from:occ.from,to:occ.to
+  }
+}
+export function canRateOccurrence(occ:Occurrence,now=new Date()):boolean {
+  const current=todayFrom(now)
+  return occ.date<current || (occ.date===current && minutes(occ.to)<=now.getHours()*60+now.getMinutes())
+}
 const dayDistance = (a:string,b:string) =>
   Math.round((fromDate(a).getTime()-fromDate(b).getTime())/86400000)
 
@@ -80,12 +108,8 @@ export function pastLessons(data:AppData, semester:Semester|undefined, now=new D
       const o=occ.offering
       if(o.semesterId!==semester.id||!o.moduleId||isAssessment(o.category)||o.category==='Freies Lernen')continue
       if(date===stop && minutes(occ.to)>now.getHours()*60+now.getMinutes())continue
-      const contentId=o.contentId||o.familyId||o.id
-      const key=o.moduleId+':'+contentId+':'+weekStart(occ.origin)
-      if(!result.has(key)) result.set(key,{
-        key,moduleId:o.moduleId,contentId,
-        label:o.contentLabel||o.category,date:occ.date,from:occ.from,to:occ.to
-      })
+      const lesson=lessonForOccurrence(occ,data)
+      if(!result.has(lesson.key)) result.set(lesson.key,lesson)
     }
   }
   return [...result.values()].sort((a,b)=>b.date.localeCompare(a.date)||b.from.localeCompare(a.from))
