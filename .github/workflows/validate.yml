@@ -3,6 +3,7 @@ on:
   pull_request:
   push:
     branches:
+      - main
       - feature/learning-journey-dashboard
       - feature/onboarding-otp-calendar-polish
       - feature/premium-deepseek-context-lecture-feedback
