@@ -19,36 +19,38 @@
   overscroll-behavior:contain;
 }
 
-/* Directional page switch, with native view-transition on supporting Safari.
-   The fallback still slides the newly selected page instead of flashing it. */
+/* Navigation is intentionally NOT a full-document View Transition.
+   Safari temporarily composited the bottom nav beneath the screenshot layer.
+   Slide only the new content, subtly, and leave the bottom bar stationary. */
 .uf-page-stage {
-  min-width:0;
   position:relative;
-  view-transition-name:uniflow-main-page;
+  min-width:0;
+  isolation:isolate;
 }
 .uf-page-stage.uf-page-enter-forward {
-  animation:uf-page-enter-forward 290ms cubic-bezier(.2,.8,.22,1);
+  animation:uf-page-enter-forward 190ms cubic-bezier(.2,.82,.24,1) both;
 }
 .uf-page-stage.uf-page-enter-backward {
-  animation:uf-page-enter-backward 290ms cubic-bezier(.2,.8,.22,1);
+  animation:uf-page-enter-backward 190ms cubic-bezier(.2,.82,.24,1) both;
 }
 @keyframes uf-page-enter-forward {
-  from {opacity:.5;transform:translate3d(24px,0,0);}
-  to {opacity:1;transform:none;}
+  from {opacity:.93;transform:translate3d(12px,0,0);}
+  to {opacity:1;transform:translate3d(0,0,0);}
 }
 @keyframes uf-page-enter-backward {
-  from {opacity:.5;transform:translate3d(-24px,0,0);}
-  to {opacity:1;transform:none;}
+  from {opacity:.93;transform:translate3d(-12px,0,0);}
+  to {opacity:1;transform:translate3d(0,0,0);}
 }
-html[data-nav-transition='on'] .uf-page-stage {animation:none;}
-::view-transition-old(uniflow-main-page),
-::view-transition-new(uniflow-main-page) {animation-duration:300ms;animation-timing-function:cubic-bezier(.22,.8,.23,1);}
-html[data-nav-direction='forward']::view-transition-old(uniflow-main-page) {animation-name:uf-page-leave-left;}
-html[data-nav-direction='forward']::view-transition-new(uniflow-main-page) {animation-name:uf-page-enter-forward;}
-html[data-nav-direction='backward']::view-transition-old(uniflow-main-page) {animation-name:uf-page-leave-right;}
-html[data-nav-direction='backward']::view-transition-new(uniflow-main-page) {animation-name:uf-page-enter-backward;}
-@keyframes uf-page-leave-left {from {opacity:1;transform:none;} to {opacity:0;transform:translate3d(-22px,0,0);}}
-@keyframes uf-page-leave-right {from {opacity:1;transform:none;} to {opacity:0;transform:translate3d(22px,0,0);}}
+@media(max-width:720px) {
+  .app-main {position:relative;z-index:0;isolation:isolate;}
+  .mobile-navigation {
+    z-index:400;
+    isolation:isolate;
+    background:#0d0d0d;
+    backface-visibility:hidden;
+  }
+}
+html[data-theme='light'] .mobile-navigation {background:#fff;}
 /* Fill, then gently empty, the nav highlight when tabs change. */
 .mobile-navigation button {
   position:relative;
@@ -267,6 +269,36 @@ html[data-theme='light'] .uf-picker-custom-row input {background:#eee;color:#222
   .uf-page-stage,.mobile-navigation button::before,
   .mobile-navigation button svg,.mobile-navigation button span,
   .uf-entry-advanced > summary svg {animation:none!important;transition:none!important;}
-  ::view-transition-old(uniflow-main-page),
-  ::view-transition-new(uniflow-main-page) {animation-duration:0ms!important;}
+  .uf-page-stage {animation:none!important;}
+}
+
+/* One timeline, one DOM element for each date in two-day view.
+   A single swipe travels half a viewport; valid start anchors only.
+   At Fri/Sat/Sun boundaries the next complete workweek pair snaps to place. */
+.calendar-lanes-two .two-day-track {
+  display:flex;
+  align-items:flex-start;
+  width:100%;
+  min-width:100%;
+}
+.calendar-lanes-two .two-day-cell {
+  box-sizing:border-box;
+  flex:0 0 50%;
+  width:50%;
+  min-width:0;
+  overflow:hidden;
+  scroll-snap-align:none;
+}
+.calendar-lanes-two .two-day-cell.two-day-snap {
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+}
+.calendar-lanes-two .two-day-cell > .day-column {
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+}
+.calendar-lanes-two .snap-two-view {
+  scroll-padding-left:0;
+  overscroll-behavior-x:contain;
 }
