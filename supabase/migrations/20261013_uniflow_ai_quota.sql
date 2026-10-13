@@ -48,7 +48,8 @@ begin
     request_count = usage.request_count+1,
     last_request_at = now()
   where usage.request_count < 25
-    and usage.last_request_at <= now()-interval '90 seconds'
+    -- No hourly or 90-second rate throttle: opening the app can request
+    -- immediately again, up to the hard daily 25-request limit.
   returning request_count into consumed;
 
   return consumed is not null;
