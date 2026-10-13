@@ -155,7 +155,7 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
             <LessonFeedback lesson={nextCheckin} topic={(data.lessonTopics||[]).find(t=>t.key===nextCheckin.key)?.title||''}
               canRate rating={checkins.get(nextCheckin.key)?.rating} onTopic={onTopic} onRating={onCheckin} compact/>
           </div>}
-        </div>}
+        </div>
       </>}
     </section>
     {freePending.length>0&&<section className="learn-section">
