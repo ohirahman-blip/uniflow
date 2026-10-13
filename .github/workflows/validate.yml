@@ -5,6 +5,7 @@ on:
     branches:
       - feature/learning-journey-dashboard
       - feature/onboarding-otp-calendar-polish
+      - feature/premium-deepseek-context-lecture-feedback
 jobs:
   test:
     runs-on: ubuntu-latest
