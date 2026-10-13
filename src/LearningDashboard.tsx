@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { ArrowRight, CalendarClock, Check, ChevronRight, Clock3, GraduationCap, Plus, Sparkles, X } from 'lucide-react'
 import {
   formatDate, fromDate, isAssessment, minutes, occurrencesOn, today,
@@ -9,12 +9,18 @@ import {
   type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask
 } from './learning'
 import UniflowPicker from './UniflowPicker'
+import LessonFeedback from './LessonFeedback'
+import { adviceContext, localAdvice } from './study-advice'
+import { usePremiumAdvice } from './usePremiumAdvice'
 import './learning-dashboard.css'
 
 type Props = {
   data: AppData
   semester?: Semester
   modules: StudyModule[]
+  premium:boolean
+  userId:string
+  onTopic: (lesson:LearningLesson,title:string)=>void
   onCheckin: (lesson:LearningLesson,rating:LearningRating)=>void
   onSession: (session:Omit<LearningSession,'id'|'updatedAt'>)=>void
   onPlan: (task:LearningPlanTask)=>void
@@ -28,7 +34,7 @@ const ratingLabels:{value:LearningRating;label:string}[]=[
 ]
 const shortDate=(iso:string)=>formatDate(iso,{day:'numeric',month:'short'})
 
-export default function LearningDashboard({data,semester,modules,onCheckin,onSession,onPlan,onRemovePlan}:Props){
+export default function LearningDashboard({data,semester,modules,premium,userId,onTopic,onCheckin,onSession,onPlan,onRemovePlan}:Props){
   const [studyOpen,setStudyOpen]=useState(false)
   const [moduleId,setModuleId]=useState('')
   const [lessonKey,setLessonKey]=useState('')
@@ -37,7 +43,18 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
   const [result,setResult]=useState<Exclude<LearningRating,'absent'>>('understood')
   const [showAll,setShowAll]=useState(false)
   const [activePlan,setActivePlan]=useState<string|undefined>()
-  const allLessons=useMemo(()=>pastLessons(data,semester),[data.offerings,semester])
+  const [clockTick,setClockTick]=useState(0)
+  useEffect(()=>{
+    const timer=window.setInterval(()=>setClockTick(t=>t+1),5*60_000)
+    const onVisible=()=>{if(document.visibilityState==='visible')setClockTick(t=>t+1)}
+    document.addEventListener('visibilitychange',onVisible)
+    return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisible)}
+  },[])
+  const context=useMemo(()=>adviceContext(data,semester,modules,new Date()),[data,semester,modules,clockTick])
+  const localTip=useMemo(()=>localAdvice(context),[context])
+  const ai=usePremiumAdvice(userId,premium,context)
+  const suggestion=ai.advice||localTip
+  const allLessons=useMemo(()=>pastLessons(data,semester),[data.offerings,data.lessonTopics,semester])
   const journeys=useMemo(()=>rankedJourneys(data,modules,semester),[data,modules,semester])
   const active=modules.filter(m=>m.status==='current'||m.status==='failed'||m.status==='open')
   const checkins=new Map((data.learningCheckins||[]).map(c=>[c.key,c]))
@@ -104,6 +121,33 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
           <><strong>Keine Klausur geplant</strong><p>Neue Prüfungen erscheinen automatisch hier.</p></>}
       </section>
     </div>
+    <section className="learn-section learn-advice-section" aria-label="Aktuelle Empfehlung">
+      <div className="learn-title"><h2>Dein nächster Schritt</h2><span className="learn-counter">{ai.advice?'uniflow+ KI':'Für dich'}</span></div>
+      <div className="learn-recommendation learn-recommendation-dynamic" style={accent(modules.find(m=>m.id===suggestion.moduleId)?.color)}>
+        <span className="learn-eyebrow"><Sparkles size={15}/>{ai.advice?'DEEPSEEK · UNIFLOW+':'PASSEND ZU DEINEM STUNDENPLAN'}</span>
+        <h3>{suggestion.title}</h3>
+        <p>{suggestion.message}</p>
+        <div className="learn-recommendation-footer">
+          <span>{ai.advice?'Mit DeepSeek erstellt':'Aktuell anhand deiner Termine und Check-ins'}</span>
+          {suggestion.moduleId&&suggestion.kind!=='checkin'&&
+            <button onClick={()=>beginStudy(suggestion.moduleId,suggestion.kind==='review'?suggestion.lessonKey:undefined,suggestion.kind==='exam')}>
+              Lernen erfassen <ArrowRight size={15}/>
+            </button>}
+          {suggestion.kind==='checkin'&&
+            <button onClick={()=>document.querySelector('.learn-checkins')?.scrollIntoView({behavior:'smooth',block:'center'})}>
+              Zum Check-in <ArrowRight size={15}/>
+            </button>}
+        </div>
+      </div>
+      {premium&&<div className="learn-ai-controls">
+        <div><strong>DeepSeek im Hintergrund</strong>
+          <small>{ai.configured?'Deine persönliche Empfehlung wird im Hintergrund aktuell gehalten.':'KI-Verbindung ist vorbereitet. Bis zur Freischaltung bekommst du lokale Empfehlungen.'}</small>
+          <small>Bei Aktivierung werden relevante Modulnamen, Themen, Bewertungen und Prüfungstermine an DeepSeek übertragen – keine E-Mail-Adresse oder vollständigen Kalenderdaten.</small>
+        </div>
+        <button type="button" className={ai.consent?'active':''} aria-pressed={ai.consent}
+          onClick={()=>ai.setConsent(!ai.consent)}>{ai.consent?'KI-Tipps an':'KI aktivieren'}</button>
+      </div>}
+    </section>
     <section className="learn-section">
       <div className="learn-title"><h2>Kurzer Check-in</h2><span className="learn-counter">{pending.length} offen</span></div>
       {!pending.length?<p className="learn-muted">Alle vergangenen Veranstaltungen sind bewertet. Sehr schön!</p>:
@@ -111,9 +155,8 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
         <div className="learn-checkins">
           {recent.map(l=><div className="learn-checkin" key={l.key} style={accent(modules.find(m=>m.id===l.moduleId)?.color)}>
             <div className="learn-checkin-heading"><div><strong>{modules.find(m=>m.id===l.moduleId)?.name||'Modul'}</strong><span>{l.label} · {shortDate(l.date)}</span></div><span className="learn-eyebrow">Wie lief's?</span></div>
-            <div className="learn-rating-options">
-              {ratingLabels.map((rating)=><button key={rating.value} className={'learn-rating learn-rating-'+rating.value} onClick={()=>onCheckin(l,rating.value)}>{rating.label}</button>)}
-            </div>
+            <LessonFeedback lesson={l} topic={(data.lessonTopics||[]).find(t=>t.key===l.key)?.title||''}
+              canRate rating={checkins.get(l.key)?.rating} onTopic={onTopic} onRating={onCheckin} compact/>
           </div>)}
         </div>
         {pending.length>3&&<button className="learn-text-action" onClick={()=>setShowAll(v=>!v)}>{showAll?'Weniger anzeigen':`Alle ${pending.length} Check-ins anzeigen`} <ChevronRight size={15}/></button>}
@@ -130,14 +173,6 @@ export default function LearningDashboard({data,semester,modules,onCheckin,onSes
     </section>}
     <section className="learn-section">
       <div className="learn-title"><h2>Lernplan</h2><button className="learn-primary" onClick={()=>beginStudy()} disabled={!active.length}><Plus size={16}/> Freies Lernen</button></div>
-      {focus?<div className="learn-recommendation" style={accent(focus.module.color)}>
-        <span className="learn-eyebrow"><Sparkles size={15}/> HEUTE IM FOKUS</span>
-        <h3>{focus.module.name}</h3>
-        <p>{focus.j.daysUntilExam!==undefined&&focus.j.daysUntilExam<=7?
-          'Die Klausur ist nah. Prüfe offene Inhalte und übe klausurähnliche Aufgaben.':
-          focus.j.weakLessons.length?'Einige Inhalte benötigen noch eine Wiederholung.':'Halte dein Wissen mit kurzen Wiederholungen frisch.'}</p>
-        <div className="learn-recommendation-footer"><span>{focus.j.daysUntilExam!==undefined?`Klausur in ${focus.j.daysUntilExam} Tagen`:focus.j.status}</span><button onClick={()=>beginStudy(focus.module.id,focus.j.weakLessons[0]?.key)}>Lernen erfassen <ArrowRight size={15}/></button></div>
-      </div>:<p className="learn-muted">Füge ein aktuelles Modul hinzu, um Empfehlungen zu erhalten.</p>}
       {planned.length>0&&<div className="learn-planned">
         <div className="learn-planned-title">Für heute übernommen · {planned.filter(t=>completedPlans.has(t.id)).length} von {planned.length} erledigt</div>
         {planned.map(t=><div className="learn-planned-item" key={t.id} style={accent(modules.find(m=>m.id===t.moduleId)?.color)}>
