@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
+import { describeAiRequestError } from './ai-errors'
 import { aiAdviceSignature, canRequestOnOpen, readAiDailyAttempts, recordAiDailyAttempt } from './ai-request-schedule'
 import { parseAiAdvice, type AdviceContext, type StudyAdvice } from './study-advice'
 
@@ -22,6 +23,7 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
   const [displayed,setDisplayed]=useState<DisplayedAdvice|null>(null)
   const [working,setWorking]=useState(false)
   const [unavailable,setUnavailable]=useState(false)
+  const [errorMessage,setErrorMessage]=useState('')
   const [foregroundEpoch,setForegroundEpoch]=useState(0)
   const [visible,setVisible]=useState(()=>document.visibilityState==='visible')
   const requestedEpoch=useRef<{userId:string;epoch:number}|null>(null)
@@ -33,6 +35,7 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
     setDisplayed(null)
     requestedEpoch.current=null
     setUnavailable(false)
+    setErrorMessage('')
   },[userId])
 
   useEffect(()=>{
@@ -71,12 +74,17 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
       setDisplayed(null)
     }
     setConsentEntry({userId,allowed})
+    setErrorMessage('')
+    requestedEpoch.current=null
   }
 
   useEffect(()=>{
     if(!appActive||!userId||!premium||!consent||!deepseekConfigured||!supabase){
       setDisplayed(null)
       setWorking(false)
+      setErrorMessage(appActive&&userId&&premium&&consent&&!deepseekConfigured?
+        'KI-Empfehlungen sind lokal deaktiviert. Setze VITE_UNIFLOW_AI_ENABLED=true und starte den Entwicklungsserver neu.':
+        appActive&&userId&&premium&&consent&&!supabase?'Supabase ist im Browser nicht eingerichtet.':'')
       return
     }
     if(!visible||document.visibilityState!=='visible')return
@@ -94,6 +102,7 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
 
     if(!canRequestOnOpen(true,true,readAiDailyAttempts(userId))){
       requestedEpoch.current={userId,epoch:foregroundEpoch}
+      setErrorMessage('Das lokale KI-Tageslimit (25 Anfragen) ist erreicht. Morgen sind wieder Anfragen möglich.')
       return
     }
     let cancelled=false
@@ -105,9 +114,13 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
       if(requestedEpoch.current?.userId===userId&&requestedEpoch.current.epoch===foregroundEpoch)return
       requestedEpoch.current={userId,epoch:foregroundEpoch}
       // Count attempts even on API failure so a broken API never causes a storm.
-      if(!recordAiDailyAttempt(userId))return
+      if(!recordAiDailyAttempt(userId)){
+        setErrorMessage('Das lokale KI-Tageslimit (25 Anfragen) ist erreicht.')
+        return
+      }
       setWorking(true)
       setUnavailable(false)
+      setErrorMessage('')
       void (async()=>{
         try{
           const {data,error}=await supabase!.functions.invoke('uniflow-ai-advice',{
@@ -120,8 +133,10 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
           sessionStorage.setItem(cacheKey(userId),JSON.stringify({signature,advice:next} satisfies CachedAdvice))
           setDisplayed({signature,value:next})
           setUnavailable(false)
-        }catch{
-          if(!cancelled){setDisplayed(null);setUnavailable(true)}
+          setErrorMessage('')
+        }catch(error){
+          const detailedMessage=await describeAiRequestError(error,'uniflow-ai-advice')
+          if(!cancelled){setDisplayed(null);setUnavailable(true);setErrorMessage(detailedMessage)}
         }finally{
           if(!cancelled)setWorking(false)
         }
@@ -134,6 +149,6 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
   return {
     consent,setConsent,
     advice:premium&&consent&&appActive&&displayed?.signature===signature?displayed.value:null,
-    working,unavailable,configured:deepseekConfigured
+    working,unavailable,errorMessage,configured:deepseekConfigured
   }
 }

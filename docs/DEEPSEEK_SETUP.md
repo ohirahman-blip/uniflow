@@ -25,7 +25,7 @@ Der Schlüssel gehört ausschließlich in **Supabase Edge Function Secrets**.
    im Supabase **SQL Editor** einmal ausführen.
 2. Supabase **Project Settings → Edge Function Secrets**:
    - `DEEPSEEK_API_KEY`: deinen geheimen DeepSeek-Schlüssel
-   - optional `DEEPSEEK_MODEL`: standardmäßig `deepseek-flash`
+   - optional `DEEPSEEK_MODEL`: standardmäßig `deepseek-v4-flash`
    - optional `UNIFLOW_ALLOWED_ORIGINS`: kommaseparierte erlaubte Websites.
      Standard: `http://localhost:5173,http://127.0.0.1:5173,https://uniflow-jet.vercel.app`
 3. Die Funktion **`supabase/functions/uniflow-ai-advice/index.ts`** in
@@ -123,8 +123,11 @@ automatisch auf Supabase angewandt.
   die Premium-Kontrolle, erlaubte Origins und der bestehende Quota-RPC
   werden weiterverwendet. Beide KI-Funktionen teilen sich das serverseitige
   25-Anfragen-Tageslimit. Der DeepSeek-Standardmodellname für die neue
-  Funktion lautet `deepseek-chat`; falls `DEEPSEEK_MODEL` gesetzt ist,
-  muss dessen Wert ein von DeepSeek unterstütztes Modell sein.
+  Funktion lautet `deepseek-v4-flash`; falls `DEEPSEEK_MODEL` gesetzt ist,
+  muss dessen Wert ein von DeepSeek unterstütztes Modell sein. Der alte
+  Modellname `deepseek-chat` wurde eingestellt. Entferne veraltete
+  Werte aus den Edge Function Secrets oder ersetze sie durch
+  `deepseek-v4-flash`.
   Ein GitHub-Push allein deployed **keine** Supabase-Funktionen.
 - Vorlesungen und Übungen sind beim Öffnen des Modul-Editors standardmäßig
   eingeklappt.
@@ -133,3 +136,20 @@ automatisch auf Supabase angewandt.
 - Kalendertermine besitzen unten rechts einen Bewertungsstern; rechtsklicken
   und **Bewerten** öffnen dieselbe Bearbeitung der persönlichen Einschätzung.
   Abgeschlossene Termine können später erneut bewertet werden.
+
+## Fehlerdiagnose
+
+- Die KI-Schnelleingabe meldet den konkreten HTTP-Status und einen sicher
+  übersetzten Fehlercode, beispielsweise `MODEL_INVALID` (Modellname),
+  `MODEL_AUTH_ERROR` (API-Schlüssel), `MODEL_RATE_LIMIT`, `MODEL_TIMEOUT`
+  und `PREMIUM_REQUIRED`. Die Hintergrundempfehlung zeigt Fehler beim
+  aktivierten KI-Modus in **Einstellungen** an, während die normale
+  lokale Empfehlung verfügbar bleibt.
+- Bei `FunctionsFetchError` mit „Failed to send a request“ zuerst
+  Supabase **Edge Functions → Invocations / Logs** prüfen. Oft ist es eine
+  fehlgeschlagene CORS-OPTIONS-Vorabfrage, ein falscher Function-Name,
+  fehlendes Deployment oder eine nicht erlaubte Origin. `booted` alleine
+  bestätigt noch keinen erfolgreichen KI-Aufruf.
+- Nach Änderungen unter `supabase/functions` müssen **beide** Funktionen
+  separat in Supabase redeployed werden. Ein GitHub-Commit allein reicht
+  nicht. Secrets niemals im Browser oder in GitHub veröffentlichen.

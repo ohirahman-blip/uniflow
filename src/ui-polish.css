@@ -340,3 +340,6 @@ html[data-theme='light'] .uf-picker-custom-row input {background:#eee;color:#222
 .course.course-inactive .course-rating-star{color:#a7a7ae;}
 .course.course-inactive .course-rating-star.is-rated{color:#efebef;}
 .wallet-context-menu .wallet-context-danger {color:#f1a5a5;}
+
+/* Room inputs use the same font size and weight as the Module editor. */
+input.line-input.room-input {font-family:inherit;font-size:14px;font-weight:500;}

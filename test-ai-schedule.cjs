@@ -41,6 +41,23 @@ const editor=fs.readFileSync('src/ModuleScheduleEditor.tsx','utf8')
 const edge=fs.readFileSync('supabase/functions/uniflow-ai-schedule/index.ts','utf8')
 const adviceEdge=fs.readFileSync('supabase/functions/uniflow-ai-advice/index.ts','utf8')
 const docs=fs.readFileSync('docs/DEEPSEEK_SETUP.md','utf8')
+const errorsModule=ts.transpileModule(fs.readFileSync('src/ai-errors.ts','utf8'),{
+ compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true
+})
+assert.equal((errorsModule.diagnostics||[]).filter(d=>d.category===ts.DiagnosticCategory.Error).length,0)
+const errorsExports={exports:{}}
+new Function('module','exports',errorsModule.outputText)(errorsExports,errorsExports.exports)
+const errorFn=errorsExports.exports
+assert.match(errorFn.aiFailureText('MODEL_INVALID',502,400),/DEEPSEEK_MODEL/)
+assert.match(errorFn.aiFailureText('PREMIUM_REQUIRED',403),/uniflow\+/)
+assert.match(errorFn.aiFailureText('MODEL_RATE_LIMIT',502,429),/429/)
+Promise.all([
+ errorFn.describeAiRequestError({name:'FunctionsFetchError',message:'Failed to send a request to the Edge Function'},'uniflow-ai-schedule')
+   .then(message=>assert.match(message,/CORS-Fehler/)),
+ errorFn.describeAiRequestError({context:new Response(JSON.stringify({error:'MODEL_INVALID',upstreamStatus:400}),{
+   status:502,headers:{'content-type':'application/json'}})},'uniflow-ai-schedule')
+   .then(message=>assert.match(message,/DEEPSEEK_MODEL/))
+]).catch(error=>{console.error(error);process.exitCode=1})
 for(const [name,value] of [['editor',editor],['edge',edge]]){
  const parsed=ts.transpileModule(value,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext,
    jsx:ts.JsxEmit.ReactJSX},reportDiagnostics:true})
@@ -50,6 +67,11 @@ assert.match(editor,/functions\.invoke\('uniflow-ai-schedule'/,'Real server-side
 assert.match(editor,/parseAiSchedulePreview\(data\)/,'Server response validated')
 assert.match(editor,/parseAiSchedulePreview\(preview\)/,'Editable response validated again before saving')
 assert.match(editor,/setQuickError\(/,'Errors shown rather than silently falling back')
+assert.match(editor,/describeAiRequestError\(error,'uniflow-ai-schedule'\)/,'Supabase failures translated to actionable hints')
+assert.doesNotMatch(editor,/module-fast-ai-disclosure/,'No explanatory text below AI input')
+assert.match(edge,/model:Deno\.env\.get\('DEEPSEEK_MODEL'\)\?\.trim\(\)\|\|'deepseek-v4-flash'/,'Current model for extraction')
+assert.match(edge,/MODEL_AUTH_ERROR|MODEL_RATE_LIMIT|MODEL_PAYMENT_REQUIRED/,'HTTP provider failures are classified')
+assert.match(adviceEdge,/MODEL_AUTH_ERROR|MODEL_RATE_LIMIT|MODEL_PAYMENT_REQUIRED/,'Both edge functions expose precise codes')
 assert.match(editor,/module-fast-ai-slot/,'User can correct proposed schedule')
 assert.match(editor,/<textarea ref=\{quickInputRef\} rows=\{1\}/,'Quick input starts at one line')
 assert.match(editor,/useLayoutEffect\(\(\)=>\{resizeQuickInput\(\)\},\[quickText\]\)/,'Quick input grows when its value changes')

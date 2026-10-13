@@ -9,6 +9,7 @@ import {
 import type { Journey } from './learning'
 import UniflowPicker from './UniflowPicker'
 import { supabase } from './supabase'
+import { describeAiRequestError } from './ai-errors'
 import { aiScheduleCategories, parseAiSchedulePreview, type AiScheduleSlot, type AiScheduleTopic, type AiSchedulePreview } from './ai-schedule'
 import './module-schedule.css'
 
@@ -222,31 +223,7 @@ export default function ModuleScheduleEditor({
         signal:controller.signal
       })
       if(controller.signal.aborted)return
-      if(error){
-        let reason=''
-        let status=0
-        const context=error.context
-        if(typeof Response!=='undefined'&&context instanceof Response){
-          status=context.status
-          const detail=await context.clone().json().catch(()=>null)
-          if(detail&&typeof detail==='object'&&'error' in detail&&typeof detail.error==='string')
-            reason=detail.error
-        }
-        const hints:Record<string,string>={
-          PREMIUM_REQUIRED:'Die KI-Schnelleingabe ist nur für aktive uniflow+-Konten verfügbar.',
-          QUOTA_OR_ACCESS_LIMIT:'Das gemeinsame KI-Tageslimit ist erreicht (maximal 25 Anfragen). Versuche es morgen erneut.',
-          DEEPSEEK_NOT_CONFIGURED:'Der DeepSeek-Schlüssel fehlt in den Supabase-Secrets.',
-          QUOTA_NOT_CONFIGURED:'Die Supabase-KI-Kontingentfunktion ist noch nicht eingerichtet.',
-          INVALID_MODEL_REPLY:'Die KI-Antwort hatte kein gültiges Terminformat. Bitte versuche es erneut.',
-          EMPTY_MODEL_REPLY:'Die KI hat keine Termine zurückgegeben. Bitte versuche es erneut.',
-          MODEL_UNAVAILABLE:'DeepSeek ist derzeit nicht erreichbar. Bitte versuche es später erneut.',
-          NOT_AUTHENTICATED:'Bitte melde dich erneut an.',
-          BAD_INPUT:'Bitte beschreibe deine Termine mit Wochentag und Uhrzeit.',
-          ORIGIN_NOT_ALLOWED:'Die aktuelle Website ist in Supabase noch nicht als erlaubte Herkunft eingetragen.'
-        }
-        throw new Error(hints[reason]||(status===404||/not found/i.test(error.message)?
-          'Die Supabase-Funktion uniflow-ai-schedule muss noch bereitgestellt werden.':error.message||'KI-Erkennung fehlgeschlagen.'))
-      }
+      if(error)throw new Error(await describeAiRequestError(error,'uniflow-ai-schedule'))
       setPreview(parseAiSchedulePreview(data))
     }catch(error){
       if(!controller.signal.aborted)
@@ -331,7 +308,6 @@ export default function ModuleScheduleEditor({
             placeholder="Veranstaltungen, Wochentage, Zeiten und Räume eingeben …"
             maxLength={3500}
             onChange={e=>{previewRequest.current?.abort();previewRequest.current=null;setThinking(false);setQuickText(e.target.value);setPreview(null);setQuickError('')}}/>
-          <p className="module-fast-ai-disclosure">Dein Text wird zur Terminerkennung über Supabase an DeepSeek gesendet. Prüfe die Vorschau vor dem Speichern.</p>
           <button className="module-fast-preview-button" disabled={!quickText.trim()||thinking}
             onClick={()=>void generatePreview()}>{thinking?<><Sparkles size={16}/> Wird analysiert …</>:<><Sparkles size={16}/> Termine erkennen</>}</button>
           {thinking&&<div className="module-quick-thinking" aria-live="polite" role="status">

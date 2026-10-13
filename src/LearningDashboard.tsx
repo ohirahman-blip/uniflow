@@ -120,13 +120,13 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
       </section>
     </div>
     <section className="learn-section learn-advice-section" aria-label="Aktuelle Empfehlung">
-      <div className="learn-title"><h2>Dein nächster Schritt</h2><span className="learn-counter">{isAiRecommendation?<><Sparkles size={13}/> uniflow+ KI</>:'Für dich'}</span></div>
+      <div className="learn-title"><h2>Dein nächster Schritt</h2><span className="learn-counter">Für dich</span></div>
       <div className={'learn-recommendation learn-recommendation-dynamic'+(isAiRecommendation?' learn-recommendation-ai':'')} style={accent(modules.find(m=>m.id===suggestion.moduleId)?.color)}>
-        <span className="learn-eyebrow">{isAiRecommendation&&<Sparkles size={15}/>} {isAiRecommendation?'DEEPSEEK · UNIFLOW+':'PASSEND ZU DEINEM STUNDENPLAN'}</span>
+        <span className="learn-eyebrow">{isAiRecommendation?<><Sparkles size={15}/> uniflow+</>:'PASSEND ZU DEINEM STUNDENPLAN'}</span>
         <h3>{suggestion.title}</h3>
         <p>{suggestion.message}</p>
         <div className="learn-recommendation-footer">
-          <span>{isAiRecommendation?'Mit DeepSeek erstellt':'Aktuell anhand deiner Termine und Check-ins'}</span>
+          <span>Aktuell anhand deiner Termine und Check-ins</span>
           {suggestion.moduleId&&suggestion.kind!=='checkin'&&
             <button onClick={()=>beginStudy(suggestion.moduleId,suggestion.kind==='review'?suggestion.lessonKey:undefined,suggestion.kind==='exam')}>
               Lernen erfassen <ArrowRight size={15}/>

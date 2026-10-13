@@ -60,6 +60,19 @@ const cors=(req:Request)=>{
 const reply=(req:Request,code:number,payload:Plain)=>
   new Response(JSON.stringify(payload),{status:code,headers:cors(req)})
 
+const upstreamErrorCode=(status:number,description:string)=>{
+  if(status===400)return /model|nicht gefunden|not found/i.test(description)?'MODEL_INVALID':'MODEL_REQUEST_INVALID'
+  if(status===401||status===403)return 'MODEL_AUTH_ERROR'
+  if(status===402)return 'MODEL_PAYMENT_REQUIRED'
+  if(status===408||status===504)return 'MODEL_TIMEOUT'
+  if(status===429)return 'MODEL_RATE_LIMIT'
+  return 'MODEL_UNAVAILABLE'
+}
+const providerFailure=async(req:Request,response:Response)=>{
+  const raw=(await response.text().catch(()=>'')).slice(0,1500)
+  // Do not echo provider responses or credentials to a browser.
+  return reply(req,502,{error:upstreamErrorCode(response.status,raw),upstreamStatus:response.status})
+}
 Deno.serve(async req=>{
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors(req)})
   if(req.method!=='POST')return reply(req,405,{error:'METHOD_NOT_ALLOWED'})
@@ -101,7 +114,7 @@ Deno.serve(async req=>{
     if(allowed!==true)return reply(req,429,{error:'QUOTA_OR_ACCESS_LIMIT'})
 
     const controller=new AbortController()
-    const timeout=setTimeout(()=>controller.abort(),12000)
+    const timeout=setTimeout(()=>controller.abort(),22000)
     let response:Response
     try{
       response=await fetch('https://api.deepseek.com/chat/completions',{
@@ -109,7 +122,8 @@ Deno.serve(async req=>{
         signal:controller.signal,
         headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json'},
         body:JSON.stringify({
-          model:Deno.env.get('DEEPSEEK_MODEL')||'deepseek-flash',
+          model:Deno.env.get('DEEPSEEK_MODEL')?.trim()||'deepseek-v4-flash',
+          thinking:{type:'disabled'},
           stream:false,
           temperature:0.3,
           max_tokens:320,
@@ -133,7 +147,7 @@ Gib nur IDs und lessonKeys zurück, die im JSON-Kontext vorkommen.`},
         })
       })
     }finally{clearTimeout(timeout)}
-    if(!response.ok)return reply(req,502,{error:'MODEL_UNAVAILABLE'})
+    if(!response.ok)return providerFailure(req,response)
     const result=await response.json()
     const raw=result?.choices?.[0]?.message?.content
     if(typeof raw!=='string'||!raw.trim())return reply(req,502,{error:'EMPTY_MODEL_REPLY'})
@@ -164,7 +178,9 @@ Gib nur IDs und lessonKeys zurück, die im JSON-Kontext vorkommen.`},
       moduleId:availableModules.has(moduleId)?moduleId:undefined,
       lessonKey:availableLessons.has(lessonKey)?lessonKey:undefined
     }})
-  }catch{
-    return reply(req,502,{error:'MODEL_UNAVAILABLE'})
+  }catch(error){
+    return error instanceof Error&&error.name==='AbortError'?
+      reply(req,504,{error:'MODEL_TIMEOUT'}):
+      reply(req,502,{error:'MODEL_NETWORK_ERROR'})
   }
 })
