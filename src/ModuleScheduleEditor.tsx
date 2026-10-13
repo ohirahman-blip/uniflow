@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, BookOpen, Check, ChevronDown, ClipboardPaste, Copy, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Check, ChevronDown, Copy, Lock, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
 import {
   addDays, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
   intersects, isAssessment, minutes, occurrenceAtOrigin, timeString, today, uid,
@@ -290,7 +290,7 @@ export default function ModuleScheduleEditor({
         </div>
       </details>
       :<div className="module-fast-quick-locked">
-        <span className="module-fast-quick-locked-icon"><Sparkles size={17}/></span>
+        <span className="module-fast-quick-locked-icon"><Lock size={17}/></span>
         <div><strong>Schnelleingabe <span>uniflow+</span></strong>
           <small>Mehrere Veranstaltungen und Alternativen direkt aus Text übernehmen.</small></div>
         <span className="module-fast-quick-lock-label">Premium</span>
