@@ -17,7 +17,7 @@ const record=(value:unknown):Record<string,unknown>|null=>
 const validTime=(value:string)=>/^([01]\d|2[0-3]):[0-5]\d$/.test(value)
 const timeMinutes=(value:string)=>Number(value.slice(0,2))*60+Number(value.slice(3))
 const validDate=(value:string)=>{
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return false
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false
   const date=new Date(value+'T12:00:00Z')
   return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value
 }
