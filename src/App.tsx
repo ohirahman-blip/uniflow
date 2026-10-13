@@ -8,7 +8,8 @@ import ModuleScheduleEditor from './ModuleScheduleEditor'
 import { adjacentCalendarPage, alignCalendarStart, datesForCalendarPage, twoDayRail, weekHeaderDates } from './calendar-navigation'
 import UniflowPicker from './UniflowPicker'
 import LearningDashboard from './LearningDashboard'
-import { journeyFor, pastLessons, type Journey, type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask } from './learning'
+import LessonFeedback from './LessonFeedback'
+import { journeyFor, pastLessons, lessonForOccurrence, canRateOccurrence, type Journey, type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask } from './learning'
 import './styles.css'
 import './calendar-week-strip.css'
 import './ui-polish.css'
@@ -353,13 +354,19 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
   </BottomSheet>
 }
 
-function EventDetails({occ,module,modules,offerings,onClose,onDelete,onSuspend,onRestore,onMove,onEdit,onAddAlternative,onSelectAlternative,onInspectAlternative}: {
-  occ:Occurrence;module?:StudyModule;modules:StudyModule[];offerings:Offering[];
+function EventDetails({occ,module,modules,offerings,data,onTopic,onRating,onClose,onDelete,onSuspend,onRestore,onMove,onEdit,onAddAlternative,onSelectAlternative,onInspectAlternative}: {
+  occ:Occurrence;module?:StudyModule;modules:StudyModule[];offerings:Offering[];data:AppData;
+  onTopic:(lesson:LearningLesson,title:string)=>void;onRating:(lesson:LearningLesson,rating:LearningRating)=>void;
   onClose:()=>void;onDelete:()=>void;onSuspend:()=>void;onRestore:()=>void;onMove:()=>void;onEdit:()=>void;
   onAddAlternative:(kind:'slot'|'group')=>void;onSelectAlternative:(alt:Occurrence)=>void;onInspectAlternative:(alt:Occurrence)=>void;
 }) {
   const [expanded,setExpanded]=useState<Record<'slot'|'group',boolean>>({slot:true,group:true})
   const linked=linkedCandidates(offerings,occ)
+  const isLecture=!!occ.offering.moduleId&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'
+  const lesson=isLecture?lessonForOccurrence(occ,data):null
+  const lectureRating=lesson?(data.learningCheckins||[]).find(x=>x.key===lesson.key)?.rating:undefined
+  const lectureTopic=lesson?(data.lessonTopics||[]).find(x=>x.key===lesson.key)?.title||'':''
+  const canRate=isLecture&&!!occurrenceAtOrigin(occ.offering,occ.origin,false)&&canRateOccurrence(occ)
   const groupCount=offerings.filter(o=>o.id!==occ.offering.id && o.semesterId===occ.offering.semesterId && o.moduleId===occ.offering.moduleId && (o.contentId||o.familyId||o.id)===(occ.offering.contentId||occ.offering.familyId||occ.offering.id)).length
   const block=(kind:'slot'|'group',title:string,explanation:string)=>{
     const list=linked.filter(x=>x.kind===kind)
@@ -389,6 +396,8 @@ function EventDetails({occ,module,modules,offerings,onClose,onDelete,onSuspend,o
     {occ.offering.organizer&&<div className="detail-row"><GraduationCap size={18}/>{occ.offering.organizer}</div>}
     <div className="detail-row"><RotateCcw size={18}/>{occ.offering.recurrence==='weekly'?'Jede Woche':occ.offering.recurrence==='biweekly'?'Alle zwei Wochen':'Einmalig'}</div>
     {singleVisitLabel(occ)==='Ausnahme'&&<div className="detail-row"><Info size={18}/>Einmalige Ausnahme</div>}
+    {lesson&&<LessonFeedback key={lesson.key} lesson={lesson} topic={lectureTopic} rating={lectureRating} canRate={canRate}
+      onTopic={onTopic} onRating={onRating}/>}
     <div className="detail-actions"><button onClick={onEdit}><Settings2 size={18}/>Bearbeiten</button><button onClick={onMove}><Grip size={19}/>Verschieben</button><button onClick={onSuspend}><PauseCircle size={18}/>Aussetzen</button><button onClick={onRestore}><RotateCcw size={18}/>Auswahl zurücknehmen</button><button className="danger-link" onClick={onDelete}><Trash2 size={18}/>Gruppe löschen</button></div>
     {block('slot','Andere Veranstaltung zur gleichen Zeit','Auch ein anderes Modul oder Freies Lernen kann hier zur Auswahl stehen.')}
     {block('group',`Gleicher Inhalt · ${groupCount+1} Gruppen`,'Die Gruppen sind gleichberechtigt: Eine auswählen oder mehrere besuchen. Keine Veranstaltung wird beim Wechsel gelöscht.')}
@@ -1124,6 +1133,19 @@ export default function App() {
     setToast({ id: uid(), text, action: undoable ? () => setData(d => ({ ...d, offerings: previous!, lastUpdate: Date.now() })) : undefined, actionLabel: undoable ? 'Rückgängig' : undefined })
   }
   const mutate = (f: (d: AppData) => AppData) => setData(prev => ({ ...f(prev), lastUpdate: Date.now() }))
+  const saveLectureTopic=(lesson:LearningLesson,title:string)=>mutate(d=>({
+    ...d,lessonTopics:[
+      ...(d.lessonTopics||[]).filter(t=>t.key!==lesson.key),
+      ...(title.trim()?[{key:lesson.key,moduleId:lesson.moduleId,contentId:lesson.contentId,date:lesson.date,
+        title:title.trim().slice(0,100),updatedAt:new Date().toISOString()}]:[])
+    ]
+  }))
+  const saveLectureRating=(lesson:LearningLesson,rating:LearningRating)=>mutate(d=>({
+    ...d,learningCheckins:[
+      ...(d.learningCheckins||[]).filter(c=>c.key!==lesson.key),
+      {key:lesson.key,moduleId:lesson.moduleId,contentId:lesson.contentId,date:lesson.date,rating,updatedAt:new Date().toISOString()}
+    ]
+  }))
   const degree = data.degrees.find(d => d.id === data.activeDegreeId)
   const semester = data.semesters.find(s => s.id === data.activeSemesterId)
   const degreeModules = data.modules.filter(m => m.degreeId === degree?.id)
@@ -1217,11 +1239,8 @@ export default function App() {
     <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}>{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
       {page === 'dashboard' && <LearningDashboard
-        data={data} semester={semester} modules={semesterModules}
-        onCheckin={(lesson:LearningLesson,rating:LearningRating)=>mutate(d=>{
-          const checkin={key:lesson.key,moduleId:lesson.moduleId,contentId:lesson.contentId,date:lesson.date,rating,updatedAt:new Date().toISOString()}
-          return {...d,learningCheckins:[...(d.learningCheckins||[]).filter(x=>x.key!==lesson.key),checkin]}
-        })}
+        data={data} semester={semester} modules={semesterModules} premium={premium} userId={user.id}
+        onCheckin={saveLectureRating} onTopic={saveLectureTopic}
         onSession={(session:Omit<LearningSession,'id'|'updatedAt'>)=>mutate(d=>({
           ...d,learningSessions:[...(d.learningSessions||[]).filter(old=>!session.scheduledKey||old.scheduledKey!==session.scheduledKey),{...session,id:uid(),updatedAt:new Date().toISOString()}]
         }))}
@@ -1277,7 +1296,8 @@ export default function App() {
     {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={semester} modules={semesterModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:d.assessments.map(x=>x.id===assessment.id?assessment:x)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
     {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Klausur löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“ am {formDate(deletingAssessment.date)} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>({...d,assessments:d.assessments.filter(x=>x.id!==deletingAssessment.id)}));setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
     {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }] })); note('Modul hinzugefügt.') } return id }} />}
-    {detail && <EventDetails occ={detail} module={degreeModules.find(m=>m.id===detail.offering.moduleId)} modules={semesterModules} offerings={data.offerings}
+    {detail && <EventDetails occ={detail} module={degreeModules.find(m=>m.id===detail.offering.moduleId)} modules={semesterModules} offerings={data.offerings} data={data}
+       onTopic={saveLectureTopic} onRating={saveLectureRating}
       onAddAlternative={kind=>{setAlternativeDraft({occ:detail,kind});setDetail(null)}}
       onSelectAlternative={alt=>chooseAlternative(alt,detail)}
       onInspectAlternative={alt=>setDetail(alt)}
