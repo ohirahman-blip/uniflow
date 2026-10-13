@@ -12,7 +12,7 @@ const nav = {exports:{}}
 new Function('module','exports','require',compile('src/calendar-navigation.ts'))(
   nav,nav.exports,id=>id==='./model'?model.exports:require(id)
 )
-const {weekHeaderDates,weekdayIndex,twoDayStarts,alignCalendarStart,adjacentCalendarPage,datesForCalendarPage}=nav.exports
+const {weekHeaderDates,weekdayIndex,twoDayStarts,alignCalendarStart,adjacentCalendarPage,datesForCalendarPage,twoDayRail}=nav.exports
 const {weekStart,addDays}=model.exports
 const monday='2026-10-12'
 
@@ -62,4 +62,27 @@ for (const cutoff of [4,5,6]) {
   assert.equal(adjacentCalendarPage('2026-10-13','two',-1,cutoff),'2026-10-12','Two-day swipe returns one day')
   assert.deepEqual(Array.from(datesForCalendarPage('2026-10-13','two',cutoff)),['2026-10-13','2026-10-14'])
 }
+// Every visible day belongs to one DOM column, not a duplicated pair of pages.
+// This covers regular one-day movements AND the skip between workweeks.
+for(const cutoff of [4,5,6]){
+  for(let n=0;n<7;n++){
+    const date=addDays(monday,n)
+    const start=alignCalendarStart(date,'two',cutoff)
+    const rail=twoDayRail(start,cutoff)
+    assert.equal(new Set(rail.dates).size,rail.dates.length,'No day is rendered twice in the sliding rail')
+    assert.equal(rail.offsets.length,3)
+    assert.ok(rail.offsets[0]<rail.offsets[1]&&rail.offsets[1]<rail.offsets[2],'Valid snaps stay ordered')
+    for(let page=0;page<3;page++){
+      const at=rail.offsets[page]
+      const expected=datesForCalendarPage(rail.anchors[page],'two',cutoff)
+      assert.deepEqual(rail.dates.slice(at,at+2),expected,'The snapped viewport must show exactly the 2 selected dates')
+    }
+    const leftMove=rail.offsets[1]-rail.offsets[0]
+    const rightMove=rail.offsets[2]-rail.offsets[1]
+    assert.ok(leftMove===1||leftMove===2,'A boundary can skip hidden weekend days without duplicated columns')
+    assert.ok(rightMove===1||rightMove===2,'Every normal swipe moves one day-width')
+  }
+}
+assert.deepEqual(twoDayRail('2026-10-13',4).dates,['2026-10-12','2026-10-13','2026-10-14','2026-10-15'])
+assert.deepEqual(twoDayRail('2026-10-16',4).dates,['2026-10-14','2026-10-15','2026-10-16','2026-10-19','2026-10-20'])
 console.log('✔ calendar week cutoff: one-day sliding two-day windows, weekend skips, reversible navigation')
