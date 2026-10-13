@@ -280,7 +280,7 @@ export default function ModuleScheduleEditor({
         {expanded&&<><div className="module-fast-topic-head">
           <div className="module-fast-topic-inputs">
             <label>Inhalt<input aria-label={'Inhalt Veranstaltung '+(index+1)} value={first.contentLabel??first.category} onChange={e=>renameTopic(group.offerings,e.target.value)}/></label>
-            <label>Art<UniflowPicker label="Veranstaltungsart" value={first.category} onChange={value=>recategorize(group.offerings,value)}
+            <label>Art<UniflowPicker label="Veranstaltungsart" value={first.category} allowCustom onChange={value=>recategorize(group.offerings,value)}
               options={[...(!['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].includes(first.category)?[first.category]:[]),'Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].map(value=>({value,label:value}))}/></label>
           </div>
           <div className="module-fast-icon-actions">
