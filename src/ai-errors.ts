@@ -28,7 +28,7 @@ const messages:Record<string,string>={
   MODEL_REQUEST_INVALID:'DeepSeek hat das Anfrageformat abgelehnt. Prüfe das Modell und das Edge-Function-Protokoll.',
   MODEL_NETWORK_ERROR:'Die Edge Function konnte DeepSeek nicht erreichen. Prüfe das Supabase-Protokoll.',
   MODEL_UNAVAILABLE:'DeepSeek ist derzeit nicht erreichbar oder hat einen Serverfehler gemeldet.',
-  EMPTY_MODEL_REPLY:'DeepSeek hat eine leere Antwort geliefert. Bitte erneut versuchen.',
+  EMPTY_MODEL_REPLY:'DeepSeek hat auch nach einem zweiten Versuch keinen Empfehlungstext geliefert. Bitte erneut versuchen.',
   INVALID_MODEL_REPLY:'Die Antwort hatte nicht das erwartete JSON-Format. Bitte erneut versuchen.'
 }
 export function aiFailureText(code:string,status=0,upstreamStatus=0){
