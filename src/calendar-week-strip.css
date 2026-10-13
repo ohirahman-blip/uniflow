@@ -419,3 +419,47 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
 .calendar-compact-toolbar .mini-popover {
   z-index:45;
 }
+
+
+/* Calendar header v2: the action bar and date strip MUST share one sticky
+   stacking context. Previously the menu belonged to a scrolling sibling,
+   allowing Safari's sticky date strip to paint over an open menu. */
+.calendar-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  isolation: isolate;
+  background: #080808;
+  overflow: visible;
+}
+.calendar-sticky-header > .calendar-compact-toolbar {
+  position: relative;
+  z-index: 3;
+  background: #080808;
+}
+.calendar-sticky-header > .uf-week-strip {
+  position: relative;
+  top: auto;
+  z-index: 1;
+}
+.calendar-sticky-header .quick-task-wrap,
+.calendar-sticky-header .focus-select-wrap {
+  position: relative;
+  z-index: 4;
+}
+.calendar-sticky-header .mini-popover {
+  z-index: 100;
+  /* The menu may overlap the weekday strip and still remain clickable. */
+  pointer-events: auto;
+}
+@media (max-width: 720px) {
+  .calendar-sticky-header {
+    margin-inline: -10px;
+    width: calc(100% + 20px);
+    padding-inline: 10px;
+  }
+}
+html[data-theme='light'] .calendar-sticky-header,
+html[data-theme='light'] .calendar-sticky-header > .calendar-compact-toolbar {
+  background: #f7f7f6;
+}
