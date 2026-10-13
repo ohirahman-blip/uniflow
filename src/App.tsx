@@ -231,22 +231,80 @@ function Onboarding({ onDone, onInfo, catalog, onSignOut }: { onDone: (data: App
   </div></main>
 }
 function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModule }: { initial: NewEntry; modules: StudyModule[]; semester: Semester; onSave: (o: Offering) => void; onClose: () => void; onCreateModule: (name: string, credits: number) => string }) {
-  const [moduleId, setModuleId] = useState(modules[0]?.id || ''), [picker, setPicker] = useState(!modules.length), [draftModule, setDraftModule] = useState(''), [draftCredits, setDraftCredits] = useState('6'), [search, setSearch] = useState(''), [entryDate, setEntryDate] = useState(initial.date), [from, setFrom] = useState(initial.from), [to, setTo] = useState(initial.to), [repeat, setRepeat] = useState<Repeat>(initial.recurrence || (initial.category && isAssessment(initial.category) ? 'once' : 'weekly')), [category, setCategory] = useState(initial.category || 'Vorlesung'), [custom, setCustom] = useState(false), [end, setEnd] = useState(semester.lectureEnd), [room, setRoom] = useState(''), [onlineLink, setOnlineLink] = useState(''), [organizer, setOrganizer] = useState(''), [err, setErr] = useState('')
-  const current = modules.find(m => m.id === moduleId)
-  const categorySuggestions = ['Vorlesung', 'Übung', 'Tutorium', 'Freies Lernen']
-  const categoryValue = custom ? category.trim() : category
-  const save = () => { if (!moduleId && categoryValue !== 'Freies Lernen') { setErr('Bitte wähle zuerst ein Modul.'); return } if (minutes(to) <= minutes(from)) { setErr('Das Ende muss nach dem Beginn liegen.'); return } if (repeat !== 'once' && end < entryDate) { setErr('Das Wiederholungsende liegt vor dem ersten Termin.'); return } onSave({ id: uid(), semesterId: semester.id, moduleId: moduleId || '', name: current?.name || categoryValue, category: categoryValue || 'Sonstiges', date: entryDate, endDate: repeat === 'once' ? entryDate : end, from, to, recurrence: repeat, overrides: {}, room, onlineLink: onlineLink.trim(), organizer, selected: true }) }
-  return <BottomSheet title="Neuer Termin" onClose={onClose} footer={<button className="primary-action" onClick={save}>Hinzufügen <ArrowRight size={19} /></button>}>
-    <div className="editor-field"><span className="field-label">Datum</span><DateControl value={entryDate} onChange={setEntryDate}/></div>
-    <div className="editor-field"><span className="field-label">Modul</span><button className="big-choice" onClick={() => setPicker(x => !x)}><span>{current?.name || 'Modul auswählen'}</span><ChevronDown size={19} /></button>{picker && <div className="module-dropdown"><label className="search-field"><Search size={18} /><input placeholder="Module suchen" value={search} onChange={e => setSearch(e.target.value)} /></label><div className="module-pick-list">{modules.filter(m => m.name.toLowerCase().includes(search.toLowerCase())).map(m => <button key={m.id} onClick={() => { setModuleId(m.id); setPicker(false) }}><span className="color-mark" style={{ background: m.color }} />{m.name}{m.id === moduleId && <Check size={17} />}</button>)}<button onClick={() => { setModuleId(''); setCategory('Freies Lernen'); setPicker(false) }}><BookOpen size={17} />Ohne Modul (freie Lernzeit)</button></div><form className="quick-new-module" onSubmit={e => { e.preventDefault(); if (!draftModule.trim()) return; const id = onCreateModule(draftModule.trim(), ensureCredits(draftCredits)); setModuleId(id); setDraftModule(''); setPicker(false) }}><input placeholder="+ Neues Modul" value={draftModule} onChange={e => setDraftModule(e.target.value)} /><input type="number" aria-label="LP" min="0" step="0.5" value={draftCredits} onChange={e => setDraftCredits(e.target.value)} /><span>LP</span><button type="submit" aria-label="Modul erstellen"><Plus size={19} /></button></form></div>}</div>
-    <div className="editor-time-row"><TimeControl label="Beginn" value={from} onChange={setFrom} /><span className="time-divider">–</span><TimeControl label="Ende" value={to} onChange={setTo} /></div>
-    <div className="editor-field"><span className="field-label">Veranstaltungsart</span><div className="category-list">{categorySuggestions.map(item => <button key={item} className={category === item && !custom ? 'chosen' : ''} onClick={() => { setCategory(item); setCustom(false) }}>{item}</button>)}<button className={custom ? 'chosen' : ''} onClick={() => { setCustom(true); setCategory('') }}><Plus size={16} /> Eigene</button></div>{custom && <input autoFocus className="line-input" placeholder="Neue Kategorie eingeben" value={category} maxLength={45} onChange={e => setCategory(e.target.value)} />}</div>
-    <div className="editor-field"><span className="field-label">Wiederholung</span><div className="repeat-switch">{([{ key: 'once', text: 'Einmalig' }, { key: 'weekly', text: 'Wöchentlich' }, { key: 'biweekly', text: 'Alle 2 Wochen' }] as const).map(item => <button key={item.key} className={repeat === item.key ? 'selected' : ''} onClick={() => setRepeat(item.key)}>{item.text}</button>)}</div></div>
-    {repeat !== 'once' && <div className="editor-field"><span className="field-label">Wiederholen bis</span><DateControl value={end} min={initial.date} onChange={setEnd} /><small>Vorgeschlagen: Vorlesungsende. Du kannst das Datum ändern.</small></div>}
-    <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={room} onChange={e => setRoom(e.target.value)} /></div>
-    <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://meet.google.com/..." value={onlineLink} onChange={e => setOnlineLink(e.target.value)} /></div>
-    <div className="editor-field"><span className="field-label">Veranstalter <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. Prof. Mustermann" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
-    {err && <div className="inline-error">{err}</div>}
+  const [moduleId,setModuleId]=useState(modules[0]?.id||'')
+  const [picker,setPicker]=useState(!modules.length)
+  const [draftModule,setDraftModule]=useState('')
+  const [draftCredits,setDraftCredits]=useState('6')
+  const [search,setSearch]=useState('')
+  const [entryDate,setEntryDate]=useState(initial.date)
+  const [from,setFrom]=useState(initial.from)
+  const [to,setTo]=useState(initial.to)
+  const [repeat,setRepeat]=useState<Repeat>(initial.recurrence||(initial.category&&isAssessment(initial.category)?'once':'weekly'))
+  const [category,setCategory]=useState(initial.category||'Vorlesung')
+  const [content,setContent]=useState('')
+  const [end,setEnd]=useState(semester.lectureEnd)
+  const [room,setRoom]=useState('')
+  const [onlineLink,setOnlineLink]=useState('')
+  const [organizer,setOrganizer]=useState('')
+  const [err,setErr]=useState('')
+  const current=modules.find(m=>m.id===moduleId)
+  const categoryChoices=['Vorlesung','Übung','Tutorium','Seminar','Praktikum','Freies Lernen']
+  const categoryOptions=[...(!categoryChoices.includes(category)?[category]:[]),...categoryChoices]
+  const save=()=>{
+    const kind=category.trim()
+    if(!kind)return setErr('Bitte gib eine Veranstaltungsart an.')
+    if(!moduleId&&kind!=='Freies Lernen')return setErr('Bitte wähle zuerst ein Modul.')
+    if(entryDate<semester.start||entryDate>semester.end)return setErr('Das Datum liegt außerhalb des Semesters.')
+    if(minutes(to)<=minutes(from))return setErr('Das Ende muss nach dem Beginn liegen.')
+    if(repeat!=='once'&&end<entryDate)return setErr('Das Wiederholungsende liegt vor dem ersten Termin.')
+    onSave({
+      id:uid(),semesterId:semester.id,moduleId:moduleId||'',
+      name:current?.name||kind,category:kind,
+      ...(content.trim()?{contentLabel:content.trim()}:{}),
+      date:entryDate,endDate:repeat==='once'?entryDate:end,
+      from,to,recurrence:repeat,overrides:{},room,
+      onlineLink:onlineLink.trim(),organizer,selected:true
+    })
+  }
+  return <BottomSheet title="Neuer Termin" onClose={onClose} footer={<button className="primary-action" onClick={save}>Hinzufügen <ArrowRight size={19}/></button>}>
+    <div className="uf-entry-form">
+      <div className="uf-entry-grid">
+        <div className="uf-entry-field"><span className="field-label">Datum</span><UniflowPicker kind="date" label="Datum" value={entryDate} min={semester.start} max={semester.end} onChange={setEntryDate}/></div>
+        <div className="uf-entry-field"><span className="field-label">Modul</span>
+          <button type="button" className="uf-entry-module-choice" aria-expanded={picker} onClick={()=>setPicker(v=>!v)}><span>{current?.name||'Modul auswählen'}</span><ChevronDown size={17}/></button>
+          {picker&&<div className="module-dropdown"><label className="search-field"><Search size={17}/><input placeholder="Module suchen" value={search} onChange={e=>setSearch(e.target.value)}/></label><div className="module-pick-list">
+            {modules.filter(m=>m.name.toLowerCase().includes(search.toLowerCase())).map(m=><button type="button" key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}{m.id===moduleId&&<Check size={16}/>}</button>)}
+            <button type="button" onClick={()=>{setModuleId('');setCategory('Freies Lernen');setPicker(false)}}><BookOpen size={16}/> Ohne Modul (Freies Lernen)</button>
+          </div>
+          <form className="quick-new-module" onSubmit={e=>{e.preventDefault();if(!draftModule.trim())return;const id=onCreateModule(draftModule.trim(),ensureCredits(draftCredits));setModuleId(id);setDraftModule('');setPicker(false)}}>
+            <input placeholder="+ Neues Modul" value={draftModule} onChange={e=>setDraftModule(e.target.value)}/>
+            <input type="number" aria-label="Leistungspunkte" min="0" step="0.5" value={draftCredits} onChange={e=>setDraftCredits(e.target.value)}/><span>LP</span>
+            <button type="submit" aria-label="Modul erstellen"><Plus size={18}/></button>
+          </form></div>}
+        </div>
+      </div>
+      <div className="uf-entry-grid">
+        <div className="uf-entry-field"><span className="field-label">Inhalt <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. Vorlesung Teil 1" value={content} onChange={e=>setContent(e.target.value)}/></div>
+        <div className="uf-entry-field"><span className="field-label">Art</span><UniflowPicker label="Veranstaltungsart" value={category} allowCustom options={categoryOptions.map(value=>({value,label:value}))} onChange={setCategory}/></div>
+      </div>
+      <div className="uf-entry-grid">
+        <div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div>
+        <div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div>
+      </div>
+      <div className="uf-entry-grid">
+        <div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={repeat} onChange={value=>setRepeat(value as Repeat)} options={[{value:'once',label:'Einmalig'},{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'}]}/></div>
+        {repeat!=='once'&&<div className="uf-entry-field"><span className="field-label">Wiederholen bis</span><UniflowPicker kind="date" label="Wiederholen bis" value={end} min={entryDate} max={semester.end} onChange={setEnd}/></div>}
+      </div>
+      <details className="uf-entry-advanced">
+        <summary>Weitere Angaben <ChevronDown size={16}/></summary>
+        <div className="uf-entry-grid">
+          <div className="uf-entry-field"><span className="field-label">Raum</span><input className="line-input" placeholder="z. B. MA 041" value={room} onChange={e=>setRoom(e.target.value)}/></div>
+          <div className="uf-entry-field"><span className="field-label">Lehrperson</span><input className="line-input" placeholder="Name" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
+          <div className="uf-entry-field uf-entry-full"><span className="field-label">Online-Link</span><input className="line-input" type="url" inputMode="url" placeholder="https://..." value={onlineLink} onChange={e=>setOnlineLink(e.target.value)}/></div>
+        </div>
+      </details>
+      {err&&<div className="inline-error" role="alert">{err}</div>}
+    </div>
   </BottomSheet>
 }
 /** Unlike a scheduled teaching event, an assessment lives on a calendar date
