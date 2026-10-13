@@ -61,12 +61,13 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
   const planned=(data.learningPlans||[]).filter(t=>t.date===today())
   const completedPlans=new Set((data.learningSessions||[]).map(s=>s.planId).filter(Boolean))
   const freePending=pastFreeStudy(data,semester).filter(l=>!(data.learningSessions||[]).some(s=>s.scheduledKey===l.key))
-  const recent=showAll?pending:pending.slice(0,3)
+  const nextCheckin=pending[0]
   const rankedModules=journeys.map(j=>({j,module:modules.find(m=>m.id===j.moduleId)!})).filter(x=>x.module)
   const focus=rankedModules[0]
   const chosenModule=active.find(m=>m.id===(moduleId||focus?.module.id)) || active[0]
   const options=allLessons.filter(l=>l.moduleId===chosenModule?.id)
   const completed=(data.learningSessions||[]).filter(s=>s.date===today()).length
+  const firstName=data.profile.trim().split(/\s+/)[0]||''
   const next=useMemo<{date:string;from:string;to:string;name:string;room:string;moduleId:string}|null>(()=>{
     const now=new Date()
     let result:{date:string;from:string;to:string;name:string;room:string;moduleId:string}|null=null
@@ -106,7 +107,7 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
   return <div className="screen secondary-screen learn-dashboard">
     <div className="learn-heading">
       <span className="learn-heading-date">{formatDate(today(),{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('de-DE')}</span>
-      <h1>{greetingForHour(new Date().getHours())}<span className="learn-heading-dot">.</span></h1>
+      <h1>{greetingForHour(new Date().getHours())}{firstName?', '+firstName:''}<span className="learn-heading-dot">.</span></h1>
     </div>
     <div className="learn-hero-grid">
       <section className={'learn-hero '+(nextModule?'learn-hero-subject':'')} style={accent(nextModule?.color)}>
@@ -143,14 +144,18 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
       <div className="learn-title"><h2>Kurzer Check-in</h2><span className="learn-counter">{pending.length} offen</span></div>
       {!pending.length?<p className="learn-muted">Alle vergangenen Veranstaltungen sind bewertet. Sehr schön!</p>:
       <>
-        <div className="learn-checkins">
-          {recent.map(l=><div className="learn-checkin" key={l.key} style={accent(modules.find(m=>m.id===l.moduleId)?.color)}>
-            <div className="learn-checkin-heading"><div><strong>{modules.find(m=>m.id===l.moduleId)?.name||'Modul'}</strong><span>{l.label} · {shortDate(l.date)}</span></div><span className="learn-eyebrow">Wie lief's?</span></div>
-            <LessonFeedback lesson={l} topic={(data.lessonTopics||[]).find(t=>t.key===l.key)?.title||''}
-              canRate rating={checkins.get(l.key)?.rating} onTopic={onTopic} onRating={onCheckin} compact/>
-          </div>)}
-        </div>
-        {pending.length>3&&<button className="learn-text-action" onClick={()=>setShowAll(v=>!v)}>{showAll?'Weniger anzeigen':`Alle ${pending.length} Check-ins anzeigen`} <ChevronRight size={15}/></button>}
+        <div className={'learn-checkins learn-checkins-stack'+(pending.length>1?' has-next':'')}
+          aria-live="polite" aria-label="Nächster offener Check-in">
+          {nextCheckin&&<div className="learn-checkin" key={nextCheckin.key}
+            style={accent(modules.find(m=>m.id===nextCheckin.moduleId)?.color)}>
+            <div className="learn-checkin-heading"><div>
+              <strong>{modules.find(m=>m.id===nextCheckin.moduleId)?.name||'Modul'}</strong>
+              <span>{nextCheckin.label} · {shortDate(nextCheckin.date)}</span>
+            </div><span className="learn-eyebrow">Wie lief's?</span></div>
+            <LessonFeedback lesson={nextCheckin} topic={(data.lessonTopics||[]).find(t=>t.key===nextCheckin.key)?.title||''}
+              canRate rating={checkins.get(nextCheckin.key)?.rating} onTopic={onTopic} onRating={onCheckin} compact/>
+          </div>}
+        </div>}
       </>}
     </section>
     {freePending.length>0&&<section className="learn-section">

@@ -190,3 +190,14 @@ html[data-theme='light'] .learn-hero-subject strong { color:color-mix(in srgb,va
 @media(prefers-reduced-motion:reduce) {
   .learn-recommendation-dynamic.learn-recommendation-ai {transition:none;}
 }
+
+/* One actionable lesson at a time. A subtle stack hints at what comes next. */
+.learn-checkins-stack{position:relative;isolation:isolate;margin-top:15px}
+.learn-checkins-stack.has-next{padding-bottom:11px}
+.learn-checkins-stack.has-next::before,
+.learn-checkins-stack.has-next::after{
+  content:'';position:absolute;pointer-events:none;z-index:-1;
+  left:10px;right:10px;bottom:5px;height:20px;background:#222226;border-radius:0 0 14px 14px;
+}
+.learn-checkins-stack.has-next::after{left:19px;right:19px;bottom:0;background:#18181b}
+.learn-checkins-stack>.learn-checkin{position:relative}

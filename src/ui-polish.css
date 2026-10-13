@@ -343,3 +343,24 @@ html[data-theme='light'] .uf-picker-custom-row input {background:#eee;color:#222
 
 /* Room inputs use the same font size and weight as the Module editor. */
 input.line-input.room-input {font-family:inherit;font-size:14px;font-weight:500;}
+
+/* Compact, uppercase section titles for Modules and Settings only.
+   Do not affect the calendar, the module-detail editor or other pages. */
+.module-hub .page-title-row h1,
+.settings-screen .page-title-row h1{
+  font-size:12px;
+  font-weight:700;
+  line-height:1.4;
+  letter-spacing:1.8px;
+  text-transform:uppercase;
+  margin:0;
+  color:#a4a4ad;
+}
+.module-hub .page-title-row p{margin:10px 0 0}
+.module-hub .page-title-row .title-count{
+  display:inline-block;vertical-align:baseline;
+  margin-left:9px;font-size:12px;font-weight:500;letter-spacing:0;
+}
+.module-hub .page-title-row,.settings-screen .page-title-row{margin-bottom:30px}
+.mobile-navigation button{min-width:0}
+.mobile-navigation button span{font-size:10px}

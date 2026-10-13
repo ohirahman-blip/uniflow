@@ -79,3 +79,7 @@
 @media(min-width:650px){
   .lesson-feedback-compact .lesson-feedback-options button {min-height:58px;}
 }
+
+/* Softer placeholder, without reducing the actual editable topic text. */
+.lesson-feedback-topic::placeholder{font-size:11px;font-weight:400}
+.lesson-feedback-compact .lesson-feedback-topic::placeholder{font-size:11px}

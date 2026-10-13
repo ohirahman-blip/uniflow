@@ -104,3 +104,6 @@
 .settings-ai-result>span{display:flex;align-items:center;gap:6px;color:#dab6c8;font-size:11px;font-weight:700}
 .settings-ai-result>strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
 .settings-ai-result>p{font-size:12px;line-height:1.6;color:#b6aeb5;overflow-wrap:anywhere}
+
+/* More breathing space between the Plus recommendation and privacy details. */
+.settings-ai-section .settings-ai-details{display:block;margin-top:20px}
