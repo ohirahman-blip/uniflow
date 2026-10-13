@@ -4,7 +4,7 @@ const ts=require('typescript')
 const compile=(path,jsx=false)=>{
   const result=ts.transpileModule(fs.readFileSync(path,'utf8'),{
     compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,
-      jsx:jsx?ts.JsxEmit.ReactJSX:ts.JsxEmit.None},reportDiagnostics:true
+      jsx:jsx?ts.JsxEmit.ReactJSX:undefined},reportDiagnostics:true
   })
   assert.equal((result.diagnostics||[]).filter(x=>x.category===ts.DiagnosticCategory.Error).length,0,
     path+' should parse')
