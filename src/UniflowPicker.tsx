@@ -22,6 +22,71 @@ const presets = [15, 30, 45, 60, 90, 120, 150, 180, 240]
 const minutesLabel = (n: number) => n === 120 ? '2 Stunden' : n >= 60
   ? `${Math.floor(n / 60)} Std.${n % 60 ? ` ${n % 60} Min.` : ''}` : `${n} Min.`
 
+const WHEEL_ROW=48
+/** Accessible vertical scroll-snap wheel with precise 1-minute selection.
+ * Scrolling settles on the nearest permitted item; click and keyboard work too. */
+function PickerWheel({label,items,selected,onSelect}:{
+  label:string;items:{value:number;disabled:boolean}[];selected:number;onSelect:(value:number)=>void
+}){
+  const scroller=useRef<HTMLDivElement>(null)
+  const settle=useRef<ReturnType<typeof setTimeout>|null>(null)
+  const selectedIndex=Math.max(0,items.findIndex(x=>x.value===selected))
+  const latest=useRef(onSelect)
+  latest.current=onSelect
+  useEffect(()=>{
+    const node=scroller.current
+    if(node)node.scrollTop=selectedIndex*WHEEL_ROW
+  },[selected,selectedIndex])
+  useEffect(()=>()=>{if(settle.current)clearTimeout(settle.current)},[])
+  const choose=(index:number,animated:boolean)=>{
+    const node=scroller.current
+    const item=items[index]
+    if(!node||!item||item.disabled)return
+    node.scrollTo({top:index*WHEEL_ROW,behavior:animated?'smooth':'auto'})
+    latest.current(item.value)
+  }
+  const settleScroll=()=>{
+    if(settle.current)clearTimeout(settle.current)
+    settle.current=setTimeout(()=>{
+      const node=scroller.current
+      if(!node)return
+      const index=Math.max(0,Math.min(items.length-1,Math.round(node.scrollTop/WHEEL_ROW)))
+      const valid=items.map((x,i)=>({x,i})).filter(({x})=>!x.disabled)
+      const closest=valid.sort((a,b)=>Math.abs(a.i-index)-Math.abs(b.i-index))[0]
+      if(!closest)return
+      node.scrollTo({top:closest.i*WHEEL_ROW,behavior:'smooth'})
+      latest.current(closest.x.value)
+    },115)
+  }
+  const step=(direction:number)=>{
+    const current=items.findIndex(x=>x.value===selected)
+    let at=current+direction
+    while(at>=0&&at<items.length&&items[at].disabled)at+=direction
+    if(at>=0&&at<items.length)choose(at,true)
+  }
+  return <div className="uf-wheel-column">
+    <span className="uf-picker-column-label">{label}</span>
+    <div className="uf-wheel-shell">
+      <span className="uf-wheel-selected-area" aria-hidden="true"/>
+      <div className="uf-wheel-list" ref={scroller} role="listbox" tabIndex={0}
+        aria-label={label} aria-activedescendant={label==='Stunde'?'uf-wheel-hour-'+selected:'uf-wheel-minute-'+selected}
+        onScroll={settleScroll}
+        onKeyDown={e=>{
+          if(e.key==='ArrowDown'){e.preventDefault();step(1)}
+          if(e.key==='ArrowUp'){e.preventDefault();step(-1)}
+          if(e.key==='Home'){e.preventDefault();choose(items.findIndex(x=>!x.disabled),true)}
+          if(e.key==='End'){e.preventDefault();choose(items.findLastIndex(x=>!x.disabled),true)}
+        }}>
+        {items.map((item,index)=><button type="button" role="option" key={item.value}
+          id={label==='Stunde'?'uf-wheel-hour-'+item.value:'uf-wheel-minute-'+item.value}
+          className={'uf-wheel-option'+(item.value===selected?' is-selected':'')}
+          aria-selected={item.value===selected} disabled={item.disabled}
+          onClick={()=>choose(index,true)}>{pad(item.value)}</button>)}
+      </div>
+    </div>
+  </div>
+}
+
 /** Custom, keyboard-accessible choice sheet, shared by Modules, Dashboard and admin forms.
  * No native iOS select/date/time wheels. The existing callbacks remain the source of truth. */
 export default function UniflowPicker(props: Props) {
@@ -61,14 +126,6 @@ export default function UniflowPicker(props: Props) {
     const initialOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     dialog.current?.focus()
-    if (kind === 'time') {
-      dialog.current?.querySelectorAll<HTMLElement>('.uf-picker-scroll').forEach(container => {
-        const selected = container.querySelector<HTMLElement>('button.selected')
-        if (!selected) return
-        const item = selected.getBoundingClientRect(), viewport = container.getBoundingClientRect()
-        container.scrollTop += item.top - viewport.top - viewport.height / 2 + item.height / 2
-      })
-    }
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { event.preventDefault(); closePicker(); return }
       if (event.key !== 'Tab' || !dialog.current) return
@@ -123,14 +180,14 @@ export default function UniflowPicker(props: Props) {
             </>}
           </div>}
           {kind === 'time' && <>
-            <p className="uf-picker-helper">Uhrzeit auswählen</p>
-            <div className="uf-picker-columns">
-              <div><span className="uf-picker-column-label">Stunde</span><div className="uf-picker-scroll">
-                {Array.from({ length: 24 }, (_, h) => <button type="button" key={h} disabled={h * 60 > maxMinutes} aria-pressed={h === hour} className={h === hour ? 'selected' : ''} onClick={() => setDraft(`${pad(h)}:${pad(Math.min(minute, Math.max(0, maxMinutes - h * 60)))}`)}>{pad(h)}</button>)}
-              </div></div>
-              <div><span className="uf-picker-column-label">Minute</span><div className="uf-picker-scroll">
-                {[...new Set([...Array.from({ length: 12 }, (_, i) => i * 5), minute])].sort((a, b) => a - b).map(n => <button type="button" key={n} disabled={hour * 60 + n > maxMinutes} aria-pressed={n === minute} className={n === minute ? 'selected' : ''} onClick={() => setDraft(`${pad(hour)}:${pad(n)}`)}>{pad(n)}</button>)}
-              </div></div>
+            <p className="uf-picker-helper">Stunden und Minuten scrollen</p>
+            <div className="uf-picker-columns uf-picker-wheel-columns">
+              <PickerWheel label="Stunde" selected={hour}
+                items={Array.from({length:24},(_,h)=>({value:h,disabled:h*60>maxMinutes}))}
+                onSelect={h=>setDraft(`${pad(h)}:${pad(Math.min(minute,Math.max(0,maxMinutes-h*60)))}`)}/>
+              <PickerWheel label="Minute" selected={minute}
+                items={Array.from({length:60},(_,n)=>({value:n,disabled:hour*60+n>maxMinutes}))}
+                onSelect={n=>setDraft(`${pad(hour)}:${pad(n)}`)}/>
             </div>
             <p className="uf-picker-preview">{draft} Uhr</p>
           </>}
