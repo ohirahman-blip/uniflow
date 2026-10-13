@@ -1320,7 +1320,7 @@ export default function App() {
       </section>}<section className="settings-section"><h2>Design</h2><div className="setting-line"><span>Darstellung</span><div className="inline-toggle theme-icon-switch"><button className="selected" aria-label="Dunkler Modus" title="Dunkler Modus" onClick={()=>mutate(d=>({...d,theme:'dark'}))}><Moon size={17}/></button><button disabled aria-label="Heller Modus – folgt später" title="Heller Modus folgt später"><Sun size={17}/></button></div></div></section>{premium&&<section className="settings-section settings-ai-section" aria-label="KI-Modus">
         <div className="settings-ai-heading"><span className="settings-ai-icon"><Sparkles size={17}/></span><div><h2>KI-Modus</h2><p>uniflow+ · DeepSeek im Hintergrund</p></div></div>
         <div className="settings-ai-choice">
-          <span><strong>Intelligente Empfehlungen</strong><small>Höchstens einmal pro Stunde – nur, solange du die App geöffnet hast.</small></span>
+          <span><strong>Intelligente Empfehlungen</strong><small>Ein neuer Vorschlag beim Öffnen der App – maximal 25 pro Tag.</small></span>
           <button type="button" role="switch" aria-label="KI-Modus aktivieren" aria-checked={ai.consent}
             className={'settings-ai-toggle'+(ai.consent?' is-on':'')}
             onClick={()=>ai.setConsent(!ai.consent)}><span/></button>
