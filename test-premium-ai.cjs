@@ -57,6 +57,18 @@ const revised=advice.adviceContext(data,semester,[moduleA],now)
 assert.equal(revised.previousWeak,null,'An older poor rating must not override understood previous lecture')
 const after=learning.journeyFor(data,moduleA,lessons,'2026-10-19')
 assert.ok(after.understanding>adviceOriginal.understanding,'Changing a rating changes the current journey')
+// A later successful review can compensate an initially weak lecture.
+data.learningCheckins=data.learningCheckins.map(x=>x.key===previous.key?
+  {...x,rating:'partial',updatedAt:'2026-10-17T10:00:00'}:x)
+data.learningSessions=[{id:'review-1',moduleId:'module-a',date:'2026-10-18',duration:45,
+  kind:'review',rating:'understood',lessonKey:previous.key,updatedAt:'2026-10-18T16:00:00'}]
+assert.equal(advice.adviceContext(data,semester,[moduleA],now).previousWeak,null,
+  'A later successful review removes stale not-understood advice')
+data.learningSessions=[]
+data.learningCheckins=data.learningCheckins.filter(x=>x.key!==previous.key)
+const unknown=advice.adviceContext(data,semester,[moduleA],now)
+assert.equal(unknown.pendingFeedback?.rating,'unrated','Unknown must never be mislabeled absent')
+assert.equal(unknown.previousWeak,null)
 const forged=advice.parseAiAdvice({title:'Etwas tun',message:'Kurz üben',kind:'review',
   moduleId:'someone-else',lessonKey:'someone-else',minutes:999},context)
 assert.equal(forged.moduleId,undefined)
