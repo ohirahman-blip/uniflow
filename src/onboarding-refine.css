@@ -1,0 +1,181 @@
+/* uniflow — focused sign-in and onboarding refinements.
+   No timetable layout or scheduling logic is changed here. */
+
+/* The color stays at the top and dissolves into real black much earlier. */
+.onboarding .aurora {
+  top: -28vh;
+  height: 76vh;
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 25%,
+    rgba(0,0,0,.72) 43%,
+    rgba(0,0,0,.18) 66%,
+    transparent 82%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 25%,
+    rgba(0,0,0,.72) 43%,
+    rgba(0,0,0,.18) 66%,
+    transparent 82%
+  );
+}
+
+/* One keyboard-focusable input sits over eight presentational digit slots.
+   Clicking any slot focuses the same input; pasting and iOS SMS autofill work. */
+.auth-screen .auth-otp-control {
+  display:block;
+  position:relative;
+  width:100%;
+  min-width:0;
+  cursor:text;
+}
+.auth-screen .auth-otp-grid {
+  display:grid;
+  grid-template-columns:repeat(8,minmax(0,1fr));
+  gap:clamp(5px,1.4vw,9px);
+  width:100%;
+  pointer-events:none;
+}
+.auth-screen .auth-otp-box {
+  position:relative;
+  display:grid;
+  place-items:center;
+  min-width:0;
+  height:clamp(48px,10vw,58px);
+  border:1px solid #363638;
+  border-radius:11px;
+  background:#141414;
+  color:#f6f6f7;
+  font-size:clamp(20px,5vw,26px);
+  font-weight:650;
+  font-variant-numeric:tabular-nums;
+  transition:background-color 180ms ease,border-color 180ms ease;
+}
+.auth-screen .auth-otp-box.is-filled {
+  background:#1d1d1e;
+  border-color:#68686c;
+}
+.auth-screen .auth-otp-control:focus-within .auth-otp-box.is-next {
+  border-color:#e9e9ed;
+  background:#1e1e20;
+}
+.auth-screen .auth-otp-control:focus-within .auth-otp-box.is-next::after {
+  content:'';
+  position:absolute;
+  width:2px;
+  height:22px;
+  border-radius:2px;
+  background:#f3f3f3;
+  animation:uf-otp-caret-blink 1.1s step-end infinite;
+}
+@keyframes uf-otp-caret-blink {
+  0%,55% {opacity:.85;}
+  56%,100% {opacity:0;}
+}
+.auth-screen .auth-field .auth-otp-input {
+  position:absolute;
+  inset:0;
+  display:block;
+  z-index:2;
+  width:100%;
+  height:100%;
+  min-height:0;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  caret-color:transparent;
+  opacity:.01;
+  font-size:16px!important;
+  letter-spacing:normal;
+  cursor:text;
+}
+.auth-screen .auth-field .auth-otp-input:focus {
+  border:0;
+  outline:0;
+}
+@media(max-width:390px) {
+  .auth-screen .auth-otp-grid {gap:5px;}
+  .auth-screen .auth-otp-box {border-radius:9px;font-size:21px;}
+}
+
+/* Step transitions: individual title lines rise into view like restrained
+   kinetic type, followed by context and controls. The stage/button stay fixed. */
+.onboard-step-motion {
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  min-width:0;
+  width:100%;
+}
+.onboard-step-motion > .onboard-copy,
+.onboard-step-motion > .intro-copy {
+  flex:1 1 auto;
+  min-width:0;
+  width:100%;
+}
+.onboard-step-motion .onboard-title-line {
+  display:block;
+  overflow:hidden;
+  padding-bottom:.07em;
+  margin-bottom:-.07em;
+}
+.onboard-step-motion .onboard-title-line > span {
+  display:block;
+  transform-origin:left bottom;
+  animation:uf-kinetic-title 650ms cubic-bezier(.16,1,.3,1) both;
+}
+.onboard-step-motion .onboard-title-line:nth-child(2) > span {
+  animation-delay:105ms;
+}
+.onboard-step-motion .onboard-copy > .step-counter {
+  animation:uf-kinetic-support 400ms ease-out both;
+}
+.onboard-step-motion .onboard-copy > p,
+.onboard-step-motion .intro-copy > p {
+  animation:uf-kinetic-support 570ms cubic-bezier(.2,.8,.25,1) 180ms both;
+}
+.onboard-step-motion .onboard-copy > :is(input,.selection-group,.suggestion-wrap,.semester-choices,.onboard-add,.onboard-module-suggestions,.onboard-module-list,.micro-note) {
+  animation:uf-kinetic-support 520ms cubic-bezier(.2,.8,.25,1) 245ms both;
+}
+@keyframes uf-kinetic-title {
+  from {opacity:.3;transform:translate3d(0,110%,0) skewY(2deg);}
+  to {opacity:1;transform:translate3d(0,0,0) skewY(0);}
+}
+@keyframes uf-kinetic-support {
+  from {opacity:0;transform:translate3d(0,12px,0);}
+  to {opacity:1;transform:translate3d(0,0,0);}
+}
+
+/* The email/code switch gets matching motion without remounting the form. */
+.auth-screen .auth-intro h1 {
+  animation:uf-kinetic-auth 560ms cubic-bezier(.16,1,.3,1) both;
+}
+.auth-screen .auth-intro p {
+  animation:uf-kinetic-support 550ms cubic-bezier(.2,.8,.25,1) 115ms both;
+}
+@keyframes uf-kinetic-auth {
+  from {opacity:.35;transform:translate3d(0,23px,0);clip-path:inset(0 0 15% 0);}
+  to {opacity:1;transform:translate3d(0,0,0);clip-path:inset(0);}
+}
+
+@media(prefers-reduced-motion:reduce) {
+  .onboard-step-motion .onboard-title-line > span,
+  .onboard-step-motion .onboard-copy > .step-counter,
+  .onboard-step-motion .onboard-copy > p,
+  .onboard-step-motion .intro-copy > p,
+  .onboard-step-motion .onboard-copy > :is(input,.selection-group,.suggestion-wrap,.semester-choices,.onboard-add,.onboard-module-suggestions,.onboard-module-list,.micro-note),
+  .auth-screen .auth-intro h1,
+  .auth-screen .auth-intro p,
+  .auth-screen .auth-otp-control:focus-within .auth-otp-box.is-next::after {
+    animation:none!important;
+    transform:none!important;
+  }
+}
