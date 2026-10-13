@@ -2549,10 +2549,8 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 @media(max-width:390px){.calendar-today{padding:8px 9px;font-size:11px}.calendar-tools{gap:0}}
 /* Inactive groups at a free time stay perceptible, never mistaken for confirmed visits. */
 .course.course-inactive{opacity:.36;filter:saturate(.52);outline:1px dashed #8c8c8c;outline-offset:-1px;cursor:pointer;touch-action:manipulation}
-.course.course-inactive::after{content:'Alternative';position:absolute;top:3px;right:4px;font-size:8px;letter-spacing:.1px;font-weight:700;opacity:.7}
 .course.course-inactive:hover,.course.course-inactive:focus-visible{opacity:.68;filter:saturate(.75)}
 .course.course-inactive .stack-indicator{display:none}
-.mode-week .course.course-inactive::after{content:'Alt.';font-size:7px;top:auto;bottom:2px;right:3px}
 /* Module act as navigation, not management popups. */
 .module-detail-screen{animation:content-appear 260ms ease-out both;padding-bottom:110px}
 @keyframes content-appear{from{opacity:.5;translate:0 8px}to{opacity:1;translate:0 0}}
@@ -2627,7 +2625,6 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .course.course-inactive .course-kind-icon,
 .course.course-inactive svg { color:#a6a6a9 !important; }
 .course.course-inactive .course-emoji { filter: grayscale(1); opacity:.65; }
-.course.course-inactive::after {color:#aaa;opacity:.8}
 .course.course-inactive:hover,.course.course-inactive:focus-visible {
   opacity:.95;filter:none;background:#343438!important;
 }

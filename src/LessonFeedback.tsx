@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Check, PencilLine } from 'lucide-react'
 import type { LearningLesson, LearningRating } from './learning'
 import './lesson-feedback.css'
 
@@ -30,10 +29,6 @@ export default function LessonFeedback({lesson,topic='',rating,canRate,onTopic,o
     if(cleaned!==topic.trim())onTopic(lesson,cleaned)
   }
   return <section className={'lesson-feedback'+(compact?' lesson-feedback-compact':'')} aria-label="Feedback zu dieser Veranstaltung">
-    <div className="lesson-feedback-heading">
-      <span><PencilLine size={15}/> Thema dieses Termins</span>
-      {rating&&<small><Check size={12}/> Bewertet</small>}
-    </div>
     <input
       className="lesson-feedback-topic"
       aria-label="Thema nur für diesen Veranstaltungstermin"
@@ -41,11 +36,9 @@ export default function LessonFeedback({lesson,topic='',rating,canRate,onTopic,o
       onChange={e=>setDraft(e.target.value)}
       onBlur={e=>save(e.currentTarget.value)}
       onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur()}}}
-      placeholder="z. B. DNA-Replikation"
+      placeholder="Thema hinzufügen"
       maxLength={100}
     />
-    <p className="lesson-feedback-note">Gilt nur für diese Vorlesung, nicht für die ganze Reihe.</p>
-    <div className="lesson-feedback-prompt">{rating?'Deine Einschätzung ändern':'Wie gut hast du die Veranstaltung verstanden?'}</div>
     <div className="lesson-feedback-options" role="group" aria-label="Verständnis dieser Vorlesung">
       {ratings.map(item=><button
         type="button" key={item.value} title={item.title}
@@ -54,7 +47,5 @@ export default function LessonFeedback({lesson,topic='',rating,canRate,onTopic,o
         onClick={()=>{save(draft);onRating(lesson,item.value)}}
       ><span className="lesson-rating-emoji" aria-hidden="true">{item.emoji}</span><span>{item.title}</span></button>)}
     </div>
-    {!canRate&&<p className="lesson-feedback-note">Deine Einschätzung kannst du nach Ende der Veranstaltung eintragen.</p>}
-    {rating&&canRate&&<p className="lesson-feedback-note">Du kannst deine Einschätzung jederzeit wieder ändern.</p>}
   </section>
 }

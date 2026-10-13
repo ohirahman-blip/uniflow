@@ -317,18 +317,18 @@ html[data-theme='light'] .uf-picker-custom-row input {background:#eee;color:#222
   border:0;
   border-radius:6px;
   padding:0;
-  background:rgba(0,0,0,.10);
+  background:transparent;
   color:rgba(22,22,26,.62);
   cursor:pointer;
   touch-action:manipulation;
 }
 .course .course-rating-star.is-rated {
   color:#242023;
-  background:rgba(255,255,255,.22);
+  background:transparent;
 }
 .course .course-rating-star:hover,
 .course .course-rating-star:focus-visible {
-  background:rgba(255,255,255,.36);
+  background:transparent;
   color:#151318;
   outline:none;
 }
