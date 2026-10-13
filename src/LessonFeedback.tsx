@@ -3,11 +3,11 @@ import { Check, PencilLine } from 'lucide-react'
 import type { LearningLesson, LearningRating } from './learning'
 import './lesson-feedback.css'
 
-const ratings:{ value:LearningRating; title:string }[]=[
-  {value:'understood',title:'Verstanden'},
-  {value:'partial',title:'Teilweise'},
-  {value:'struggling',title:'Nicht verstanden'},
-  {value:'absent',title:'Nicht besucht'}
+const ratings:{ value:LearningRating; title:string; emoji:string }[]=[
+  {value:'understood',title:'Verstanden',emoji:'😊'},
+  {value:'partial',title:'Teilweise',emoji:'😐'},
+  {value:'struggling',title:'Nicht verstanden',emoji:'😟'},
+  {value:'absent',title:'Nicht besucht',emoji:'🚫'}
 ]
 
 type Props={
@@ -50,9 +50,9 @@ export default function LessonFeedback({lesson,topic='',rating,canRate,onTopic,o
       {ratings.map(item=><button
         type="button" key={item.value} title={item.title}
         aria-pressed={rating===item.value} disabled={!canRate}
-        className={rating===item.value?'chosen':''}
+        className={'lesson-feedback-rating-'+item.value+(rating===item.value?' chosen':'')}
         onClick={()=>{save(draft);onRating(lesson,item.value)}}
-      >{item.title}</button>)}
+      ><span className="lesson-rating-emoji" aria-hidden="true">{item.emoji}</span><span>{item.title}</span></button>)}
     </div>
     {!canRate&&<p className="lesson-feedback-note">Deine Einschätzung kannst du nach Ende der Veranstaltung eintragen.</p>}
     {rating&&canRate&&<p className="lesson-feedback-note">Du kannst deine Einschätzung jederzeit wieder ändern.</p>}
