@@ -96,11 +96,15 @@ export function adviceContext(data:AppData,semester:Semester|undefined,modules:S
     if(!rating){if(!pendingFeedback)pendingFeedback=item;continue}
     if(rating!=='understood')weak.push(item)
   }
-  const previousWeak=nextLecture
-    ?(weak.find(w=>w.moduleId===nextLecture.moduleId&&w.lessonKey!==nextLecture.lessonKey&&
-      lessons.some(l=>l.key===w.lessonKey&&l.contentId===nextLesson?.contentId))||
-      weak.find(w=>w.moduleId===nextLecture.moduleId&&w.lessonKey!==nextLecture.lessonKey)||null)
-    :null
+  // "The previous lecture was difficult" must refer to the actual most
+  // recent earlier lesson of that teaching group, NOT an unrelated older gap.
+  const previousLesson=nextLecture&&nextLesson?lessons.find(l=>
+    l.moduleId===nextLecture.moduleId && l.contentId===nextLesson.contentId &&
+    l.key!==nextLecture.lessonKey
+  ):undefined
+  const previousRating=previousLesson?checkins.get(previousLesson.key)?.rating:undefined
+  const previousWeak=previousLesson&&previousRating&&previousRating!=='understood'?
+    weak.find(w=>w.lessonKey===previousLesson.key)||null:null
   const exams=data.assessments.filter(a=>a.type==='exam'&&!a.completed&&a.date>=day&&moduleMap.has(a.moduleId))
     .map(a=>({moduleId:a.moduleId,moduleName:moduleMap.get(a.moduleId)!.name,date:a.date,daysUntil:diffDays(a.date,day)}))
     .sort((a,b)=>a.daysUntil-b.daysUntil).slice(0,4)
