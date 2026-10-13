@@ -2,7 +2,7 @@ import {
   addDays, formatDate, fromDate, isAssessment, minutes, occurrencesOn,
   type AppData, type Occurrence, type Semester, type StudyModule
 } from './model'
-import { canRateOccurrence, lessonForOccurrence, pastLessons, rankedJourneys, type LearningRating } from './learning'
+import { lessonForOccurrence, pastLessons, type LearningRating } from './learning'
 
 export type AdviceKind = 'review' | 'exam' | 'prepare' | 'checkin'
 export type StudyAdvice = {
