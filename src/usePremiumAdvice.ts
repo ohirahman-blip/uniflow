@@ -35,9 +35,14 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
     try{
       const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'null') as
         {at?:number;context?:string;advice?:unknown}|null
-      if(cached?.at && cached.context===contextText && now-cached.at<20*60_000){
-        const verified=parseAiAdvice(cached.advice,context)
-        if(verified){setAdvice(verified);setUnavailable(false);return}
+      if(cached?.at && now-cached.at<20*60_000){
+        if(cached.context===contextText){
+          const verified=parseAiAdvice(cached.advice,context)
+          if(verified){setAdvice(verified);setUnavailable(false);return}
+        }
+        // New class/feedback state invalidates the old advice immediately,
+        // without starting another billable model call inside the throttle.
+        setAdvice(null);setUnavailable(false);return
       }
     }catch{/* Ignore a malformed cache, never send it to the API. */}
     // Remote failure must not hide deterministic, up-to-date local advice.
