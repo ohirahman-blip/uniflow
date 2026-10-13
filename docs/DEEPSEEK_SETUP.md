@@ -62,20 +62,23 @@ die lokalen Empfehlungen nicht.
 - Die Edge Function prüft das **echte Supabase-JWT**, Premium über
   `account_directory` und ruft erst dann DeepSeek auf.
 - Die SQL-Funktion `uniflow_consume_ai_quota` limitiert **atomar** auf
-  **25 Anfragen pro Nutzer/UTC-Tag** und mindestens **90 Sekunden** Abstand.
-- Das Frontend stellt **höchstens eine DeepSeek-Anfrage pro Stunde und Nutzer**.
-  Der Zeitpunkt des letzten Versuchs wird im Browser über einen Neustart hinaus
-  gespeichert. Die erste Anfrage findet nur bei aktivem Premium-KI-Modus
-  und sichtbarer/geöffneter App statt. Danach ist frühestens **60 Minuten**
-  später eine weitere Anfrage möglich.
-- **Während die App geschlossen oder im Hintergrund ist, finden keine neuen
-  Anfragen statt.** Es wird nichts nachgeholt oder in einer Warteschlange
-  gesammelt. Beim nächsten Öffnen wird nur dann einmal angefragt, wenn die
-  Stunde seit der letzten Anfrage bereits vergangen ist.
-- Die letzte passende KI-Empfehlung wird in der Browser-Sitzung zwischengespeichert.
-  Ändern sich relevante Vorlesungen, Themen oder Bewertungen, erscheint sofort
-  wieder der lokal berechnete, aktuelle Tipp; dadurch entsteht keine zusätzliche
-  DeepSeek-Anfrage vor Ablauf der Stunde.
+  **25 Anfragen pro Nutzer und UTC-Tag**. Eine zusätzliche Stunden-
+  oder 90-Sekunden-Sperre gibt es nicht.
+- **Eine neue KI-Empfehlung wird pro App-Öffnung oder Rückkehr aus einem
+  ausgeblendeten Browser-Tab höchstens einmal angefordert.** Das passiert nur,
+  wenn Premium + KI-Modus aktiv sind, die Seite sichtbar ist und das
+  Tageskontingent noch nicht verbraucht wurde.
+- **Kein Timer für KI-Anfragen:** Solange die App offen bleibt, wird nicht
+  automatisch jede Stunde neu angefragt. Beim Wechsel zwischen Dashboard,
+  Kalender und Einstellungen entsteht ebenfalls keine neue Anfrage.
+- **Geschlossen oder im Hintergrund:** keine neuen Modellaufrufe, keine
+  Warteschlange, keine Nachholanfragen. Eine neue App-Öffnung kann unmittelbar
+  erneut anfragen (bis höchstens 25 pro Tag).
+- Lokale und serverseitige Tageszähler schützen vor unkontrollierten Kosten.
+  Bei geänderten Veranstaltungen oder Bewertungen fällt die Anzeige zunächst
+  auf den aktuellen lokalen Vorschlag zurück, statt im selben Öffnungsvorgang
+  eine weitere KI-Anfrage zu starten.
+- Die letzte passende KI-Empfehlung wird in der Browser-Sitzung gehalten.
 - Fehler und fehlende API-Konfiguration führen ebenfalls zu lokalen Empfehlungen.
   Nur tatsächlich mit DeepSeek erzeugte Premium-Empfehlungen zeigen das
   **Sternsymbol (Sparkles)** und einen dezenten Farbverlauf. Kostenlose
@@ -103,3 +106,17 @@ Für **`npm run build`** ist keine echte DeepSeek-API-Verbindung nötig.
 Es wurden keine bestehenden Kalender-Terminerzeugungsregeln geändert.
 Die neue SQL-Migration/Edge Function werden durch einen Git-Commit **nicht**
 automatisch auf Supabase angewandt.
+
+## Weitere Premium- und Kalenderfunktionen
+
+- In **Module** ist die Schnelleingabe ausschließlich mit uniflow+ nutzbar.
+  Der Beispieltext entfällt; während der Vorschauanalyse zeigt sie eine dezente
+  Premium-Animation. Die Eingabe wird derzeit von einem **lokalen Parser**,
+  nicht von DeepSeek interpretiert.
+- Vorlesungen und Übungen sind beim Öffnen des Modul-Editors standardmäßig
+  eingeklappt.
+- Der Zeit-Picker nutzt vertikale Scrollräder für Stunden und alle
+  **60 Minutenschritte**, mit denselben Gültigkeitsgrenzen wie bisher.
+- Kalendertermine besitzen unten rechts einen Bewertungsstern; rechtsklicken
+  und **Bewerten** öffnen dieselbe Bearbeitung der persönlichen Einschätzung.
+  Abgeschlossene Termine können später erneut bewertet werden.
