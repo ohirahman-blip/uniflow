@@ -181,11 +181,11 @@ html[data-theme='light'] .mail-bubble p,html[data-theme='light'] .mail-thread-ma
 html[data-theme='light'] .mail-search input,html[data-theme='light'] .mail-compose-box textarea{color:#171717}
 html[data-theme='light'] .mail-avatar{background:#e2e2e2;color:#202020}
 
-/* Share the same dark-grey surface as the mobile navigation. */
+/* Every Postfach surface, including chat and composer, uses the DASHBOARD background. */
 .uf-page-mail,.uf-page-mail .mail-prototype,.uf-page-mail .mail-layout,
-.uf-page-mail .mail-inbox,.uf-page-mail .mail-conversation,
+.uf-page-mail .mail-inbox,.uf-page-mail .mail-conversation,.uf-page-mail .mail-messages,
 .uf-page-mail .mail-conversation-header,.uf-page-mail .mail-compose{
-  background:#171717!important;
+  background:var(--uf-page-background,#080808)!important;
 }
 .mail-inbox-heading strong{
   font-size:12px;font-weight:700;line-height:1.4;

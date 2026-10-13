@@ -46,7 +46,7 @@
   .mobile-navigation {
     z-index:400;
     isolation:isolate;
-    background:#0d0d0d;
+    background:var(--uf-page-background,#080808);
     backface-visibility:hidden;
   }
 }
@@ -395,12 +395,12 @@ input.line-input.room-input {font-family:inherit;font-size:14px;font-weight:500;
   .screen-calendar{padding-top:18px}
 }
 
-/* Flat, seamless bars in the shared dark-grey UI, without borders or fades. */
+/* Seamless bars match the dashboard exactly: no fade, no divider. */
 .app-top{border-bottom:0!important}
 @media(max-width:720px){
   .mobile-navigation{
     border:0!important;
-    background:#171717;
+    background:var(--uf-page-background,#080808);
     overflow:visible;
   }
   .mobile-navigation::after{content:none;display:none}

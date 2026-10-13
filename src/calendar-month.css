@@ -1,5 +1,5 @@
 /* UniFlow's month-only assessment overview, derived from the week anchor. */
-.uf-month{padding:20px 0 58px;color:#f4f4f5}
+.uf-month{padding:20px 0 58px;color:#f4f4f5;background:var(--uf-page-background,#080808)}
 .uf-month-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:3px 0 22px}
 .uf-month-heading>div>span{font-size:10px;letter-spacing:1.5px;font-weight:700;color:#96969d}
 .uf-month-heading h2{margin:6px 0 0;font-size:26px;letter-spacing:-.8px;font-weight:750;text-transform:capitalize}
@@ -34,7 +34,7 @@
 }
 
 /* Slide adjacent months as full panels; no timetable event changes. */
-.uf-month-swipe{position:relative;overflow:hidden;touch-action:pan-y;overscroll-behavior-x:contain}
+.uf-month-swipe{position:relative;overflow:hidden;touch-action:pan-y;overscroll-behavior-x:contain;background:var(--uf-page-background,#080808)}
 .uf-month-outgoing{position:absolute;inset:0;pointer-events:none;z-index:1;will-change:transform}
 .uf-month-incoming{position:relative;z-index:2;will-change:transform}
 .uf-month-enter-next{animation:uf-month-in-next 360ms cubic-bezier(.22,.78,.22,1) both}
