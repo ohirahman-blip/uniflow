@@ -10,16 +10,15 @@ import {
 } from './learning'
 import UniflowPicker from './UniflowPicker'
 import LessonFeedback from './LessonFeedback'
-import { adviceContext, localAdvice } from './study-advice'
-import { usePremiumAdvice } from './usePremiumAdvice'
+import { localAdvice, type AdviceContext, type StudyAdvice } from './study-advice'
 import './learning-dashboard.css'
 
 type Props = {
   data: AppData
   semester?: Semester
   modules: StudyModule[]
-  premium:boolean
-  userId:string
+  aiAdvice:StudyAdvice|null
+  context:AdviceContext
   onTopic: (lesson:LearningLesson,title:string)=>void
   onCheckin: (lesson:LearningLesson,rating:LearningRating)=>void
   onSession: (session:Omit<LearningSession,'id'|'updatedAt'>)=>void
@@ -34,7 +33,7 @@ const ratingLabels:{value:LearningRating;label:string}[]=[
 ]
 const shortDate=(iso:string)=>formatDate(iso,{day:'numeric',month:'short'})
 
-export default function LearningDashboard({data,semester,modules,premium,userId,onTopic,onCheckin,onSession,onPlan,onRemovePlan}:Props){
+export default function LearningDashboard({data,semester,modules,aiAdvice,context,onTopic,onCheckin,onSession,onPlan,onRemovePlan}:Props){
   const [studyOpen,setStudyOpen]=useState(false)
   const [moduleId,setModuleId]=useState('')
   const [lessonKey,setLessonKey]=useState('')
@@ -50,10 +49,9 @@ export default function LearningDashboard({data,semester,modules,premium,userId,
     document.addEventListener('visibilitychange',onVisible)
     return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisible)}
   },[])
-  const context=useMemo(()=>adviceContext(data,semester,modules,new Date()),[data,semester,modules,clockTick])
   const localTip=useMemo(()=>localAdvice(context),[context])
-  const ai=usePremiumAdvice(userId,premium,context)
-  const suggestion=ai.advice||localTip
+  const suggestion=aiAdvice||localTip
+  const isAiRecommendation=aiAdvice?.source==='deepseek'
   const allLessons=useMemo(()=>pastLessons(data,semester),[data.offerings,data.lessonTopics,semester])
   const journeys=useMemo(()=>rankedJourneys(data,modules,semester),[data,modules,semester])
   const active=modules.filter(m=>m.status==='current'||m.status==='failed'||m.status==='open')
@@ -122,13 +120,13 @@ export default function LearningDashboard({data,semester,modules,premium,userId,
       </section>
     </div>
     <section className="learn-section learn-advice-section" aria-label="Aktuelle Empfehlung">
-      <div className="learn-title"><h2>Dein nächster Schritt</h2><span className="learn-counter">{ai.advice?'uniflow+ KI':'Für dich'}</span></div>
-      <div className="learn-recommendation learn-recommendation-dynamic" style={accent(modules.find(m=>m.id===suggestion.moduleId)?.color)}>
-        <span className="learn-eyebrow"><Sparkles size={15}/>{ai.advice?'DEEPSEEK · UNIFLOW+':'PASSEND ZU DEINEM STUNDENPLAN'}</span>
+      <div className="learn-title"><h2>Dein nächster Schritt</h2><span className="learn-counter">{isAiRecommendation?<><Sparkles size={13}/> uniflow+ KI</>:'Für dich'}</span></div>
+      <div className={'learn-recommendation learn-recommendation-dynamic'+(isAiRecommendation?' learn-recommendation-ai':'')} style={accent(modules.find(m=>m.id===suggestion.moduleId)?.color)}>
+        <span className="learn-eyebrow">{isAiRecommendation&&<Sparkles size={15}/>} {isAiRecommendation?'DEEPSEEK · UNIFLOW+':'PASSEND ZU DEINEM STUNDENPLAN'}</span>
         <h3>{suggestion.title}</h3>
         <p>{suggestion.message}</p>
         <div className="learn-recommendation-footer">
-          <span>{ai.advice?'Mit DeepSeek erstellt':'Aktuell anhand deiner Termine und Check-ins'}</span>
+          <span>{isAiRecommendation?'Mit DeepSeek erstellt':'Aktuell anhand deiner Termine und Check-ins'}</span>
           {suggestion.moduleId&&suggestion.kind!=='checkin'&&
             <button onClick={()=>beginStudy(suggestion.moduleId,suggestion.kind==='review'?suggestion.lessonKey:undefined,suggestion.kind==='exam')}>
               Lernen erfassen <ArrowRight size={15}/>
@@ -139,16 +137,8 @@ export default function LearningDashboard({data,semester,modules,premium,userId,
             </button>}
         </div>
       </div>
-      {premium&&<div className="learn-ai-controls">
-        <div><strong>DeepSeek im Hintergrund</strong>
-          <small>{ai.configured?'Deine persönliche Empfehlung wird im Hintergrund aktuell gehalten.':'KI-Verbindung ist vorbereitet. Bis zur Freischaltung bekommst du lokale Empfehlungen.'}</small>
-          <small>Bei Aktivierung werden relevante Modulnamen, Themen, Bewertungen und Prüfungstermine an DeepSeek übertragen – keine E-Mail-Adresse oder vollständigen Kalenderdaten.</small>
-        </div>
-        <button type="button" className={ai.consent?'active':''} aria-pressed={ai.consent}
-          onClick={()=>ai.setConsent(!ai.consent)}>{ai.consent?'KI-Tipps an':'KI aktivieren'}</button>
-      </div>}
-    </section>
-    <section className="learn-section">
+
+    </section><section className="learn-section">
       <div className="learn-title"><h2>Kurzer Check-in</h2><span className="learn-counter">{pending.length} offen</span></div>
       {!pending.length?<p className="learn-muted">Alle vergangenen Veranstaltungen sind bewertet. Sehr schön!</p>:
       <>
