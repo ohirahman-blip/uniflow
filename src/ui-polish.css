@@ -364,3 +364,11 @@ input.line-input.room-input {font-family:inherit;font-size:14px;font-weight:500;
 .module-hub .page-title-row,.settings-screen .page-title-row{margin-bottom:30px}
 .mobile-navigation button{min-width:0}
 .mobile-navigation button span{font-size:10px}
+
+/* Fifth tab is Mail. Keep existing navigation styling and fit Settings. */
+@media(max-width:720px){
+  .mobile-navigation{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .mobile-navigation button{min-width:0;padding-inline:0}
+  .mobile-navigation button span{font-size:9px;letter-spacing:-.1px;white-space:nowrap}
+  .mobile-navigation button::before{width:min(49px,90%)}
+}

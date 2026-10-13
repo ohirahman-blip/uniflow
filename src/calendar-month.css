@@ -1,0 +1,34 @@
+/* UniFlow's month-only assessment overview, derived from the week anchor. */
+.uf-month{padding:20px 0 58px;color:#f4f4f5}
+.uf-month-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:3px 0 22px}
+.uf-month-heading>div>span{font-size:10px;letter-spacing:1.5px;font-weight:700;color:#96969d}
+.uf-month-heading h2{margin:6px 0 0;font-size:26px;letter-spacing:-.8px;font-weight:750;text-transform:capitalize}
+.uf-month-back{display:inline-flex;align-items:center;gap:7px;border:0;background:#222225;color:#e4e4e7;border-radius:10px;padding:10px 12px;font-size:12px;cursor:pointer}
+.uf-month-weekdays,.uf-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.uf-month-weekdays{border-bottom:1px solid #2a2a2e;padding-bottom:10px}
+.uf-month-weekdays span{text-align:center;font-size:11px;color:#aaa;font-weight:650}
+.uf-month-grid{border-left:1px solid #242428}
+.uf-month-cell{min-width:0;min-height:104px;padding:8px 6px;border-right:1px solid #242428;border-bottom:1px solid #242428;background:#111113}
+.uf-month-cell.other-month{background:#0a0a0b}
+.uf-month-cell.other-month .uf-month-day{color:#777}
+.uf-month-day{width:25px;height:25px;display:grid;place-items:center;border:0;border-radius:99px;background:transparent;color:#d4d4d8;font-size:12px;cursor:pointer}
+.uf-month-cell.is-today .uf-month-day{background:#f4f4f5;color:#171719;font-weight:750}
+.uf-month-assessments{display:flex;flex-direction:column;gap:4px;margin-top:5px}
+.uf-month-pill{display:flex;align-items:center;gap:4px;text-align:left;min-width:0;width:100%;height:20px;padding:0 6px;border:0;border-radius:6px;cursor:pointer;background:color-mix(in srgb,var(--month-accent) 22%,#212125);color:#e9e6ec;font-size:10px;font-weight:600}
+.uf-month-pill.exam{background:color-mix(in srgb,var(--month-accent) 32%,#29232c)}
+.uf-month-pill svg{flex:0 0 auto;opacity:.85}
+.uf-month-pill span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uf-month-pill.complete{opacity:.5}
+.uf-month-legend{display:flex;justify-content:flex-end;margin-top:15px;color:#8e8e96;font-size:11px}
+.uf-month-legend span{display:flex;align-items:center;gap:7px}
+@media(max-width:720px){
+  .uf-month{padding-top:14px}
+  .uf-month-heading{align-items:center}
+  .uf-month-heading h2{font-size:21px}
+  .uf-month-back{font-size:0;gap:0;padding:10px}
+  .uf-month-back svg{width:18px;height:18px}
+  .uf-month-cell{min-height:77px;padding:5px 3px}
+  .uf-month-pill{height:17px;padding:0 3px;font-size:9px;gap:2px}
+  .uf-month-pill svg{display:none}
+  .uf-month-day{height:24px;width:24px}
+}

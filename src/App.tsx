@@ -1,10 +1,13 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, Mail, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, weekStart, type Alternative, type Assessment, type AppData, type CalendarView, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
+import MailPrototype from './MailPrototype'
+import CalendarMonthOverview from './CalendarMonthOverview'
+import { shiftCalendarMonth } from './calendar-month'
 import { adjacentCalendarPage, alignCalendarStart, datesForCalendarPage, twoDayRail, weekHeaderDates } from './calendar-navigation'
 import UniflowPicker from './UniflowPicker'
 import LearningDashboard from './LearningDashboard'
@@ -18,7 +21,7 @@ import './ui-polish.css'
 import './onboarding-refine.css'
 import './premium-ai.css'
 
-type Page = 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
+type Page = 'dashboard' | 'calendar' | 'modules' | 'mail' | 'settings' | 'admin'
 type NewEntry = { date: string; from: string; to: string; category?: string; recurrence?: Repeat }
 type MoveProposal = { occ: Occurrence; date: string; from: string; to: string }
 type ToastState = { id: string; text: string; action?: () => void; actionLabel?: string }
@@ -525,6 +528,10 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     try { localStorage.setItem(`uniflow-calendar-view-${userId}`, mode) } catch { /* Storage may be disabled. */ }
   }, [mode, userId])
   const [anchor,setAnchor]=useState(()=>today()<semester.start?semester.start:today()>semester.end?semester.end:today())
+  const [monthOpen,setMonthOpen]=useState(false)
+  const weekGesture=useRef<{x:number;y:number}|null>(null)
+  const suppressWeekTap=useRef(0)
+  const weekWheel=useRef({sum:0,last:0,shifted:0})
   const [proposal,setProposal]=useState<MoveProposal|null>(null),[dragUI,setDragUI]=useState<MoveProposal|null>(null),[pressed,setPressed]=useState('')
   const [focusOpen,setFocusOpen]=useState(false),[taskMenu,setTaskMenu]=useState(false),[clockNow,setClockNow]=useState(()=>new Date())
   const [motion,setMotion] = useState<'idle'|'exit-left'|'exit-right'|'exit-switch'|'enter'>('idle')
@@ -688,8 +695,42 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
     scrollTimeout.current=setTimeout(settleScroll,170)
   }
+  const shiftStripWeek=(direction:-1|1)=>{
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    setFan(null)
+    // Header and timetable use the same date anchor; retain the weekday.
+    setAnchor(current=>addDays(current,direction*7))
+  }
+  const onWeekDown=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return
+    weekGesture.current={x:e.clientX,y:e.clientY}
+  }
+  const onWeekUp=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    const start=weekGesture.current
+    weekGesture.current=null
+    if(!start)return
+    const dx=e.clientX-start.x,dy=e.clientY-start.y
+    if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.3)return
+    suppressWeekTap.current=Date.now()+450
+    shiftStripWeek(dx<0?1:-1)
+  }
+  const onWeekWheel=(e:ReactWheelEvent<HTMLDivElement>)=>{
+    if(Math.abs(e.deltaX)<Math.abs(e.deltaY)*1.25)return
+    const now=Date.now(),wheel=weekWheel.current
+    if(now-wheel.last>220)wheel.sum=0
+    wheel.sum+=e.deltaX
+    wheel.last=now
+    if(Math.abs(wheel.sum)<65||now-wheel.shifted<550)return
+    shiftStripWeek(wheel.sum>0?1:-1)
+    wheel.shifted=now
+    wheel.sum=0
+  }
   const jump=(direction:number)=>{
     setFan(null)
+    if(monthOpen){
+      setAnchor(current=>shiftCalendarMonth(current,direction>0?1:-1))
+      return
+    }
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
     const el=scroller.current
     if(!el||window.matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -715,7 +756,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     if(selected===pages[2]){jump(1);return}
     setAnchor(selected)
   }
-  const changeMode=(next:CalendarView)=>{setFan(null);if(next!==mode)animateCalendar(()=>{
+  const changeMode=(next:CalendarView)=>{setFan(null);setMonthOpen(false);if(next!==mode)animateCalendar(()=>{
     setAnchor(alignCalendarStart(anchor,next,data.weekEndDay))
     setMode(next)
   },'switch')}
@@ -855,12 +896,13 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     <div className="calendar-sticky-header">
     <div className="calendar-compact-toolbar">
       <div className="view-switch" role="group" aria-label="Kalenderansicht">
-        <button className={mode==='day'?'active':''} onClick={()=>changeMode('day')} title="Tag" aria-label="Tagesansicht"><CalendarDays size={17}/></button>
-        <button className={mode==='two'?'active':''} onClick={()=>changeMode('two')} title="2 Tage" aria-label="Zwei-Tage-Ansicht"><CalendarRange size={17}/></button>
-        <button className={mode==='week'?'active':''} onClick={()=>changeMode('week')} title="Woche" aria-label="Wochenansicht"><CalendarCheck2 size={17}/></button>
+        <button className={!monthOpen&&mode==='day'?'active':''} onClick={()=>changeMode('day')} title="Tag" aria-label="Tagesansicht"><CalendarDays size={17}/></button>
+        <button className={!monthOpen&&mode==='two'?'active':''} onClick={()=>changeMode('two')} title="2 Tage" aria-label="Zwei-Tage-Ansicht"><CalendarRange size={17}/></button>
+        <button className={!monthOpen&&mode==='week'?'active':''} onClick={()=>changeMode('week')} title="Woche" aria-label="Wochenansicht"><CalendarCheck2 size={17}/></button>
+        <button className={monthOpen?'active':''} onClick={()=>setMonthOpen(v=>!v)} title="Monat" aria-label="Monatsansicht für Klausuren und Hausaufgaben"><LayoutGrid size={17}/></button>
       </div>
       <div className="calendar-tools">
-        <button className="calendar-today" onClick={e=>{e.currentTarget.blur();chooseStripDate(today())}} title="Zum heutigen Tag">Heute</button>
+        <button className="calendar-today" onClick={e=>{e.currentTarget.blur();if(monthOpen)setAnchor(today());else chooseStripDate(today())}} title="Zum heutigen Tag">Heute</button>
         <button aria-label="Vorheriger Zeitraum" title="Zurück" onClick={e=>{e.currentTarget.blur();jump(-1)}}><ChevronLeft size={19}/></button>
         <button aria-label="Nächster Zeitraum" title="Weiter" onClick={e=>{e.currentTarget.blur();jump(1)}}><ChevronRight size={19}/></button>
         <div className="quick-task-wrap" ref={taskWrap}><button className="calendar-quick-add" title="Termin, Klausur oder Abgabe hinzufügen" aria-label="Termin, Klausur oder Abgabe hinzufügen" aria-expanded={taskMenu} aria-haspopup="menu" onClick={()=>{setFocusOpen(false);setTaskMenu(v=>!v)}}><Plus size={18}/></button>
@@ -871,15 +913,18 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         </div>
       </div>
     </div>
-    <div className={'uf-week-strip'+(mode==='week'?' uf-week-strip--week':'')} aria-label="Wochenauswahl" style={{'--uf-days':stripDates.length} as CSSProperties}>
-      <div className="uf-week-strip-month" title={fromDate(anchor).toLocaleDateString('de-DE',{month:'long',year:'numeric'})} aria-label={fromDate(anchor).toLocaleDateString('de-DE',{month:'long',year:'numeric'})}>
+    {!monthOpen&&<div className={'uf-week-strip'+(mode==='week'?' uf-week-strip--week':'')} aria-label="Wochenauswahl" style={{'--uf-days':stripDates.length} as CSSProperties}>
+      <button type="button" className="uf-week-strip-month" onClick={()=>setMonthOpen(true)}
+        title="Monatsübersicht öffnen" aria-label="Monatsübersicht für Klausuren und Hausaufgaben öffnen">
         <strong>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'}).split('.').join('')}</strong>
         <span>{fromDate(anchor).toLocaleDateString('de-DE',{year:'2-digit'})}</span>
-      </div>
+      </button>
       <div className="uf-week-strip-labels" aria-hidden="true">
         {weekNames.slice(0,stripDates.length).map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
       </div>
-      <div className="uf-week-strip-viewport">
+      <div className="uf-week-strip-viewport" onPointerDown={onWeekDown} onPointerUp={onWeekUp}
+        onPointerCancel={()=>{weekGesture.current=null}} onWheel={onWeekWheel}
+        onClickCapture={e=>{if(Date.now()<suppressWeekTap.current){e.preventDefault();e.stopPropagation()}}}>
         {weekSlide&&<div className={'uf-week-dates-previous uf-week-slide-out-'+weekSlide.direction} aria-hidden="true" style={{'--uf-days':stripDates.length} as CSSProperties}>
           {weekHeaderDates(weekSlide.from,data.weekEndDay).map(date=>
             <span key={date} className={date===today()?'uf-week-previous-today':''}>{Number(date.slice(-2))}</span>
@@ -913,9 +958,14 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           })}
         </div>
       </div>
+    </div>}
     </div>
-    </div>
-    <div className={"calendar-lanes calendar-lanes-"+mode+" calendar-motion-"+motion}>
+    {monthOpen?<CalendarMonthOverview anchor={anchor} semesterId={semester.id}
+      assessments={data.assessments} modules={modules}
+      onBack={()=>setMonthOpen(false)}
+      onSelectDate={date=>{setAnchor(date);setMode('day');setMonthOpen(false)}}
+      onSelectAssessment={onEditAssessment}/>
+    :<div className={"calendar-lanes calendar-lanes-"+mode+" calendar-motion-"+motion}>
       <div className="time-ruler"><button className="ruler-head" title="Heute" onClick={()=>setAnchor(today())}>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'})}</button>
         <div className="ruler-track" style={{height}}>{times.map((h,i)=><span key={h} style={{top:i*heightPerSlot}}>{String(h).padStart(2,'0')}:00</span>)}
           {visibleDays(pages[1]).includes(today())&&nowY>=0&&nowY<=height&&<div className="now-ruler-line" style={{top:nowY}} aria-hidden="true"/>}
@@ -932,7 +982,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             })}</div>
         }
       </div>
-    </div>
+    </div>}
     {dragUI&&createPortal(<div className="drag-overlay wallet-drag-badge"><Grip size={16}/>{dragUI.occ.offering.name} · {dragUI.from}</div>,document.body)}
     {proposal&&<MoveScope proposal={proposal} onClose={()=>setProposal(null)} onConfirm={confirmScope} mode="move"/>}
     {fan && createPortal(<div className={'wallet-shade '+(dragUI?'wallet-drag-active':'')} onPointerDown={e=>{if(e.target===e.currentTarget)setFan(null)}}>
@@ -991,7 +1041,7 @@ export default function App() {
   const [pageDirection,setPageDirection]=useState<'forward'|'backward'>('forward')
   const navigatePage=(next:Page)=>{
     if(page===next)return
-    const order:Page[]=['dashboard','calendar','modules','settings','admin']
+    const order:Page[]=['dashboard','calendar','modules','mail','settings','admin']
     setPageDirection(order.indexOf(next)>order.indexOf(page)?'forward':'backward')
     // Root-level View Transitions captured the fixed bottom tab bar and briefly
     // placed it behind the switching page. Animate only the content instead.
@@ -1267,7 +1317,7 @@ export default function App() {
   if (!user) return <><AuthScreen/>{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(null)}/>}</>
   if (!cloudReady) return <main className="auth-loading auth-cloud-loading"><div><div className="wordmark">uniflow<span className="wordmark-dot">.</span></div><p>{cloudStatus === 'error' ? cloudError : 'Deine Daten werden sicher geladen …'}</p>{cloudStatus === 'error' && <><button className="primary-action" onClick={() => void loadUserWorkspace(user, authEpoch.current)}>Erneut versuchen</button><button className="auth-secondary" onClick={() => void logOut()}>Abmelden</button></>}</div></main>
   if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); setPage('calendar') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
-  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side">{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</div><nav>{([{ id: 'dashboard' as const, title: 'Übersicht', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'modules', title: 'Module', icon: BookOpen }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><n.icon size={19} />{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
+  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side">{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</div><nav>{([{ id: 'dashboard' as const, title: 'Übersicht', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'modules', title: 'Module', icon: BookOpen }, { id: 'mail', title: 'Mail', icon: Mail }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><n.icon size={19} />{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
     <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}>{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
       {page === 'dashboard' && <LearningDashboard
@@ -1280,6 +1330,7 @@ export default function App() {
         onRemovePlan={id=>mutate(d=>({...d,learningPlans:(d.learningPlans||[]).filter(p=>p.id!==id)}))}
       />}
       {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={setRatingOccurrence} onEditAssessment={setEditingAssessment} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
+      {page === 'mail' && <MailPrototype/>}
       {page === 'modules' && !selectedModuleId && <ModuleHub degree={degree} modules={degreeModules} assessments={data.assessments} journeys={journeysByModule} currentSemesterId={semester?.id||''} creditsPassed={creditsPassed} average={average} onAdd={()=>setNewModule(true)} editing={newModule} onEdit={m=>setSelectedModuleId(m.id)} newName={newName} setNewName={setNewName} newCredits={newCredits} setNewCredits={setNewCredits} saveNewModule={saveNewModule} cancelNew={()=>setNewModule(false)} />}
       {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleScheduleEditor
         key={selectedModuleId+'-'+(semester?.id||'')}
@@ -1340,7 +1391,7 @@ export default function App() {
       </section>}<section className="settings-section"><h2>Stundenplan</h2><div className="setting-line"><span>Erste Stunde</span><div className="small-picker"><button disabled={data.firstHour <= 0} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour - 2 }))}>−</button><strong>{timeString(data.firstHour * 60)}</strong><button disabled={data.firstHour >= data.lastHour - 2} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Letzte Stunde</span><div className="small-picker"><button disabled={data.lastHour <= data.firstHour + 2} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour - 2 }))}>−</button><strong>{timeString(data.lastHour * 60)}</strong><button disabled={data.lastHour >= 24} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Woche anzeigen bis</span><div className="inline-toggle week-end-toggle">{([{v:4,label:'Fr'},{v:5,label:'Sa'},{v:6,label:'So'}] as const).map(x=><button key={x.v} className={(data.weekEndDay??4)===x.v?'selected':''} onClick={()=>mutate(d=>({...d,weekEndDay:x.v}))}>{x.label}</button>)}</div></div><small className="setting-hint">Die Wochenansicht endet am gewählten Tag. Spätere Termine bleiben über die Tages- oder Zwei-Tage-Ansicht erreichbar.</small><small className="setting-hint">Das Raster bleibt in Zwei-Stunden-Schritten. Veranstaltungen können minutengenau beginnen und enden.</small></section><section className="settings-section"><h2>Semester</h2><div className="semester-picker-list">{data.semesters.filter(s => s.degreeId === degree?.id).map(s => <button key={s.id} className={s.id === semester?.id ? 'current' : ''} onClick={() => { mutate(d => ({ ...d, activeSemesterId: s.id })); note(`${s.name} geöffnet.`) }}><span><strong>{s.name}</strong><small>{formDate(s.start)} – {formDate(s.end)}</small></span>{s.id === semester?.id && <Check size={18} />}</button>)}</div>{semester && <label className="setting-input"><span>Letzter Vorlesungstag</span><DateControl value={semester.lectureEnd} min={semester.start} max={semester.end} onChange={v => mutate(d => ({ ...d, semesters: d.semesters.map(s => s.id === semester.id ? { ...s, lectureEnd: v } : s) }))} /></label>}<button className="underlined-link" onClick={() => { if (!degree) return; const recent = data.semesters.filter(s => s.degreeId === degree.id).sort((a, b) => b.end.localeCompare(a.end))[0]; const start = recent ? addDays(recent.end, 1) : currentSemesterDates().start; const next = semesterFromStart(start); if (data.semesters.some(s => s.degreeId === degree.id && overlaps(s.start, s.end, next.start, next.end))) { note('Dieses Semester ist bereits vorhanden.'); return } const newSemester: Semester = { ...next, id: uid(), degreeId: degree.id, archived: false }; mutate(d => ({ ...d, semesters: [...d.semesters, newSemester], activeSemesterId: d.activeSemesterId })); note('Nächstes Semester gespeichert. Das aktuelle bleibt ausgewählt.') }}>Nächstes Semester hinzufügen <Plus size={17} /></button><div className="semester-management"><h3>Semester verwalten</h3>{data.semesters.filter(x=>x.degreeId===degree?.id).map(x=><div key={x.id} className="semester-manage-row"><span><strong>{x.name}</strong><small>{x.id===semester?.id?'Ausgewählt':x.start>today()?'Geplant':x.end<today()?'Vergangen':'Laufend'} · {formDate(x.start)} – {formDate(x.end)}</small></span><button aria-label={`${x.name} löschen`} onClick={()=>setConfirmDeleteSemester(x)}><Trash2 size={18}/></button></div>)}</div></section><section className="settings-section"><h2>Deine Daten</h2><button className="settings-action" onClick={saveBackup}><Download size={19} /> Backup herunterladen <ArrowRight size={17} /></button><button className="settings-action" onClick={() => fileRef.current?.click()}><Upload size={19} /> Backup importieren <ArrowRight size={17} /></button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => { void readBackup(e.target.files?.[0]); e.target.value = '' }} /><button className="settings-action settings-danger" onClick={() => setConfirmReset(true)}><RotateCcw size={19} /> Alles zurücksetzen <ArrowRight size={17} /></button><div className="cloud-account-state"><div><strong>Supabase Cloud</strong><small>{cloudStatus === 'synced' ? 'Alle Änderungen gespeichert' : cloudStatus === 'saving' ? 'Synchronisiere …' : cloudStatus === 'error' ? 'Synchronisierung fehlgeschlagen' : 'Verbunden'}</small></div>{cloudStatus === 'synced' ? <Check size={19}/> : <RefreshCw size={19}/>}</div>{cloudStatus === 'error' && <p className="auth-error">{cloudError}</p>}<button className="settings-action" disabled={cloudBusy || cloudStatus === 'saving'} onClick={() => void syncNow()}><RefreshCw size={19}/> Jetzt synchronisieren <ArrowRight size={17}/></button><button className="settings-action" onClick={() => void logOut()}><LogOut size={19}/> Abmelden <ArrowRight size={17}/></button><p className="quiet-copy">Angemeldet als {user.email || user.id.slice(0,8) + '…'}. Deine Daten werden beim Öffnen geladen und bei Änderungen automatisch nach Supabase gespeichert. Bei gleichzeitigen Änderungen auf mehreren Geräten kann der zuletzt gespeicherte Stand gewinnen.</p></section></div>}
       </div>
     </div>
-    <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Heute', icon: Layers2 }, { id: 'calendar', name: 'Plan', icon: CalendarDays }, { id: 'modules', name: 'Module', icon: BookOpen }, { id: 'settings', name: 'Einstellungen', icon: Settings2 }] as const).map(item => <button key={item.id} className={page === item.id || (page === 'admin' && item.id === 'settings') ? 'active' : ''} onClick={() => navigatePage(item.id)}><item.icon size={21} /><span>{item.name}</span></button>)}</nav>
+    <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Heute', icon: Layers2 }, { id: 'calendar', name: 'Plan', icon: CalendarDays }, { id: 'modules', name: 'Module', icon: BookOpen }, { id: 'mail', name: 'Mail', icon: Mail }, { id: 'settings', name: 'Einstellungen', icon: Settings2 }] as const).map(item => <button key={item.id} className={page === item.id || (page === 'admin' && item.id === 'settings') ? 'active' : ''} onClick={() => navigatePage(item.id)}><item.icon size={21} /><span>{item.name}</span></button>)}</nav>
     {assessmentDraft&&semester&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={semester} modules={semesterModules} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:[...d.assessments,assessment]}));setAssessmentDraft(null);note(assessment.type==='exam'?'Klausur hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
     {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={semester} modules={semesterModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:d.assessments.map(x=>x.id===assessment.id?assessment:x)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
     {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Klausur löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“ am {formDate(deletingAssessment.date)} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>({...d,assessments:d.assessments.filter(x=>x.id!==deletingAssessment.id)}));setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
