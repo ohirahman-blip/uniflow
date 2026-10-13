@@ -1453,9 +1453,8 @@ export default function App() {
         <p className="quiet-copy">Nur für dein Administratorkonto sichtbar.</p>
       </section>}<section className="settings-section"><h2>Design</h2><div className="setting-line"><span>Darstellung</span><div className="inline-toggle theme-icon-switch"><button className="selected" aria-label="Dunkler Modus" title="Dunkler Modus" onClick={()=>mutate(d=>({...d,theme:'dark'}))}><Moon size={17}/></button><button disabled aria-label="Heller Modus – folgt später" title="Heller Modus folgt später"><Sun size={17}/></button></div></div></section>{premium&&<section className="settings-section settings-ai-section" aria-label="KI-Modus">
         <div className="settings-ai-inline">
-          <Sparkles className="settings-ai-sparkles" size={21} aria-hidden="true"/>
-          <strong>KI-Modus</strong>
-          <span className="module-quick-premium-label">uniflow+</span>
+          <span className="settings-ai-label">KI-Modus</span>
+          <span className="settings-ai-badge">uniflow+</span>
           <button type="button" role="switch" aria-label="KI-Modus aktivieren" aria-checked={ai.consent}
             aria-describedby="settings-ai-data-note"
             className={'settings-ai-toggle'+(ai.consent?' is-on':'')}

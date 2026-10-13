@@ -1,63 +1,49 @@
-/* KI UI is premium-only. Do not apply these accents to local/free advice. */
-.settings-ai-section {
-  background:linear-gradient(122deg,rgba(180,104,153,.09) 0%,rgba(249,79,114,.035) 42%,#161618 90%);
-  border:1px solid #303034;
-  border-radius:16px;
-  padding:19px 20px 17px;
-  margin-bottom:38px;
+/* The premium setting behaves like a normal setting row, not a hero card. */
+.settings-section.settings-ai-section{
+  margin:-26px 0 35px;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
 }
-.settings-ai-heading {
+.settings-ai-inline{
   display:flex;
   align-items:center;
-  gap:12px;
-  margin-bottom:8px;
+  min-height:44px;
+  gap:10px;
+  padding:6px 0;
+  border-bottom:1px solid #292929;
 }
-.settings-ai-icon {
-  display:grid;
-  place-items:center;
-  flex:0 0 35px;
-  width:35px;height:35px;
-  border-radius:11px;
-  color:#dfb8cb;
-  background:linear-gradient(135deg,#423039,#251f27);
+.settings-ai-label{
+  flex:0 0 auto;
+  font-size:13px;
+  font-weight:400;
+  line-height:1.4;
+  letter-spacing:0;
+  color:#a5a5a5;
 }
-.settings-ai-heading h2 {
-  margin:0 0 5px;
-  color:#eee;
-  font-size:17px;
-  letter-spacing:-.3px;
-}
-.settings-ai-heading p {
-  font-size:11px;
-  color:#a99ea7;
-  margin:0;
-}
-.settings-ai-choice {
-  display:flex;
+.settings-ai-badge{
+  display:inline-flex;
   align-items:center;
-  justify-content:space-between;
-  gap:16px;
-  padding:17px 0 12px;
+  justify-content:center;
+  padding:3px 7px;
+  border-radius:6px;
+  border:1px solid #4b391c;
+  background:#2d2618;
+  color:#d6ab5d;
+  font-size:10px;
+  line-height:1.25;
+  font-weight:650;
+  letter-spacing:0;
+  white-space:nowrap;
 }
-.settings-ai-choice>span {
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  max-width:430px;
-  min-width:0;
-}
-.settings-ai-choice strong {font-size:13px;font-weight:660;color:#e9e7e9}
-.settings-ai-choice small {
-  color:#9d9aa0;
-  font-size:11px;
-  line-height:1.5;
-}
-.settings-ai-toggle {
+.settings-ai-toggle{
   position:relative;
   display:block;
-  flex:0 0 48px;
-  width:48px;
-  height:29px;
+  flex:0 0 40px;
+  width:40px;
+  height:24px;
+  margin-left:auto;
   padding:3px;
   border:1px solid #4b4b50;
   border-radius:999px;
@@ -65,69 +51,54 @@
   cursor:pointer;
   transition:background 170ms,border-color 170ms;
 }
-.settings-ai-toggle span {
+.settings-ai-toggle span{
   display:block;
-  width:21px;
-  height:21px;
+  width:16px;
+  height:16px;
   border-radius:50%;
   background:#bbbcc1;
   transition:transform 190ms cubic-bezier(.2,.8,.3,1),background-color 170ms;
 }
-.settings-ai-toggle.is-on {
+.settings-ai-toggle.is-on{
   background:#af7a96;
   border-color:#af7a96;
 }
-.settings-ai-toggle.is-on span {
-  transform:translateX(19px);
+.settings-ai-toggle.is-on span{
+  transform:translateX(16px);
   background:#fff;
 }
-.settings-ai-toggle:focus-visible {
+.settings-ai-toggle:focus-visible{
   outline:2px solid #e6c6d7;
   outline-offset:3px;
 }
-.settings-ai-privacy {
-  margin:7px 0 0;
-  color:#85838b;
-  font-size:11px;
-  line-height:1.6;
+/* The existing KI request result can still be inspected under the row. */
+.settings-ai-status{
+  display:flex;align-items:center;gap:9px;
+  margin:13px 0 3px;color:#c7a9ba;font-size:12px;line-height:1.5;
 }
-@media(max-width:480px) {
-  .settings-ai-section {padding:16px;}
+.settings-ai-result{
+  display:flex;flex-direction:column;gap:7px;
+  padding:13px 14px;margin:14px 0 4px;
+  border-radius:11px;background:#242026;color:#eee;min-width:0;
 }
-@media(prefers-reduced-motion:reduce) {
-  .settings-ai-toggle,.settings-ai-toggle span {transition:none;}
+.settings-ai-result>span{
+  display:flex;align-items:center;gap:6px;
+  color:#dab6c8;font-size:11px;font-weight:700;
 }
-
-/* Reveal a fresh answer on activation so Plus can be tested in Settings. */
-.settings-ai-status{display:flex;align-items:center;gap:9px;margin:9px 0 3px;color:#c7a9ba;font-size:12px;line-height:1.5}
-.settings-ai-result{display:flex;flex-direction:column;gap:7px;padding:13px 14px;margin:10px 0 4px;border-radius:11px;background:#242026;color:#eee;min-width:0}
-.settings-ai-result>span{display:flex;align-items:center;gap:6px;color:#dab6c8;font-size:11px;font-weight:700}
 .settings-ai-result>strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
-.settings-ai-result>p{font-size:12px;line-height:1.6;color:#b6aeb5;overflow-wrap:anywhere}
-
-/* More breathing space between the Plus recommendation and privacy details. */
-.settings-ai-section .settings-ai-details{display:block;margin-top:20px}
-
-/* A single compact line, visually matching the Module quick-entry header. */
-.settings-section.settings-ai-section{
-  margin:0 0 34px!important;padding:15px 19px!important;
-  border:1px solid #353039;border-radius:17px;
-  background:linear-gradient(120deg,#201b23 0%,#171619 62%,#171719 100%);
+.settings-ai-result>p{
+  font-size:12px;line-height:1.6;color:#b6aeb5;overflow-wrap:anywhere;
 }
-.settings-ai-inline{display:flex;align-items:center;gap:12px;min-width:0;min-height:31px}
-.settings-ai-inline>strong{font-size:16px;font-weight:700;letter-spacing:-.25px;color:#f2eff3;white-space:nowrap}
-.settings-ai-inline>.settings-ai-sparkles{flex:0 0 auto;color:var(--uf-secondary,#e8c074)}
-.settings-ai-inline .module-quick-premium-label{margin-left:2px}
-.settings-ai-inline>.settings-ai-toggle{margin-left:auto;flex:0 0 46px}
-.settings-ai-inline .settings-ai-toggle{width:46px;height:27px;flex-basis:46px}
-.settings-ai-inline .settings-ai-toggle span{width:19px;height:19px}
-.settings-ai-inline .settings-ai-toggle.is-on span{transform:translateX(19px)}
-.uf-visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.settings-ai-section .settings-ai-result{margin-top:15px}
-.settings-ai-section .settings-ai-status{margin-top:13px}
+.uf-visually-hidden{
+  position:absolute!important;width:1px;height:1px;padding:0;
+  margin:-1px;overflow:hidden;clip:rect(0,0,0,0);
+  white-space:nowrap;border:0;
+}
 @media(max-width:420px){
-  .settings-section.settings-ai-section{padding:13px 14px!important}
-  .settings-ai-inline{gap:9px}
-  .settings-ai-inline>strong{font-size:14px}
-  .settings-ai-inline .module-quick-premium-label{padding:4px 6px}
+  .settings-ai-inline{gap:8px}
+  .settings-ai-label{font-size:12px}
+  .settings-ai-badge{font-size:9px;padding:3px 6px}
+}
+@media(prefers-reduced-motion:reduce){
+  .settings-ai-toggle,.settings-ai-toggle span{transition:none}
 }
