@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Menu, Plus, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, Sparkles, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Menu, Plus, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, weekStart, type Alternative, type Assessment, type AppData, type CalendarView, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
@@ -11,7 +11,7 @@ import LearningDashboard from './LearningDashboard'
 import { adviceContext } from './study-advice'
 import { usePremiumAdvice } from './usePremiumAdvice'
 import LessonFeedback from './LessonFeedback'
-import { journeyFor, pastLessons, lessonForOccurrence, canRateOccurrence, type Journey, type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask } from './learning'
+import { journeyFor, pastLessons, lessonForOccurrence, lessonKeyForOccurrence, canRateOccurrence, type Journey, type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask } from './learning'
 import './styles.css'
 import './calendar-week-strip.css'
 import './ui-polish.css'
@@ -369,7 +369,7 @@ function EventDetails({occ,module,modules,offerings,data,onTopic,onRating,onClos
   const lesson=isLecture?lessonForOccurrence(occ,data):null
   const lectureRating=lesson?(data.learningCheckins||[]).find(x=>x.key===lesson.key)?.rating:undefined
   const lectureTopic=lesson?(data.lessonTopics||[]).find(x=>x.key===lesson.key)?.title||'':''
-  const canRate=isLecture&&!!occurrenceAtOrigin(occ.offering,occ.origin,false)&&canRateOccurrence(occ)
+  const canRate=isLecture&&canRateOccurrence(occ)
   const groupCount=offerings.filter(o=>o.id!==occ.offering.id && o.semesterId===occ.offering.semesterId && o.moduleId===occ.offering.moduleId && (o.contentId||o.familyId||o.id)===(occ.offering.contentId||occ.offering.familyId||occ.offering.id)).length
   const block=(kind:'slot'|'group',title:string,explanation:string)=>{
     const list=linked.filter(x=>x.kind===kind)
@@ -506,9 +506,9 @@ function ModuleHub({ degree, modules, assessments, journeys, currentSemesterId, 
 }
 
 
-function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNew,onEditOccurrence,onEditAssessment,onSelectGroup,onSuspendVisit,onRestoreVisit,onRequestDeleteOccurrence,onOfferingsChange,onNotice}:{
+function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNew,onEditOccurrence,onRateOccurrence,onEditAssessment,onSelectGroup,onSuspendVisit,onRestoreVisit,onRequestDeleteOccurrence,onOfferingsChange,onNotice}:{
   data:AppData;semester:Semester;modules:StudyModule[];userId:string;focusModuleId:string;onFocusChange:(id:string)=>void;
-  onNew:(slot:NewEntry)=>void;onEditOccurrence:(occ:Occurrence)=>void;onEditAssessment:(assessment:Assessment)=>void;
+  onNew:(slot:NewEntry)=>void;onEditOccurrence:(occ:Occurrence)=>void;onRateOccurrence:(occ:Occurrence)=>void;onEditAssessment:(assessment:Assessment)=>void;
   onSelectGroup:(source:Occurrence|null,target:Occurrence,scope:'single'|'future',both:boolean)=>void;
   onSuspendVisit:(occ:Occurrence,scope:'single'|'future')=>void;
   onRestoreVisit:(occ:Occurrence)=>void;
@@ -816,12 +816,16 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const group=[occ,...siblings].sort((a,b)=>a.key.localeCompare(b.key)),ix=group.findIndex(x=>x.key===occ.key),n=group.length
           const numberOfAlternatives=linkedCandidates(data.offerings,occ).length
           const past=date<today()||(date===today()&&minutes(occ.to)<=clockNow.getHours()*60+clockNow.getMinutes())
+          const rateable=!!occ.offering.moduleId&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'
+          const rated=rateable&&(data.learningCheckins||[]).some(checkin=>checkin.key===lessonKeyForOccurrence(occ))
           const style:CSSProperties={top:start+2,height:Math.max(32,end-start-4),background:inactive?'#29292b':module?.color||'#A5A5A5',left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`}
           return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
             className={'course '+(inactive?'course-inactive ':'')+(numberOfAlternatives?'course-stacked ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
             style={style} onPointerDown={e=>{e.stopPropagation();if(!inactive)onDown(e,occ)}} onPointerMove={onMove}
             onPointerUp={e=>{e.stopPropagation();onUp(e)}} onPointerCancel={cancelGesture}
-            onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ,e.currentTarget as HTMLElement)}} onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(occ)}} onKeyDown={e=>{if(e.key==='Enter')openFan(occ,e.currentTarget as HTMLElement)}}>
+            onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ,e.currentTarget as HTMLElement)}}
+            onContextMenu={e=>{e.preventDefault();e.stopPropagation();setFan(null);setWalletContext({occ,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
+            onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(occ)}} onKeyDown={e=>{if(e.key==='Enter')openFan(occ,e.currentTarget as HTMLElement)}}>
             <div className="course-head"><strong className="course-title">{isAssessment(occ.offering.category)?<span className="course-kind-icon">{/klausur|prüfung/i.test(occ.offering.category)?<GraduationCap size={compact?12:16}/>:<ClipboardList size={compact?12:16}/>}</span>:null}{module?.emoji?<span className="course-emoji">{module.emoji}</span>:null}{compact?module?.shortName||acronym(occ.offering.name):module?.name||occ.offering.name}</strong>
               {(singleVisitLabel(occ)||numberOfAlternatives>0)&&<span className="course-head-badges">
                 {singleVisitLabel(occ)&&<span className="course-recurrence" title={singleVisitLabel(occ)==='Einmalig'?'Nur einmaliger Termin':'Einmalige Ausnahme'}>{compact?'x1':singleVisitLabel(occ)}</span>}
@@ -833,6 +837,12 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
               {occ.offering.organizer&&<><span className="course-meta-divider" aria-hidden="true">·</span><span className="course-organizer" title={occ.offering.organizer}>{occ.offering.organizer}</span></>}
             </div>
             {placeLabel(occ.offering)&&<span className="course-place"><span title={placeLabel(occ.offering)}>{placeLabel(occ.offering)}</span></span>}
+            {rateable&&<button type="button" className={'course-rating-star'+(rated?' is-rated':'')}
+              aria-label={rated?'Bewertung ändern':'Termin bewerten'} title={rated?'Bewertet – ändern':'Bewertung hinzufügen'}
+              onPointerDown={e=>e.stopPropagation()} onPointerUp={e=>e.stopPropagation()}
+              onClick={e=>{e.preventDefault();e.stopPropagation();setFan(null);onRateOccurrence(occ)}}>
+              <Star size={compact?12:15} strokeWidth={2.1} fill={rated?'currentColor':'none'}/>
+            </button>}
           </div>
         })}
         {clockActive&&<div className="now-day-line" style={{top:nowY}} aria-hidden="true"/>}
@@ -944,7 +954,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             onPointerDown={e=>{if(i===0&&selected){e.stopPropagation();onDown(e,item)}}}
             onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancelGesture}
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;onFanTap(item)}}
-            onContextMenu={e=>{e.preventDefault();e.stopPropagation();setWalletContext({occ:item,x:Math.max(8,Math.min(e.clientX,window.innerWidth-180)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-92))})}}
+            onContextMenu={e=>{e.preventDefault();e.stopPropagation();setWalletContext({occ:item,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
             onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(item)}}
             onKeyDown={e=>{if(e.key==='Enter')onFanTap(item)}}>
             <div className="wallet-card-top"><strong>{module?.shortName||module?.name||item.offering.name} · {item.offering.contentLabel||item.offering.category}</strong><span>{selected?'✓':'○'}</span></div>
@@ -963,11 +973,15 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           <button className="wallet-edit" onClick={()=>{setFan(null);onEditOccurrence(fanPicked)}}><Settings2 size={14}/> Bearbeiten</button>
         </div>}
       </div>
-      {walletContext&&<div className="wallet-context-menu" role="menu" aria-label="Terminaktionen" style={{left:walletContext.x,top:walletContext.y}}
-        onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
-        <button role="menuitem" onClick={()=>{onEditOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}><Settings2 size={15}/> Bearbeiten</button>
-        <button role="menuitem" onClick={()=>{onRequestDeleteOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}><Trash2 size={15}/> Löschen</button>
-      </div>}
+    </div>,document.body)}
+    {walletContext&&createPortal(<div className="wallet-context-menu" role="menu" aria-label="Terminaktionen" style={{left:walletContext.x,top:walletContext.y}}
+      onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
+      <button role="menuitem" onClick={()=>{onEditOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}><Settings2 size={15}/> Bearbeiten</button>
+      {walletContext.occ.offering.moduleId&&walletContext.occ.offering.category!=='Freies Lernen'&&!isAssessment(walletContext.occ.offering.category)&&
+        <button role="menuitem" onClick={()=>{onRateOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}>
+          <Star size={15}/> Bewerten
+        </button>}
+      <button role="menuitem" className="wallet-context-danger" onClick={()=>{onRequestDeleteOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}><Trash2 size={15}/> Löschen</button>
     </div>,document.body)}
   </section>
 }
@@ -1261,7 +1275,7 @@ export default function App() {
         onPlan={(task:LearningPlanTask)=>mutate(d=>({...d,learningPlans:[...(d.learningPlans||[]),task]}))}
         onRemovePlan={id=>mutate(d=>({...d,learningPlans:(d.learningPlans||[]).filter(p=>p.id!==id)}))}
       />}
-      {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onEditAssessment={setEditingAssessment} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
+      {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={setDetail} onEditAssessment={setEditingAssessment} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
       {page === 'modules' && !selectedModuleId && <ModuleHub degree={degree} modules={degreeModules} assessments={data.assessments} journeys={journeysByModule} currentSemesterId={semester?.id||''} creditsPassed={creditsPassed} average={average} onAdd={()=>setNewModule(true)} editing={newModule} onEdit={m=>setSelectedModuleId(m.id)} newName={newName} setNewName={setNewName} newCredits={newCredits} setNewCredits={setNewCredits} saveNewModule={saveNewModule} cancelNew={()=>setNewModule(false)} />}
       {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleScheduleEditor
         key={selectedModuleId+'-'+(semester?.id||'')}
