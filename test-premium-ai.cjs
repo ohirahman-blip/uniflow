@@ -45,7 +45,7 @@ data.learningCheckins=[
 ]
 const context=advice.adviceContext(data,semester,[moduleA],now)
 assert.equal(context.nextLecture?.minutesUntil,60)
-assert.equal(context.previousWeak?.topic,'SQL-Joins','Current recommendation uses last week's topic')
+assert.equal(context.previousWeak?.topic,'SQL-Joins',"Current recommendation uses last week's topic")
 const tip=advice.localAdvice(context)
 assert.match(tip.message,/SQL-Joins/)
 assert.equal(tip.source,'local')
