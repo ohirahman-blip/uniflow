@@ -89,10 +89,36 @@ assert.match(app,/<LessonFeedback key=\{lesson\.key\}/,'Calendar occurrence deta
 assert.match(app,/onTopic=\{saveLectureTopic\} onRating=\{saveLectureRating\}/)
 assert.match(component,/onBlur=\{e=>save\(e\.currentTarget\.value\)\}/)
 assert.match(component,/onRating\(lesson,item\.value\)/)
-assert.match(dashboard,/className="learn-recommendation learn-recommendation-dynamic"/)
-assert.match(dashboard,/premium\&\&<div className="learn-ai-controls"/)
+assert.match(dashboard,/learn-recommendation-ai/,'Only real AI responses get a special gradient')
+assert.match(dashboard,/isAiRecommendation\&\&<Sparkles size=\{15\}\/>/,'Free guidance has no AI icon')
+assert.doesNotMatch(dashboard,/learn-ai-controls/,'AI mode no longer appears on dashboard')
+assert.match(app,/role="switch" aria-label="KI-Modus aktivieren"/)
+assert.match(app,/\{premium\&\&<section className="settings-section settings-ai-section"/)
 assert.match(hook,/VITE_UNIFLOW_AI_ENABLED === 'true'/)
-assert.match(hook,/if\(!userId\|\|!premium\|\|!consent\|\|!deepseekConfigured\|\|!supabase\)/)
+assert.match(hook,/if\(!appActive\|\|!userId\|\|!premium\|\|!consent\|\|!deepseekConfigured\|\|!supabase\)/)
+assert.match(hook,/document\.visibilityState==='visible'/)
+assert.match(hook,/localStorage\.setItem\(attemptKey\(userId\),String\(now\)\)/)
+assert.match(hook,/setInterval\([\s\S]*?AI_CHECK_INTERVAL_MS/);
+const schedule=load('src/ai-request-schedule.ts')
+const HOUR=60*60*1000
+assert.equal(schedule.AI_REQUEST_INTERVAL_MS,HOUR)
+assert.equal(schedule.aiRequestDue(100000,0,true,true),true,'First visible launch requests immediately')
+assert.equal(schedule.aiRequestDue(100000,0,false,true),false,'Hidden app never requests')
+assert.equal(schedule.aiRequestDue(100000,0,true,false),false,'Disabled KI never requests')
+assert.equal(schedule.aiRequestDue(100000,HOUR,true,true),false,'Too soon after last request')
+const T=1_900_000_000_000
+assert.equal(schedule.aiRequestDue(T,T-HOUR+1,true,true),false,'No early refresh')
+assert.equal(schedule.aiRequestDue(T,T-HOUR,true,true),true,'Exactly one hour is due')
+assert.equal(schedule.aiRequestDue(T,T-12*HOUR,false,true),false,'No catch-up while app closed')
+assert.equal(schedule.aiRequestDue(T,T-12*HOUR,true,true),true,'On reopen only one request becomes due')
+const sigBase=advice.adviceContext(data,semester,[moduleA],now)
+const sigAfterMinute={...sigBase,localTime:'07:01',freeMinutes:sigBase.freeMinutes-1,
+  nextLecture:sigBase.nextLecture&&{...sigBase.nextLecture,minutesUntil:sigBase.nextLecture.minutesUntil-1}}
+assert.equal(schedule.aiAdviceSignature(sigBase),schedule.aiAdviceSignature(sigAfterMinute),
+  'Minute-by-minute time drift does not invalidate AI advice')
+const sigChanged={...sigBase,otherWeak:[...sigBase.otherWeak,{...sigBase.otherWeak[0],topic:'Ein anderes Thema'}]}
+assert.notEqual(schedule.aiAdviceSignature(sigBase),schedule.aiAdviceSignature(sigChanged),
+  'Material changes invalidate cached advice without extra network calls')
 assert.doesNotMatch(app,/DEEPSEEK_API_KEY/,'Do not leak private DeepSeek secret to browser')
 assert.match(edge,/auth\.getUser\(token\)/)
 assert.match(edge,/\.select\('premium'\)/)
