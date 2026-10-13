@@ -1,13 +1,13 @@
 const assert=require('node:assert/strict')
 const fs=require('node:fs')
 const ts=require('typescript')
-const compile=(path,jsx=false)=>{
+const compile=(path,jsx=false)=>{ void jsx;
   const result=ts.transpileModule(fs.readFileSync(path,'utf8'),{
     compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,
-      jsx:jsx?ts.JsxEmit.ReactJSX:undefined},reportDiagnostics:true
+      jsx:ts.JsxEmit.ReactJSX},reportDiagnostics:true
   })
   assert.equal((result.diagnostics||[]).filter(x=>x.category===ts.DiagnosticCategory.Error).length,0,
-    path+' should parse')
+    path+' should parse: '+JSON.stringify((result.diagnostics||[]).map(x=>ts.flattenDiagnosticMessageText(x.messageText,' '))))
   return result.outputText
 }
 const model={exports:{}}
