@@ -45,6 +45,7 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
         setForegroundEpoch(e=>e+1)
       }else if(!nowVisible){
         wasHidden.current=true
+        setWorking(false)
       }
     }
     const onStorage=(event:StorageEvent)=>{
@@ -91,13 +92,18 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
       setDisplayed(parsed?{signature,value:parsed}:null)
     }catch{setDisplayed(null)}
 
-    // Reserve the foreground epoch BEFORE starting async work.
-    requestedEpoch.current={userId,epoch:foregroundEpoch}
-    if(!canRequestOnOpen(true,true,readAiDailyAttempts(userId)))return
+    if(!canRequestOnOpen(true,true,readAiDailyAttempts(userId))){
+      requestedEpoch.current={userId,epoch:foregroundEpoch}
+      return
+    }
     let cancelled=false
     const controller=new AbortController()
     const timer=window.setTimeout(()=>{
       if(cancelled||document.visibilityState!=='visible')return
+      // Reserve only when the debounce actually fires. This also handles
+      // React StrictMode's development effect setup/cleanup cycle correctly.
+      if(requestedEpoch.current?.userId===userId&&requestedEpoch.current.epoch===foregroundEpoch)return
+      requestedEpoch.current={userId,epoch:foregroundEpoch}
       // Count attempts even on API failure so a broken API never causes a storm.
       if(!recordAiDailyAttempt(userId))return
       setWorking(true)
