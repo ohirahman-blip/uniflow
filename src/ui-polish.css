@@ -302,3 +302,41 @@ html[data-theme='light'] .uf-picker-custom-row input {background:#eee;color:#222
   scroll-padding-left:0;
   overscroll-behavior-x:contain;
 }
+
+/* Per-visit rating indicator. Empty star = no feedback; filled star = rated.
+   The star is a button and bypasses calendar dragging/Wallet choice. */
+.course:has(>.course-rating-star){padding-bottom:18px;}
+.course .course-rating-star{
+  position:absolute;
+  z-index:5;
+  right:3px;
+  bottom:3px;
+  width:22px;height:22px;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:6px;
+  padding:0;
+  background:rgba(0,0,0,.10);
+  color:rgba(22,22,26,.62);
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.course .course-rating-star.is-rated {
+  color:#242023;
+  background:rgba(255,255,255,.22);
+}
+.course .course-rating-star:hover,
+.course .course-rating-star:focus-visible {
+  background:rgba(255,255,255,.36);
+  color:#151318;
+  outline:none;
+}
+.course .course-rating-star:focus-visible {box-shadow:0 0 0 2px #f7f2f3;}
+.mode-week .course .course-rating-star{
+  right:2px;bottom:2px;
+  width:17px;height:17px;
+}
+.course.course-inactive .course-rating-star{color:#a7a7ae;}
+.course.course-inactive .course-rating-star.is-rated{color:#efebef;}
+.wallet-context-menu .wallet-context-danger {color:#f1a5a5;}
