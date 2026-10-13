@@ -56,4 +56,10 @@ assert.equal(adjacentCalendarPage('2026-10-16','day',1,5),'2026-10-17','Friday -
 assert.equal(adjacentCalendarPage('2026-10-17','day',1,5),'2026-10-19','Saturday -> Monday when cutoff Saturday')
 assert.deepEqual(Array.from(datesForCalendarPage('2026-10-16','two',4)),['2026-10-15','2026-10-16'])
 assert.deepEqual(Array.from(datesForCalendarPage('2026-10-17','two',5)),['2026-10-16','2026-10-17'])
-console.log('✔ calendar week cutoff: fixed header, day/two paging, weekend skips, reversible navigation')
+for (const cutoff of [4,5,6]) {
+  assert.deepEqual(Array.from(datesForCalendarPage('2026-10-12','two',cutoff)),['2026-10-12','2026-10-13'])
+  assert.equal(adjacentCalendarPage('2026-10-12','two',1,cutoff),'2026-10-13','Two-day swipe advances one day')
+  assert.equal(adjacentCalendarPage('2026-10-13','two',-1,cutoff),'2026-10-12','Two-day swipe returns one day')
+  assert.deepEqual(Array.from(datesForCalendarPage('2026-10-13','two',cutoff)),['2026-10-13','2026-10-14'])
+}
+console.log('✔ calendar week cutoff: one-day sliding two-day windows, weekend skips, reversible navigation')
