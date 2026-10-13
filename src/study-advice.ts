@@ -29,7 +29,7 @@ export type ContextWeak = {
   topic:string
   lessonKey:string
   date:string
-  rating:LearningRating
+  rating:LearningRating|'unrated'
 }
 export type AdviceContext = {
   today:string
@@ -82,19 +82,33 @@ export function adviceContext(data:AppData,semester:Semester|undefined,modules:S
     date:next.date,time:next.from,minutesUntil:nextIn
   }:null
   const checkins=new Map((data.learningCheckins||[]).map(c=>[c.key,c]))
+  const lastReview=new Map<string,{rating:LearningRating;updatedAt:string}>()
+  for(const session of data.learningSessions||[]){
+    if(session.kind!=='review'||!session.lessonKey)continue
+    const existing=lastReview.get(session.lessonKey)
+    if(!existing||session.updatedAt>existing.updatedAt){
+      lastReview.set(session.lessonKey,{rating:session.rating,updatedAt:session.updatedAt})
+    }
+  }
+  const latestRating=(key:string):LearningRating|undefined=>{
+    const checkin=checkins.get(key)
+    const review=lastReview.get(key)
+    return review&&(!checkin||review.updatedAt>checkin.updatedAt)?review.rating:checkin?.rating
+  }
   const lessons=pastLessons(data,semester,now)
   const weak:ContextWeak[]=[]
   let pendingFeedback:ContextWeak|null=null
   for(const lesson of lessons){
     const m=moduleMap.get(lesson.moduleId)
     if(!m)continue
-    const rating=checkins.get(lesson.key)?.rating
+    const checkinRating=checkins.get(lesson.key)?.rating
+    const currentRating=latestRating(lesson.key)
     const item:ContextWeak={
       moduleId:m.id,moduleName:m.name,topic:lesson.label,lessonKey:lesson.key,date:lesson.date,
-      rating:rating||'absent'
+      rating:currentRating||'unrated'
     }
-    if(!rating){if(!pendingFeedback)pendingFeedback=item;continue}
-    if(rating!=='understood')weak.push(item)
+    if(!checkinRating){if(!pendingFeedback)pendingFeedback=item}
+    if(currentRating&&currentRating!=='understood')weak.push(item)
   }
   // "The previous lecture was difficult" must refer to the actual most
   // recent earlier lesson of that teaching group, NOT an unrelated older gap.
@@ -102,7 +116,7 @@ export function adviceContext(data:AppData,semester:Semester|undefined,modules:S
     l.moduleId===nextLecture.moduleId && l.contentId===nextLesson.contentId &&
     l.key!==nextLecture.lessonKey
   ):undefined
-  const previousRating=previousLesson?checkins.get(previousLesson.key)?.rating:undefined
+  const previousRating=previousLesson?latestRating(previousLesson.key):undefined
   const previousWeak=previousLesson&&previousRating&&previousRating!=='understood'?
     weak.find(w=>w.lessonKey===previousLesson.key)||null:null
   const exams=data.assessments.filter(a=>a.type==='exam'&&!a.completed&&a.date>=day&&moduleMap.has(a.moduleId))
