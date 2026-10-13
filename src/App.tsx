@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, Mail, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, Mail, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, weekStart, type Alternative, type Assessment, type AppData, type CalendarView, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
@@ -338,7 +338,7 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
     if (!title.trim()) return setErr('Gib bitte einen Titel ein.')
     if (hasTime && minutes(to)<=minutes(from)) return setErr('Das Ende muss nach dem Beginn liegen.')
     onSave({id:existing?.id||uid(),semesterId:semester.id,moduleId,type,title:title.trim(),date,
-      from:hasTime?from:undefined,to:hasTime?to:undefined,completed:type==='homework'?completed:false})
+      from:hasTime?from:undefined,to:hasTime?to:undefined,completed})
   }
   return <BottomSheet title={existing?'Eintrag bearbeiten':type==='exam'?'Neue Klausur':'Neue Hausaufgabe'} onClose={onClose}
     footer={<button className="primary-action" onClick={save}>{existing?'Speichern':'Hinzufügen'}<Check size={18}/></button>}>
@@ -352,13 +352,34 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
     <div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={semester.end} onChange={setDate}/></div>
     <div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>
     {hasTime&&<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>}
-    {type==='homework'&&<button className={'assessment-check '+(completed?'completed':'')} onClick={()=>setCompleted(v=>!v)}><span>{completed?<Check size={15}/>:null}</span>{completed?'Erledigt':'Als erledigt markieren'}</button>}
+    {<button className={'assessment-check '+(completed?'completed':'')} onClick={()=>setCompleted(v=>!v)}><span>{completed?<Check size={15}/>:null}</span>{completed?'Erledigt':'Als erledigt markieren'}</button>}
     {existing&&onDelete&&<button className="danger-simple" onClick={onDelete}><Trash2 size={18}/> {type==='exam'?'Klausur':'Hausaufgabe'} löschen</button>}
     {err&&<p className="inline-error" role="alert">{err}</p>}
     </div>
   </BottomSheet>
 }
 
+/** A calendar assessment opens in preview mode; editing is a separate action. */
+function AssessmentPreview({item,module,onToggle,onEdit,onClose}:{
+  item:Assessment;module?:StudyModule;onToggle:()=>void;onEdit:()=>void;onClose:()=>void
+}){
+  return <BottomSheet title={item.type==='exam'?'Klausur':'Hausaufgabe'} onClose={onClose}
+    footer={<button type="button" className="primary-action" onClick={onEdit}><PenLine size={17}/> Bearbeiten</button>}>
+    <div className="uf-assessment-preview">
+      <span className="uf-assessment-preview-kind">{item.type==='exam'?<GraduationCap size={16}/>:<ClipboardList size={16}/>}
+        {item.type==='exam'?'Klausur':'Hausaufgabe'}</span>
+      <h2>{item.title}</h2>
+      {module&&<p>{module.name}</p>}
+      <p>{formDate(item.date)}{item.from?' · '+item.from+(item.to?'–'+item.to:'')+' Uhr':''}</p>
+      <button type="button" role="checkbox" aria-checked={!!item.completed}
+        className={'assessment-check uf-assessment-preview-toggle '+(item.completed?'completed':'')}
+        onClick={onToggle}>
+        <span>{item.completed?<Check size={15}/>:null}</span>
+        {item.completed?'Erledigt – rückgängig machen':'Als erledigt markieren'}
+      </button>
+    </div>
+  </BottomSheet>
+}
 function EventDetails({occ,module,modules,offerings,data,onTopic,onRating,onClose,onDelete,onSuspend,onRestore,onMove,onEdit,onAddAlternative,onSelectAlternative,onInspectAlternative}: {
   occ:Occurrence;module?:StudyModule;modules:StudyModule[];offerings:Offering[];data:AppData;
   onTopic:(lesson:LearningLesson,title:string)=>void;onRating:(lesson:LearningLesson,rating:LearningRating)=>void;
@@ -508,9 +529,9 @@ function ModuleHub({ degree, modules, assessments, journeys, currentSemesterId, 
 }
 
 
-function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNew,onEditOccurrence,onRateOccurrence,onEditAssessment,onSelectGroup,onSuspendVisit,onRestoreVisit,onRequestDeleteOccurrence,onOfferingsChange,onNotice}:{
+function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNew,onEditOccurrence,onRateOccurrence,onPreviewAssessment,onSelectGroup,onSuspendVisit,onRestoreVisit,onRequestDeleteOccurrence,onOfferingsChange,onNotice}:{
   data:AppData;semester:Semester;modules:StudyModule[];userId:string;focusModuleId:string;onFocusChange:(id:string)=>void;
-  onNew:(slot:NewEntry)=>void;onEditOccurrence:(occ:Occurrence)=>void;onRateOccurrence:(occ:Occurrence)=>void;onEditAssessment:(assessment:Assessment)=>void;
+  onNew:(slot:NewEntry)=>void;onEditOccurrence:(occ:Occurrence)=>void;onRateOccurrence:(occ:Occurrence)=>void;onPreviewAssessment:(assessment:Assessment)=>void;
   onSelectGroup:(source:Occurrence|null,target:Occurrence,scope:'single'|'future',both:boolean)=>void;
   onSuspendVisit:(occ:Occurrence,scope:'single'|'future')=>void;
   onRestoreVisit:(occ:Occurrence)=>void;
@@ -528,6 +549,11 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   }, [mode, userId])
   const [anchor,setAnchor]=useState(()=>today()<semester.start?semester.start:today()>semester.end?semester.end:today())
   const [monthOpen,setMonthOpen]=useState(false)
+  const [monthTransition,setMonthTransition]=useState<{from:string;direction:'next'|'previous'}|null>(null)
+  const monthGesture=useRef<{x:number;y:number}|null>(null)
+  const suppressMonthTap=useRef(0)
+  const monthTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
+  const [stripPreview,setStripPreview]=useState<string|null>(null)
   const weekGesture=useRef<{x:number;y:number}|null>(null)
   const suppressWeekTap=useRef(0)
   const weekWheel=useRef({sum:0,last:0,shifted:0})
@@ -615,11 +641,13 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   },[mode,data.weekEndDay])
   // One pinned header for all modes. In week view the range is unnecessary:
   // all seven dates are equally visible, and only the real "today" is marked.
-  const stripMonday=weekStart(calendarPageStart)
-  const stripDates=weekHeaderDates(calendarPageStart,data.weekEndDay)
-  const stripIndex=Math.max(0,stripDates.indexOf(calendarPageStart))
+  const displayCalendarStart=stripPreview||calendarPageStart
+  const stripMonday=weekStart(displayCalendarStart)
+  const stripDates=weekHeaderDates(displayCalendarStart,data.weekEndDay)
+  const stripIndex=Math.max(0,stripDates.indexOf(displayCalendarStart))
   const stripRangeIndex=stripIndex
   const stripRangeDays=Math.min(mode==='two'?2:1,stripDates.length-stripRangeIndex)
+  useLayoutEffect(()=>{setStripPreview(null)},[calendarPageStart,mode,data.weekEndDay])
   const todayIndex=stripDates.indexOf(today())
   // Keep the outer strip mounted and slide previous/new date rows in opposite
   // directions whenever a horizontal swipe or arrow changes the displayed week.
@@ -665,6 +693,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   },[calendarPageStart,mode,data.weekEndDay])
   useEffect(()=>()=>{
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    if(monthTimer.current)clearTimeout(monthTimer.current)
     motionTimers.current.forEach(clearTimeout)
   },[])
   const animateCalendar = (update:()=>void, direction:'left'|'right'|'switch') => {
@@ -690,9 +719,16 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   }
   const onScroll=()=>{
     if(fan)setFan(null)
-    if(scrollReset.current||!scroller.current)return
+    const el=scroller.current
+    if(scrollReset.current||!el)return
+    // The week strip reacts during the swipe instead of waiting for settling.
+    const targets=([0,1,2] as const).map(slot=>snapTarget(slot,el.clientWidth))
+    const nearest=targets.reduce((best,point,i)=>
+      Math.abs(point-el.scrollLeft)<Math.abs(targets[best]-el.scrollLeft)?i:best,1)
+    const preview=nearest===1?null:pages[nearest]
+    setStripPreview(current=>current===preview?current:preview)
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
-    scrollTimeout.current=setTimeout(settleScroll,170)
+    scrollTimeout.current=setTimeout(settleScroll,85)
   }
   const shiftStripWeek=(direction:-1|1)=>{
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
@@ -724,10 +760,29 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     wheel.shifted=now
     wheel.sum=0
   }
+  const shiftMonth=(direction:-1|1)=>{
+    if(monthTimer.current)clearTimeout(monthTimer.current)
+    setMonthTransition({from:anchor,direction:direction>0?'next':'previous'})
+    setAnchor(current=>shiftCalendarMonth(current,direction))
+    monthTimer.current=setTimeout(()=>setMonthTransition(null),370)
+  }
+  const onMonthPointerDown=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return
+    monthGesture.current={x:e.clientX,y:e.clientY}
+  }
+  const onMonthPointerUp=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    const start=monthGesture.current
+    monthGesture.current=null
+    if(!start)return
+    const dx=e.clientX-start.x,dy=e.clientY-start.y
+    if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.2)return
+    suppressMonthTap.current=Date.now()+400
+    shiftMonth(dx<0?1:-1)
+  }
   const jump=(direction:number)=>{
     setFan(null)
     if(monthOpen){
-      setAnchor(current=>shiftCalendarMonth(current,direction>0?1:-1))
+      shiftMonth(direction>0?1:-1)
       return
     }
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
@@ -915,8 +970,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     {!monthOpen&&<div className={'uf-week-strip'+(mode==='week'?' uf-week-strip--week':'')} aria-label="Wochenauswahl" style={{'--uf-days':stripDates.length} as CSSProperties}>
       <button type="button" className="uf-week-strip-month" onClick={()=>setMonthOpen(true)}
         title="Monatsübersicht öffnen" aria-label="Monatsübersicht für Klausuren und Hausaufgaben öffnen">
-        <strong>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'}).split('.').join('')}</strong>
-        <span>{fromDate(anchor).toLocaleDateString('de-DE',{year:'2-digit'})}</span>
+        <strong>{fromDate(displayCalendarStart).toLocaleDateString('de-DE',{month:'short'}).split('.').join('')}</strong>
+        <span>{fromDate(displayCalendarStart).toLocaleDateString('de-DE',{year:'2-digit'})}</span>
       </button>
       <div className="uf-week-strip-labels" aria-hidden="true">
         {weekNames.slice(0,stripDates.length).map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
@@ -936,8 +991,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             <span className={'uf-week-liquid-core'+(anchor===today()?' uf-week-liquid-today':'')} key={anchor}/>
           </span>}
           {stripDates.map(date=>{
-            const selected=mode!=='week'&&date===anchor
-            const second=mode==='two'&&date===addDays(calendarPageStart,1)
+            const selected=mode!=='week'&&date===displayCalendarStart
+            const second=mode==='two'&&date===addDays(displayCalendarStart,1)
             const dayItems=data.assessments.filter(a=>a.semesterId===semester.id&&a.date===date&&(!focusModuleId||a.moduleId===focusModuleId))
             return <div className="uf-week-strip-day" key={date}>
               <button type="button" className={'uf-week-strip-button'+(selected?' uf-week-first':'')+(second?' uf-week-second':'')+(date===today()?' uf-week-today':'')}
@@ -948,7 +1003,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
               {dayItems.length>0&&<div className="uf-week-strip-assessments">
                 {dayItems.slice(0,2).map(item=><button type="button" key={item.id}
                   title={item.title} aria-label={(item.type==='exam'?'Klausur: ':'Hausaufgabe: ')+item.title}
-                  className={item.completed?'uf-week-assessment done':'uf-week-assessment'} onClick={e=>{e.stopPropagation();onEditAssessment(item)}}>
+                  className={item.completed?'uf-week-assessment done':'uf-week-assessment'} onClick={e=>{e.stopPropagation();onPreviewAssessment(item)}}>
                   {item.type==='exam'?<GraduationCap size={11}/>:<ClipboardList size={11}/>}
                 </button>)}
                 {dayItems.length>2&&<span className="uf-week-assessment-more">+{dayItems.length-2}</span>}
@@ -959,11 +1014,23 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
       </div>
     </div>}
     </div>
-    {monthOpen?<CalendarMonthOverview anchor={anchor} semesterId={semester.id}
-      assessments={data.assessments} modules={modules}
-      onBack={()=>setMonthOpen(false)}
-      onSelectDate={date=>{setAnchor(date);setMode('day');setMonthOpen(false)}}
-      onSelectAssessment={onEditAssessment}/>
+    {monthOpen?<div className="uf-month-swipe" onPointerDown={onMonthPointerDown}
+      onPointerUp={onMonthPointerUp} onPointerCancel={()=>{monthGesture.current=null}}
+      onClickCapture={e=>{if(Date.now()<suppressMonthTap.current){e.preventDefault();e.stopPropagation()}}}>
+      {monthTransition&&<div className={'uf-month-outgoing uf-month-exit-'+monthTransition.direction}
+        aria-hidden="true" inert>
+        <CalendarMonthOverview anchor={monthTransition.from} semesterId={semester.id}
+          assessments={data.assessments} modules={modules} onBack={()=>{}} onSelectDate={()=>{}}
+          onSelectAssessment={()=>{}}/>
+      </div>}
+      <div key={anchor.slice(0,7)} className={monthTransition?'uf-month-incoming uf-month-enter-'+monthTransition.direction:''}>
+        <CalendarMonthOverview anchor={anchor} semesterId={semester.id}
+          assessments={data.assessments} modules={modules}
+          onBack={()=>setMonthOpen(false)}
+          onSelectDate={date=>{setAnchor(date);setMode('day');setMonthOpen(false)}}
+          onSelectAssessment={onPreviewAssessment}/>
+      </div>
+    </div>
     :<div className={"calendar-lanes calendar-lanes-"+mode+" calendar-motion-"+motion}>
       <div className="time-ruler"><button className="ruler-head" title="Heute" onClick={()=>setAnchor(today())}>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'})}</button>
         <div className="ruler-track" style={{height}}>{times.map((h,i)=><span key={h} style={{top:i*heightPerSlot}}>{String(h).padStart(2,'0')}:00</span>)}
@@ -1036,7 +1103,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
 }
 export default function App() {
   const [choiceAttendance,setChoiceAttendance] = useState<'replace'|'both'>('replace')
-  const [data, setData] = useState<AppData>(() => supabase ? { ...emptyData } : loadData()), [onboarding, setOnboarding] = useState(() => supabase ? true : !loadData().activeDegreeId), [page, setPage] = useState<Page>('dashboard'), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework'}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
+  const [data, setData] = useState<AppData>(() => supabase ? { ...emptyData } : loadData()), [onboarding, setOnboarding] = useState(() => supabase ? true : !loadData().activeDegreeId), [page, setPage] = useState<Page>('dashboard'), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework'}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
   const [pageDirection,setPageDirection]=useState<'forward'|'backward'>('forward')
   const navigatePage=(next:Page)=>{
     if(page===next)return
@@ -1311,6 +1378,7 @@ export default function App() {
   }
   const saveBackup = () => { const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `uniflow-backup-${today()}.json`; a.click(); URL.revokeObjectURL(url); note('Backup heruntergeladen.') }
   const readBackup = async (file?: File) => { if (!file) return; try { const raw = JSON.parse(await file.text()); if (!Array.isArray(raw.degrees) || !Array.isArray(raw.modules) || !Array.isArray(raw.offerings) || !Array.isArray(raw.semesters)) throw Error('Ungültiges Backup'); const converted = raw.version === 2 ? normalizeWorkspace(raw as AppData) : migrateLegacy(raw); if (!converted) throw Error('Ungültiges Backup'); setPendingBackup(converted) } catch { note('Diese Datei ist kein gültiges uniflow-Backup.') } }
+  const previewAssessment=data.assessments.find(item=>item.id===previewAssessmentId)
   if (!supabase) return <main className="auth-loading auth-config-missing"><div><h1>Verbindung einrichten.</h1><p>uniflow benötigt ein Supabase-Konto. Trage VITE_SUPABASE_URL und VITE_SUPABASE_PUBLISHABLE_KEY in der Datei .env.local ein und starte Vite neu.</p></div></main>
   if (!authReady) return <div className="auth-loading">uniflow wird geladen …</div>
   if (!user) return <><AuthScreen/>{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(null)}/>}</>
@@ -1328,7 +1396,7 @@ export default function App() {
         onPlan={(task:LearningPlanTask)=>mutate(d=>({...d,learningPlans:[...(d.learningPlans||[]),task]}))}
         onRemovePlan={id=>mutate(d=>({...d,learningPlans:(d.learningPlans||[]).filter(p=>p.id!==id)}))}
       />}
-      {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={setRatingOccurrence} onEditAssessment={setEditingAssessment} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
+      {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={setRatingOccurrence} onPreviewAssessment={item=>setPreviewAssessmentId(item.id)} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
       {page === 'mail' && <MailPrototype/>}
       {page === 'modules' && !selectedModuleId && <ModuleHub degree={degree} modules={degreeModules} assessments={data.assessments} journeys={journeysByModule} currentSemesterId={semester?.id||''} creditsPassed={creditsPassed} average={average} onAdd={()=>setNewModule(true)} editing={newModule} onEdit={m=>setSelectedModuleId(m.id)} newName={newName} setNewName={setNewName} newCredits={newCredits} setNewCredits={setNewCredits} saveNewModule={saveNewModule} cancelNew={()=>setNewModule(false)} />}
       {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleScheduleEditor
@@ -1392,6 +1460,12 @@ export default function App() {
     </div>
     <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Heute', icon: Layers2 }, { id: 'calendar', name: 'Plan', icon: CalendarDays }, { id: 'modules', name: 'Module', icon: BookOpen }, { id: 'mail', name: 'Postfach', icon: Mail }, { id: 'settings', name: 'Einstellungen', icon: Settings2 }] as const).map(item => <button key={item.id} className={page === item.id || (page === 'admin' && item.id === 'settings') ? 'active' : ''} onClick={() => navigatePage(item.id)}><item.icon size={21} /><span>{item.name}</span></button>)}</nav>
     {assessmentDraft&&semester&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={semester} modules={semesterModules} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:[...d.assessments,assessment]}));setAssessmentDraft(null);note(assessment.type==='exam'?'Klausur hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
+    {previewAssessment&&<AssessmentPreview item={previewAssessment}
+      module={semesterModules.find(m=>m.id===previewAssessment.moduleId)}
+      onClose={()=>setPreviewAssessmentId(null)}
+      onToggle={()=>mutate(d=>({...d,assessments:d.assessments.map(item=>
+        item.id===previewAssessment.id?{...item,completed:!item.completed}:item)}))}
+      onEdit={()=>{setEditingAssessment(previewAssessment);setPreviewAssessmentId(null)}}/>}
     {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={semester} modules={semesterModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:d.assessments.map(x=>x.id===assessment.id?assessment:x)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
     {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Klausur löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“ am {formDate(deletingAssessment.date)} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>({...d,assessments:d.assessments.filter(x=>x.id!==deletingAssessment.id)}));setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
     {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }] })); note('Modul hinzugefügt.') } return id }} />}

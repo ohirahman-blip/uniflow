@@ -32,3 +32,20 @@
   .uf-month-pill svg{display:none}
   .uf-month-day{height:24px;width:24px}
 }
+
+/* Slide adjacent months as full panels; no timetable event changes. */
+.uf-month-swipe{position:relative;overflow:hidden;touch-action:pan-y;overscroll-behavior-x:contain}
+.uf-month-outgoing{position:absolute;inset:0;pointer-events:none;z-index:1;will-change:transform}
+.uf-month-incoming{position:relative;z-index:2;will-change:transform}
+.uf-month-enter-next{animation:uf-month-in-next 360ms cubic-bezier(.22,.78,.22,1) both}
+.uf-month-enter-previous{animation:uf-month-in-previous 360ms cubic-bezier(.22,.78,.22,1) both}
+.uf-month-exit-next{animation:uf-month-out-next 360ms cubic-bezier(.22,.78,.22,1) both}
+.uf-month-exit-previous{animation:uf-month-out-previous 360ms cubic-bezier(.22,.78,.22,1) both}
+@keyframes uf-month-in-next{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes uf-month-in-previous{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+@keyframes uf-month-out-next{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@keyframes uf-month-out-previous{from{transform:translateX(0)}to{transform:translateX(100%)}}
+@media(prefers-reduced-motion:reduce){
+  .uf-month-incoming,.uf-month-outgoing{animation:none!important}
+  .uf-month-outgoing{display:none}
+}

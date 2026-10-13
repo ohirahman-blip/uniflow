@@ -180,3 +180,40 @@ html[data-theme='light'] .mail-bubble,html[data-theme='light'] .mail-compose-box
 html[data-theme='light'] .mail-bubble p,html[data-theme='light'] .mail-thread-main strong{color:#171717}
 html[data-theme='light'] .mail-search input,html[data-theme='light'] .mail-compose-box textarea{color:#171717}
 html[data-theme='light'] .mail-avatar{background:#e2e2e2;color:#202020}
+
+/* Entire Postfach is true black; only text and controls are gray. */
+.uf-page-mail,.uf-page-mail .mail-prototype,.uf-page-mail .mail-layout,
+.uf-page-mail .mail-inbox,.uf-page-mail .mail-conversation,
+.uf-page-mail .mail-conversation-header,.uf-page-mail .mail-compose{
+  background:#000!important;
+}
+.mail-inbox-heading strong{
+  font-size:12px;font-weight:700;line-height:1.4;
+  letter-spacing:1.8px;text-transform:uppercase;color:#a4a4ad;
+}
+.mail-conversation-header,.mail-compose,.mail-inbox-bottom{border:0!important}
+@media(max-width:760px){
+  /* Older height math left the composer below the fixed bottom tabs.
+     Use viewport-fixed top/bottom anchors, including home-screen safe areas. */
+  .uf-page-mail.uf-page-enter-forward,.uf-page-mail.uf-page-enter-backward{
+    animation:none!important;transform:none!important;
+  }
+  .uf-page-mail{
+    position:fixed;left:0;right:0;top:57px;
+    bottom:calc(66px + env(safe-area-inset-bottom,0px));
+    height:auto!important;min-height:0!important;
+    z-index:2;overflow:hidden;
+  }
+  .uf-page-mail .mail-layout,.uf-page-mail .mail-prototype{
+    height:100%!important;max-height:100%;min-height:0;
+  }
+  .uf-page-mail .mail-conversation{height:100%;min-height:0}
+  .uf-page-mail .mail-messages{min-height:0;flex:1 1 auto;overflow-y:auto}
+  .uf-page-mail .mail-compose{flex:0 0 auto;padding:11px 12px 9px}
+}
+@media(max-width:760px) and (display-mode:standalone){
+  .uf-page-mail{top:calc(57px + max(env(safe-area-inset-top,0px),14px))}
+}
+@media(max-width:760px) and (display-mode:fullscreen){
+  .uf-page-mail{top:calc(57px + max(env(safe-area-inset-top,0px),14px))}
+}

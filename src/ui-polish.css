@@ -394,3 +394,25 @@ input.line-input.room-input {font-family:inherit;font-size:14px;font-weight:500;
   .app-main{padding-top:max(env(safe-area-inset-top,0px),14px)}
   .screen-calendar{padding-top:18px}
 }
+
+/* Seamless header/footer bars throughout the app: no harsh separator lines. */
+.app-top{border-bottom:0!important}
+@media(max-width:720px){
+  .mobile-navigation{
+    border-top:0!important;
+    background:#171717;
+    overflow:visible;
+  }
+  .mobile-navigation::after{
+    content:'';position:absolute;left:0;right:0;
+    height:30px;top:-30px;z-index:-1;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(0,0,0,0),#171717);
+  }
+}
+
+/* A deadline preview is intentionally calmer than the full editor. */
+.uf-assessment-preview{display:flex;flex-direction:column;gap:11px;padding:2px 0 10px}
+.uf-assessment-preview-kind{display:inline-flex;align-items:center;gap:7px;color:#a7a7ae;font-size:12px;font-weight:650}
+.uf-assessment-preview h2{font-size:22px;letter-spacing:-.6px;color:#f4f4f5;font-weight:750;margin:3px 0 0;overflow-wrap:anywhere}
+.uf-assessment-preview>p{font-size:13px;line-height:1.5;color:#a9a9b0;margin:0}
+.uf-assessment-preview-toggle{margin-top:14px;width:100%;justify-content:flex-start}
