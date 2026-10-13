@@ -54,7 +54,7 @@ function safePreview(raw:unknown){
   return {topics,errors}
 }
 Deno.serve(async(req)=>{
-  if(req.method==='OPTIONS')return new Response('',{status:204,headers:headers(req)})
+  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:headers(req)})
   if(req.method!=='POST')return reply(req,405,{error:'METHOD_NOT_ALLOWED'})
   const origin=req.headers.get('origin')
   if(origin&&!origins.includes(origin))return reply(req,403,{error:'ORIGIN_NOT_ALLOWED'})

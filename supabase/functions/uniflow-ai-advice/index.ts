@@ -61,7 +61,7 @@ const reply=(req:Request,code:number,payload:Plain)=>
   new Response(JSON.stringify(payload),{status:code,headers:cors(req)})
 
 Deno.serve(async req=>{
-  if(req.method==='OPTIONS')return new Response('',{status:204,headers:cors(req)})
+  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors(req)})
   if(req.method!=='POST')return reply(req,405,{error:'METHOD_NOT_ALLOWED'})
   // Do not allow access via JS from arbitrary third-party origins.
   const origin=req.headers.get('origin')

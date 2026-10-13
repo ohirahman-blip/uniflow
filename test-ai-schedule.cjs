@@ -39,6 +39,7 @@ assert.throws(()=>parseAiSchedulePreview(forbidden),'Model cannot create arbitra
 assert.throws(()=>parseAiSchedulePreview({preview:{topics:[],errors:[]}}))
 const editor=fs.readFileSync('src/ModuleScheduleEditor.tsx','utf8')
 const edge=fs.readFileSync('supabase/functions/uniflow-ai-schedule/index.ts','utf8')
+const adviceEdge=fs.readFileSync('supabase/functions/uniflow-ai-advice/index.ts','utf8')
 const docs=fs.readFileSync('docs/DEEPSEEK_SETUP.md','utf8')
 for(const [name,value] of [['editor',editor],['edge',edge]]){
  const parsed=ts.transpileModule(value,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext,
@@ -51,6 +52,8 @@ assert.match(editor,/parseAiSchedulePreview\(preview\)/,'Editable response valid
 assert.match(editor,/setQuickError\(/,'Errors shown rather than silently falling back')
 assert.match(editor,/module-fast-ai-slot/,'User can correct proposed schedule')
 assert.doesNotMatch(editor,/previewTimer\.current=setTimeout/,'No fake AI delay')
+assert.match(edge,/new Response\(null,\{status:204,headers:headers\(req\)\}\)/,'Schedule preflight must have no body')
+assert.match(adviceEdge,/new Response\(null,\{status:204,headers:cors\(req\)\}\)/,'Advice preflight must have no body')
 assert.match(edge,/auth\.getUser\(token\)/)
 assert.match(edge,/select\('premium'\)/)
 assert.match(edge,/rpc\('uniflow_consume_ai_quota'\)/)
