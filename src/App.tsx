@@ -1,11 +1,11 @@
-import { createPortal, flushSync } from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Menu, Plus, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, weekStart, type Alternative, type Assessment, type AppData, type CalendarView, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
-import { adjacentCalendarPage, alignCalendarStart, datesForCalendarPage, weekHeaderDates } from './calendar-navigation'
+import { adjacentCalendarPage, alignCalendarStart, datesForCalendarPage, twoDayRail, weekHeaderDates } from './calendar-navigation'
 import UniflowPicker from './UniflowPicker'
 import LearningDashboard from './LearningDashboard'
 import { journeyFor, pastLessons, type Journey, type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask } from './learning'
@@ -611,17 +611,27 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     calendarPageStart,
     adjacentCalendarPage(calendarPageStart,mode,1,data.weekEndDay)
   ],[calendarPageStart,mode,data.weekEndDay])
+  // The 2-day timeline is ONE continuous rail: shared dates are drawn once.
+  const dayRail=useMemo(()=>twoDayRail(calendarPageStart,data.weekEndDay),[calendarPageStart,data.weekEndDay])
+  const snapTarget=(slot:0|1|2,width:number)=>mode==='two'
+    ?dayRail.offsets[slot]*width/2
+    :slot*width
   const times=Array.from({length:Math.max(1,Math.floor((data.lastHour-data.firstHour)/2))},(_,i)=>data.firstHour+i*2)
   const heightPerSlot=mode==='week'?82:114
   const height=times.length*heightPerSlot
   const offsetY=(time:string)=>(minutes(time)-data.firstHour*60)/120*heightPerSlot
   const nowY=offsetY(timeString(clockNow.getHours()*60+clockNow.getMinutes()))
-  // Native scroll snapping plus one deterministic page reset. No recursive scroll changes.
+  // Reset to the center window before the browser paints the new anchor.
   useLayoutEffect(()=>{
     const el=scroller.current;if(!el)return
     scrollReset.current=true
-    el.style.scrollSnapType='none';el.scrollLeft=el.clientWidth
-    requestAnimationFrame(()=>{el.style.scrollSnapType='x mandatory';scrollReset.current=false})
+    el.style.scrollSnapType='none'
+    el.scrollLeft=snapTarget(1,el.clientWidth)
+    const frame=requestAnimationFrame(()=>{
+      el.style.scrollSnapType='x mandatory'
+      scrollReset.current=false
+    })
+    return()=>cancelAnimationFrame(frame)
   },[calendarPageStart,mode,data.weekEndDay])
   useEffect(()=>()=>{
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
@@ -638,17 +648,33 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
       motionTimers.current.push(setTimeout(()=>setMotion('idle'),220))
     },130))
   }
+  const settleScroll=()=>{
+    const el=scroller.current
+    if(!el||scrollReset.current)return
+    const targets=([0,1,2] as const).map(slot=>snapTarget(slot,el.clientWidth))
+    const nearest=targets.reduce((best,point,i)=>Math.abs(point-el.scrollLeft)<Math.abs(targets[best]-el.scrollLeft)?i:best,1)
+    if(nearest!==1){
+      scrollReset.current=true
+      setAnchor(pages[nearest])
+    }
+  }
   const onScroll=()=>{
     if(fan)setFan(null)
     if(scrollReset.current||!scroller.current)return
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
-    scrollTimeout.current=setTimeout(()=>{
-      const el=scroller.current;if(!el||scrollReset.current)return
-      const page=Math.max(0,Math.min(2,Math.round(el.scrollLeft/Math.max(1,el.clientWidth))))
-      if(page!==1) {scrollReset.current=true;setAnchor(pages[page])}
-    },105)
+    scrollTimeout.current=setTimeout(settleScroll,170)
   }
-  const jump=(direction:number)=>{setFan(null);if(scrollTimeout.current)clearTimeout(scrollTimeout.current);animateCalendar(()=>setAnchor(adjacentCalendarPage(calendarPageStart,mode,direction>0?1:-1,data.weekEndDay)),direction>0?'left':'right')}
+  const jump=(direction:number)=>{
+    setFan(null)
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    const el=scroller.current
+    if(!el||window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      setAnchor(pages[direction>0?2:0]);return
+    }
+    // Arrows animate the actual scrollable columns, just like touch swipes.
+    el.scrollTo({left:snapTarget(direction>0?2:0,el.clientWidth),behavior:'smooth'})
+    scrollTimeout.current=setTimeout(settleScroll,480)
+  }
   const chooseStripDate=(date:string)=>{
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
     setFan(null)
@@ -661,7 +687,9 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     }
     const selected=alignCalendarStart(date,mode,data.weekEndDay)
     if(selected===calendarPageStart)return
-    animateCalendar(()=>setAnchor(selected),selected>calendarPageStart?'left':'right')
+    if(selected===pages[0]){jump(-1);return}
+    if(selected===pages[2]){jump(1);return}
+    setAnchor(selected)
   }
   const changeMode=(next:CalendarView)=>{setFan(null);if(next!==mode)animateCalendar(()=>{
     setAnchor(alignCalendarStart(anchor,next,data.weekEndDay))
@@ -859,10 +887,17 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           {visibleDays(pages[1]).includes(today())&&nowY>=0&&nowY<=height&&<div className="now-ruler-line" style={{top:nowY}} aria-hidden="true"/>}
         </div>
       </div>
-      <div className="snap-viewport" ref={scroller} onScroll={onScroll}><div className="snap-pages">{pages.map((start,index)=>{
-        const days=visibleDays(start)
-        return <div className="snap-page" key={`${index}-${start}`}><div className={'days-grid mode-'+mode} style={{gridTemplateColumns:`repeat(${days.length},minmax(0,1fr))`}}>{days.map(date=>renderDay(date,mode==='week'))}</div></div>
-      })}</div></div>
+      <div className={'snap-viewport'+(mode==='two'?' snap-two-view':'')} ref={scroller} onScroll={onScroll}>
+        {mode==='two'
+          ? <div className="two-day-track">
+              {dayRail.dates.map((date,index)=><div key={date} className={'two-day-cell mode-two'+(dayRail.offsets.includes(index)?' two-day-snap':'')}>{renderDay(date,false)}</div>)}
+            </div>
+          : <div className="snap-pages">{pages.map((start,index)=>{
+              const days=visibleDays(start)
+              return <div className="snap-page" key={`${index}-${start}`}><div className={'days-grid mode-'+mode} style={{gridTemplateColumns:`repeat(${days.length},minmax(0,1fr))`}}>{days.map(date=>renderDay(date,mode==='week'))}</div></div>
+            })}</div>
+        }
+      </div>
     </div>
     {dragUI&&createPortal(<div className="drag-overlay wallet-drag-badge"><Grip size={16}/>{dragUI.occ.offering.name} · {dragUI.from}</div>,document.body)}
     {proposal&&<MoveScope proposal={proposal} onClose={()=>setProposal(null)} onConfirm={confirmScope} mode="move"/>}
@@ -919,18 +954,11 @@ export default function App() {
   const navigatePage=(next:Page)=>{
     if(page===next)return
     const order:Page[]=['dashboard','calendar','modules','settings','admin']
-    const direction=order.indexOf(next)>order.indexOf(page)?'forward':'backward'
-    const apply=()=>{setPageDirection(direction);setPage(next);window.scrollTo(0,0)}
-    const doc=document as Document & {startViewTransition?:(update:()=>void)=>{finished:Promise<void>}}
-    if(doc.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-      document.documentElement.dataset.navDirection=direction
-      document.documentElement.dataset.navTransition='on'
-      const transition=doc.startViewTransition(()=>flushSync(apply))
-      void transition.finished.finally(()=>{
-        delete document.documentElement.dataset.navDirection
-        delete document.documentElement.dataset.navTransition
-      })
-    }else apply()
+    setPageDirection(order.indexOf(next)>order.indexOf(page)?'forward':'backward')
+    // Root-level View Transitions captured the fixed bottom tab bar and briefly
+    // placed it behind the switching page. Animate only the content instead.
+    setPage(next)
+    window.scrollTo(0,0)
   }
   const [user, setUser] = useState<User | null>(null)
   const [authReady, setAuthReady] = useState(false)
