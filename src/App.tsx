@@ -333,21 +333,20 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
   }
   return <BottomSheet title={existing?'Eintrag bearbeiten':type==='exam'?'Neue Klausur':'Neue Hausaufgabe'} onClose={onClose}
     footer={<button className="primary-action" onClick={save}>{existing?'Speichern':'Hinzufügen'}<Check size={18}/></button>}>
-    <div className="editor-field"><span className="field-label">Art</span><div className="category-list">
-      <button className={type==='exam'?'chosen':''} onClick={()=>{setType('exam');setHasTime(true)}}><GraduationCap size={16}/> Klausur</button>
-      <button className={type==='homework'?'chosen':''} onClick={()=>{setType('homework');setHasTime(false)}}><ClipboardList size={16}/> Hausaufgabe</button>
-    </div></div>
+    <div className="uf-entry-form">
+    <div className="editor-field"><span className="field-label">Art</span><UniflowPicker label="Eintragsart" value={type} options={[{value:'exam',label:'Klausur'},{value:'homework',label:'Hausaufgabe'}]} onChange={value=>{setType(value as 'exam'|'homework');setHasTime(value==='exam')}}/></div>
     <div className="editor-field"><span className="field-label">Titel</span><input autoFocus className="line-input" value={title} placeholder={type==='exam'?'z. B. Analysis 1 – Klausur':'z. B. Übungsblatt 4 abgeben'} onChange={e=>setTitle(e.target.value)}/></div>
     <div className="editor-field"><span className="field-label">Modul</span><button className="big-choice" onClick={()=>setPicker(v=>!v)}><span>{chosen?.name||'Kein Modul'}</span><ChevronDown size={18}/></button>
       {picker&&<div className="module-dropdown"><div className="module-pick-list"><button onClick={()=>{setModuleId('');setPicker(false)}}>Ohne Modul</button>
         {modules.map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}</div></div>}
     </div>
-    <div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><DateControl value={date} min={semester.start} max={semester.end} onChange={setDate}/></div>
+    <div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={semester.end} onChange={setDate}/></div>
     <div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>
-    {hasTime&&<div className="editor-time-row"><TimeControl label="Beginn" value={from} onChange={setFrom}/><span className="time-divider">–</span><TimeControl label="Ende" value={to} onChange={setTo}/></div>}
+    {hasTime&&<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>}
     {type==='homework'&&<button className={'assessment-check '+(completed?'completed':'')} onClick={()=>setCompleted(v=>!v)}><span>{completed?<Check size={15}/>:null}</span>{completed?'Erledigt':'Als erledigt markieren'}</button>}
     {existing&&onDelete&&<button className="danger-simple" onClick={onDelete}><Trash2 size={18}/> {type==='exam'?'Klausur':'Hausaufgabe'} löschen</button>}
-    {err&&<p className="inline-error">{err}</p>}
+    {err&&<p className="inline-error" role="alert">{err}</p>}
+    </div>
   </BottomSheet>
 }
 
