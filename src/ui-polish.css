@@ -159,6 +159,11 @@ html[data-nav-direction='backward']::view-transition-new(uniflow-main-page) {ani
 .uf-entry-form .uf-entry-module-choice:focus-visible {border-color:#92909a;outline:none;}
 .uf-entry-module-choice,
 .uf-entry-form .big-choice {text-align:left;justify-content:space-between;gap:8px;}
+/* The module search/create panel needs more space than the half-width
+   collapsed selector; give the entire grid row to it while it is open. */
+.uf-entry-grid > .uf-entry-field:has(> .module-dropdown) {
+  grid-column:1/-1;
+}
 .uf-entry-module-choice span,
 .uf-entry-form .big-choice span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
 .uf-entry-module-choice svg,
