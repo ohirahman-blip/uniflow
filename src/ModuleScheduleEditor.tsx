@@ -21,8 +21,11 @@ type QuickPreview = { topics:QuickTopic[]; errors:string[] }
 const prettyLabel = (type:string,n:number) => type+' '+String(n).padStart(2,'0')
 const norm = (value:string) => value.toLocaleLowerCase('de-DE').replace(/[\s_-]/g,'').replace(/0+(\d+)$/, '$1')
 const durationOf = (o:Offering) => Math.max(1,minutes(o.to)-minutes(o.from))
-const initialDate = (semester:Semester, day:number) =>
-  addDays(semester.start,(day-weekday(semester.start)+7)%7)
+const firstDate = (semester:Semester) => today() > semester.start ? today() : semester.start
+const initialDate = (semester:Semester, day:number) => {
+  const start = firstDate(semester)
+  return addDays(start,(day-weekday(start)+7)%7)
+}
 const typeFromPrefix = (text:string) => {
   const p=text.toLocaleUpperCase('de-DE')
   if(p==='VL'||p==='VORLESUNG')return {prefix:'VL',category:'Vorlesung'}
@@ -128,7 +131,7 @@ export default function ModuleScheduleEditor({
     let n=1
     while(used.some(s=>norm(s)===norm(prettyLabel('VL',n))))n++
     const label=prettyLabel('VL',n)
-    const slot={day:0,from:'08:00',duration:120,room:''}
+    const slot={day:weekday(firstDate(semester)),from:'08:00',duration:120,room:''}
     const fresh=newOffering('',label,'Vorlesung',slot)
     fresh.contentId=fresh.id
     fresh.selected=!collides(fresh,offerings)
