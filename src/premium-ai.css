@@ -1,0 +1,99 @@
+/* KI UI is premium-only. Do not apply these accents to local/free advice. */
+.settings-ai-section {
+  background:linear-gradient(122deg,rgba(180,104,153,.09) 0%,rgba(249,79,114,.035) 42%,#161618 90%);
+  border:1px solid #303034;
+  border-radius:16px;
+  padding:19px 20px 17px;
+  margin-bottom:38px;
+}
+.settings-ai-heading {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:8px;
+}
+.settings-ai-icon {
+  display:grid;
+  place-items:center;
+  flex:0 0 35px;
+  width:35px;height:35px;
+  border-radius:11px;
+  color:#dfb8cb;
+  background:linear-gradient(135deg,#423039,#251f27);
+}
+.settings-ai-heading h2 {
+  margin:0 0 5px;
+  color:#eee;
+  font-size:17px;
+  letter-spacing:-.3px;
+}
+.settings-ai-heading p {
+  font-size:11px;
+  color:#a99ea7;
+  margin:0;
+}
+.settings-ai-choice {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:17px 0 12px;
+}
+.settings-ai-choice>span {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  max-width:430px;
+  min-width:0;
+}
+.settings-ai-choice strong {font-size:13px;font-weight:660;color:#e9e7e9}
+.settings-ai-choice small {
+  color:#9d9aa0;
+  font-size:11px;
+  line-height:1.5;
+}
+.settings-ai-toggle {
+  position:relative;
+  display:block;
+  flex:0 0 48px;
+  width:48px;
+  height:29px;
+  padding:3px;
+  border:1px solid #4b4b50;
+  border-radius:999px;
+  background:#29292d;
+  cursor:pointer;
+  transition:background 170ms,border-color 170ms;
+}
+.settings-ai-toggle span {
+  display:block;
+  width:21px;
+  height:21px;
+  border-radius:50%;
+  background:#bbbcc1;
+  transition:transform 190ms cubic-bezier(.2,.8,.3,1),background-color 170ms;
+}
+.settings-ai-toggle.is-on {
+  background:#af7a96;
+  border-color:#af7a96;
+}
+.settings-ai-toggle.is-on span {
+  transform:translateX(19px);
+  background:#fff;
+}
+.settings-ai-toggle:focus-visible {
+  outline:2px solid #e6c6d7;
+  outline-offset:3px;
+}
+.settings-ai-privacy {
+  margin:7px 0 0;
+  color:#85838b;
+  font-size:11px;
+  line-height:1.6;
+}
+@media(max-width:480px) {
+  .settings-ai-section {padding:16px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .settings-ai-toggle,.settings-ai-toggle span {transition:none;}
+}
