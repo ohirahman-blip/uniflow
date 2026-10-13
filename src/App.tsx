@@ -1166,6 +1166,7 @@ export default function App() {
   const ratingLesson=ratingOccurrence?lessonForOccurrence(ratingOccurrence,data):null
   const ratingTopic=ratingLesson?(data.lessonTopics||[]).find(topic=>topic.key===ratingLesson.key)?.title||'':''
   const ratingValue=ratingLesson?(data.learningCheckins||[]).find(checkin=>checkin.key===ratingLesson.key)?.rating:undefined
+  const ratingModule=ratingLesson?data.modules.find(m=>m.id===ratingLesson.moduleId):undefined
   const degree = data.degrees.find(d => d.id === data.activeDegreeId)
   const semester = data.semesters.find(s => s.id === data.activeSemesterId)
   const degreeModules = data.modules.filter(m => m.degreeId === degree?.id)
@@ -1339,6 +1340,11 @@ export default function App() {
     {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Klausur löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“ am {formDate(deletingAssessment.date)} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>({...d,assessments:d.assessments.filter(x=>x.id!==deletingAssessment.id)}));setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
     {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }] })); note('Modul hinzugefügt.') } return id }} />}
     {ratingLesson&&ratingOccurrence&&<BottomSheet title="Bewertung" onClose={()=>setRatingOccurrence(null)} compactHeader>
+      <div className="learn-checkin-heading" aria-label="Bewertung der Veranstaltung">
+        <div><strong style={{color:ratingModule?.color||"#ededed"}}>{ratingModule?.name||ratingOccurrence.offering.name}</strong>
+          <span>{ratingLesson.label} · {formatDate(ratingLesson.date,{day:'numeric',month:'short'})}</span></div>
+        <span className="learn-eyebrow">Wie lief's?</span>
+      </div>
       <LessonFeedback key={ratingLesson.key} lesson={ratingLesson} topic={ratingTopic} rating={ratingValue}
         canRate={canRateOccurrence(ratingOccurrence)} onTopic={saveLectureTopic} onRating={saveLectureRating}/>
     </BottomSheet>}
