@@ -152,7 +152,8 @@ export function journeyFor(data:AppData, module:StudyModule, allLessons:Learning
     if(!c||c.rating==='absent')return true
     const linked=sessions.filter(s=>s.lessonKey===x.key).sort((a,b)=>a.updatedAt.localeCompare(b.updatedAt))
     const latest=linked.length?linked[linked.length-1]:undefined
-    return (latest?ratingValue(latest.rating):ratingValue(c.rating))<75
+    const current=latest&&latest.updatedAt>c.updatedAt?latest.rating:c.rating
+    return ratingValue(current)<75
   })
   // Learning after class can replace a poor first impression. The initial check-in
   // stays in the history; only the current, documented assessment changes.
@@ -160,7 +161,10 @@ export function journeyFor(data:AppData, module:StudyModule, allLessons:Learning
     const initial=ratingValue(statuses.get(l.key)!.rating)
     const linked=sessions.filter(s=>s.lessonKey===l.key).sort((a,b)=>a.updatedAt.localeCompare(b.updatedAt))
     if(!linked.length)return sum+initial
-    const newest=ratingValue(linked[linked.length-1].rating)
+    const latest=linked[linked.length-1]
+    // An explicitly changed calendar rating wins over older study feedback.
+    if(statuses.get(l.key)!.updatedAt>=latest.updatedAt)return sum+initial
+    const newest=ratingValue(latest.rating)
     return sum+(linked.length>1?newest:0.2*initial+0.8*newest)
   },0)/known.length):null
   // General study can help a weak module, but without a linked topic we must
