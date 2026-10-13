@@ -920,7 +920,7 @@ export default function App() {
     if(page===next)return
     const order:Page[]=['dashboard','calendar','modules','settings','admin']
     const direction=order.indexOf(next)>order.indexOf(page)?'forward':'backward'
-    const apply=()=>{setPageDirection(direction);setPage(next)}
+    const apply=()=>{setPageDirection(direction);setPage(next);window.scrollTo(0,0)}
     const doc=document as Document & {startViewTransition?:(update:()=>void)=>{finished:Promise<void>}}
     if(doc.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
       document.documentElement.dataset.navDirection=direction
