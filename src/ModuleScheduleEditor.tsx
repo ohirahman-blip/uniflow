@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
-import { ArrowLeft, BookOpen, Check, ChevronDown, ClipboardPaste, Copy, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowLeft, BookOpen, Check, ChevronDown, ClipboardPaste, Copy, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
 import {
   addDays, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
   intersects, isAssessment, minutes, occurrenceAtOrigin, timeString, today, uid,
@@ -77,7 +77,7 @@ export function parseModuleQuickInput(raw:string, expectedModule:string):QuickPr
   return {topics,errors}
 }
 type Props = {
-  module:StudyModule;semester?:Semester;offerings:Offering[];journey?:Journey;
+  module:StudyModule;semester?:Semester;offerings:Offering[];journey?:Journey;premium:boolean;
   onBack:()=>void;onUpdateModule:(next:StudyModule)=>void;onDeleteModule:()=>void;
   onChangeOfferings:(next:Offering[])=>void;
   onOpenOccurrence:(occ:Occurrence)=>void;
@@ -85,7 +85,7 @@ type Props = {
   cloudStatus:'loading'|'saving'|'synced'|'error';cloudError:string;onRetrySync:()=>void;
 }
 export default function ModuleScheduleEditor({
-  module,semester,offerings,journey,onBack,onUpdateModule,onDeleteModule,
+  module,semester,offerings,journey,premium,onBack,onUpdateModule,onDeleteModule,
   onChangeOfferings,onOpenOccurrence,onClearException,cloudStatus,cloudError,onRetrySync
 }:Props) {
   const [quickText,setQuickText]=useState('')
@@ -95,6 +95,9 @@ export default function ModuleScheduleEditor({
   const [expandedTopics,setExpandedTopics]=useState<Record<string,boolean>>({})
   const [deleted,setDeleted]=useState<Offering[]>([])
   const [warning,setWarning]=useState('')
+  const [thinking,setThinking]=useState(false)
+  const previewTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
+  useEffect(()=>()=>{if(previewTimer.current)clearTimeout(previewTimer.current)},[])
   const imported=useRef(false)
   const own=useMemo(()=>offerings.filter(o=>
     o.moduleId===module.id&&o.semesterId===semester?.id&&!isAssessment(o.category)
@@ -187,7 +190,20 @@ export default function ModuleScheduleEditor({
     commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,contentLabel:label}:o))
   const recategorize=(items:Offering[],category:string)=>
     commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,category}:o))
+  const generatePreview=()=>{
+    if(!premium||!quickText.trim()||thinking)return
+    setPreview(null)
+    setThinking(true)
+    previewTimer.current=setTimeout(()=>{
+      // Deterministic parser, not a paid AI call. The premium loading cue only
+      // communicates that the free-text schedule is being interpreted.
+      setPreview(parseModuleQuickInput(quickText,module.name))
+      setThinking(false)
+      previewTimer.current=null
+    },700)
+  }
   const applyPreview=()=>{
+    if(!premium)return
     if(!preview||preview.errors.length||!preview.topics.length||imported.current)return
     imported.current=true
     const added:Offering[]=[]
@@ -247,28 +263,44 @@ export default function ModuleScheduleEditor({
       <button className="module-fast-remove" onClick={onDeleteModule}><Trash2 size={16}/> Modul löschen</button>
     </details>
 
-    <details className="module-fast-quick"><summary><ClipboardPaste size={18}/> Schnelleingabe <ChevronDown size={16}/></summary><div className="module-fast-quick-body">
-      <p>Beispiel: {module.name}: VL1 Mo 8 MA041 oder Di 10 MA043; VL2 Do 8 MA041</p>
-      <textarea rows={3} value={quickText} placeholder="VL1 Mo 8 MA041 oder Di 10 MA043; VL2 Do 8 MA041"
-        onChange={e=>{setQuickText(e.target.value);setPreview(null)}}/>
-      <button className="module-fast-preview-button" disabled={!quickText.trim()} onClick={()=>setPreview(parseModuleQuickInput(quickText,module.name))}>Vorschau anzeigen</button>
-      {preview&&<div className="module-fast-preview" role="region" aria-label="Vorschau Schnelleingabe">
-        <h3>Vorschau</h3>
-        {preview.topics.map(t=><div key={t.label}><strong>{t.label} · {t.category}</strong>
-          {t.slots.map((s,i)=><small key={i}>{dayNames[s.day]} {s.from}–{timeString(minutes(s.from)+s.duration)} · {s.room||'Ohne Raum'}</small>)}</div>)}
-        {preview.errors.map((message,i)=><p className="module-fast-warning" key={i}>{message}</p>)}
-        <div className="module-fast-preview-actions"><button onClick={()=>setPreview(null)}>Zurück</button>
-          <button className="module-fast-preview-button" disabled={!!preview.errors.length||!preview.topics.length} onClick={applyPreview}><Check size={16}/> Übernehmen</button>
+    {premium?
+      <details className="module-fast-quick module-fast-quick-premium">
+        <summary><Sparkles size={17}/> Schnelleingabe <span className="module-quick-premium-label">uniflow+</span><ChevronDown size={16}/></summary>
+        <div className="module-fast-quick-body">
+          <textarea rows={3} aria-label="Veranstaltungen per Schnelleingabe erfassen" value={quickText}
+            placeholder="Veranstaltungen, Wochentage, Zeiten und Räume eingeben …"
+            onChange={e=>{setQuickText(e.target.value);setPreview(null)}}/>
+          <button className="module-fast-preview-button" disabled={!quickText.trim()||thinking}
+            onClick={generatePreview}>{thinking?<><Sparkles size={16}/> Wird analysiert …</>:<><Sparkles size={16}/> Termine erkennen</>}</button>
+          {thinking&&<div className="module-quick-thinking" aria-live="polite" role="status">
+            <span className="module-quick-thinking-symbol"><Sparkles size={23}/></span>
+            <div><strong>Eingabe wird analysiert</strong><span>Veranstaltungen und Alternativen werden zugeordnet.</span></div>
+            <span className="module-quick-thinking-track" aria-hidden="true"><i/></span>
+          </div>}
+          {!thinking&&preview&&<div className="module-fast-preview" role="region" aria-label="Vorschau Schnelleingabe">
+            <h3>Vorschau</h3>
+            {preview.topics.map(t=><div key={t.label}><strong>{t.label} · {t.category}</strong>
+              {t.slots.map((s,i)=><small key={i}>{dayNames[s.day]} {s.from}–{timeString(minutes(s.from)+s.duration)} · {s.room||'Ohne Raum'}</small>)}</div>)}
+            {preview.errors.map((message,i)=><p className="module-fast-warning" key={i}>{message}</p>)}
+            <div className="module-fast-preview-actions"><button onClick={()=>setPreview(null)}>Zurück</button>
+              <button className="module-fast-preview-button" disabled={!!preview.errors.length||!preview.topics.length}
+                onClick={applyPreview}><Check size={16}/> Übernehmen</button>
+            </div>
+          </div>}
         </div>
+      </details>
+      :<div className="module-fast-quick-locked">
+        <span className="module-fast-quick-locked-icon"><Sparkles size={17}/></span>
+        <div><strong>Schnelleingabe <span>uniflow+</span></strong>
+          <small>Mehrere Veranstaltungen und Alternativen direkt aus Text übernehmen.</small></div>
+        <span className="module-fast-quick-lock-label">Premium</span>
       </div>}
-    </div></details>
-
 
     <div className="module-fast-section-head"><div><span className="overline">DEINE VERANSTALTUNGEN</span><h2>Vorlesungen & Übungen <small>{groups.length}</small></h2></div><button onClick={addTopic}><Plus size={17}/> Hinzufügen</button></div>
     <p className="module-fast-intro">Alle Gruppen bleiben erhalten. Bearbeite Zeiten direkt – Ende automatisch aus Beginn und Dauer.</p>
     {groups.map((group,index)=>{
       const first=group.offerings[0]
-      const expanded=expandedTopics[group.id]??(index===0)
+      const expanded=expandedTopics[group.id]??false
       return <section className={'module-fast-topic '+(expanded?'topic-expanded':'topic-collapsed')} key={group.id}>
         <div className="module-fast-topic-bar">
           <button type="button" className="module-fast-topic-toggle" aria-expanded={expanded} onClick={()=>setExpandedTopics(prev=>({...prev,[group.id]:!expanded}))}>
