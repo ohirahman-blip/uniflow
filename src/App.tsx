@@ -27,7 +27,7 @@ type Page = 'dashboard' | 'calendar' | 'modules' | 'mail' | 'settings' | 'admin'
 function BrandMark({premium,page}:{premium:boolean;page:Page}){
   return <span className={'uf-brandmark '+(premium?'uf-brandmark--plus':'uf-brandmark--free')}>
     <span className="uf-logo-word">uniflow</span>
-    <span className="uf-logo-plus" key={premium?page:'static'} aria-hidden="true">+</span>
+    <span className="uf-logo-plus" key={premium?page:'static'} aria-hidden="true"/>
   </span>
 }
 type NewEntry = { date: string; from: string; to: string; category?: string; recurrence?: Repeat }
