@@ -240,7 +240,7 @@ export default function ModuleScheduleEditor({
     let validated:QuickPreview
     try{validated=parseAiSchedulePreview(preview)}
     catch(error){setQuickError(error instanceof Error?error.message:'Bitte prüfe die Termine.');return}
-    if(validated.errors.length||!validated.topics.length)return
+    if(!validated.topics.length)return
     imported.current=true
     const added:Offering[]=[]
     for(const topic of validated.topics){
@@ -342,7 +342,7 @@ export default function ModuleScheduleEditor({
             </div>)}
             {preview.errors.map((message,i)=><p className="module-fast-warning" key={i}>{message}</p>)}
             <div className="module-fast-preview-actions"><button onClick={()=>setPreview(null)}>Zurück</button>
-              <button className="module-fast-preview-button" disabled={!!preview.errors.length||!preview.topics.length}
+              <button className="module-fast-preview-button" disabled={!preview.topics.length}
                 onClick={applyPreview}><Check size={16}/> Übernehmen</button>
             </div>
           </div>}

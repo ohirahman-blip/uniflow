@@ -73,6 +73,8 @@ assert.match(edge,/model:Deno\.env\.get\('DEEPSEEK_MODEL'\)\?\.trim\(\)\|\|'deep
 assert.match(edge,/MODEL_AUTH_ERROR|MODEL_RATE_LIMIT|MODEL_PAYMENT_REQUIRED/,'HTTP provider failures are classified')
 assert.match(adviceEdge,/MODEL_AUTH_ERROR|MODEL_RATE_LIMIT|MODEL_PAYMENT_REQUIRED/,'Both edge functions expose precise codes')
 assert.match(editor,/module-fast-ai-slot/,'User can correct proposed schedule')
+assert.match(editor,/disabled=\{!preview\.topics\.length\}/,'Valid recognized terms can be applied even with partial parsing warnings')
+assert.doesNotMatch(editor,/validated\.errors\.length\|\|!validated\.topics\.length/,'Partial parsing warnings cannot block importing valid terms')
 assert.match(editor,/<textarea ref=\{quickInputRef\} rows=\{1\}/,'Quick input starts at one line')
 assert.match(editor,/useLayoutEffect\(\(\)=>\{resizeQuickInput\(\)\},\[quickText\]\)/,'Quick input grows when its value changes')
 assert.match(editor,/field\.scrollHeight/,'Quick input measures its natural content height')
