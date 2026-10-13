@@ -66,3 +66,38 @@ export function adjacentCalendarPage(start: string, mode: CalendarView, directio
   if (nextIndex >= windows.length) return addDays(weekStart(anchor), 7 + windows[0])
   return addDays(weekStart(anchor), windows[nextIndex])
 }
+
+
+/** A single unbroken rail for the 2-day view, rather than three duplicated
+ * two-day pages. Consecutive windows share a day, which is inserted only ONCE.
+ * At the configured week boundary (Fr/Sa/So) the next week starts cleanly.
+ * Offsets are column indexes; each column is half the viewport width.
+ */
+export function twoDayRail(start: string, weekEndDay: number | undefined): {
+  dates: string[]
+  anchors: [string,string,string]
+  offsets: [number,number,number]
+} {
+  const current = alignCalendarStart(start, 'two', weekEndDay)
+  const previous = adjacentCalendarPage(current,'two',-1,weekEndDay)
+  const next = adjacentCalendarPage(current,'two',1,weekEndDay)
+  const anchors: [string,string,string] = [previous,current,next]
+  const dates: string[] = []
+  const offsets: number[] = []
+  for (const anchor of anchors) {
+    const windowDates = datesForCalendarPage(anchor,'two',weekEndDay)
+    const first = windowDates[0]
+    let index=dates.indexOf(first)
+    if(index<0) {
+      // Consecutive windows overlap only within a single workweek.
+      // A new week follows the last configured weekday, not Sunday placeholders.
+      index=dates.length
+      dates.push(first)
+    }
+    offsets.push(index)
+    for (const date of windowDates.slice(1)) {
+      if(!dates.includes(date)) dates.push(date)
+    }
+  }
+  return {dates,anchors,offsets:offsets as [number,number,number]}
+}
