@@ -2794,6 +2794,21 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .admin-mobile-back { display:none; }
 .admin-settings-link .settings-action { display:flex; align-items:center; gap:12px; width:100%; }
 .admin-settings-link .settings-action svg:last-child { margin-left:auto; }
+
+/* Mail unread badges and the two explicit push preferences. */
+.nav-icon-wrap{position:relative;display:inline-grid;place-items:center;flex:0 0 auto}
+.mail-nav-badge{position:absolute;left:12px;top:-8px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;box-sizing:border-box;display:grid;place-items:center;background:var(--uniflow-accent,#f94f72);color:#fff;font-style:normal;font-size:8px;line-height:1;font-weight:800;border:2px solid #080808}
+.notification-settings .setting-line>span{display:flex;flex-direction:column;gap:4px}
+.notification-settings .setting-line>span>strong{font-size:13px;color:#ededf0}
+.notification-settings .setting-line>span>small{font-size:10px;color:#777780;line-height:1.45;max-width:360px}
+.settings-switch{width:43px;height:25px;flex:0 0 43px;padding:3px;border:0;border-radius:99px;background:#333337;cursor:pointer;transition:background 180ms ease}
+.settings-switch>span{display:block;width:19px;height:19px;border-radius:50%;background:#a0a0a7;transition:transform 180ms ease,background 180ms ease}
+.settings-switch.is-on{background:var(--uniflow-accent,#f94f72)}
+.settings-switch.is-on>span{transform:translateX(18px);background:#fff}
+.settings-switch:focus-visible{outline:2px solid #fff;outline-offset:3px}
+html[data-theme='light'] .mail-nav-badge{border-color:#fff}
+html[data-theme='light'] .notification-settings .setting-line>span>strong{color:#171717}
+@media(prefers-reduced-motion:reduce){.settings-switch,.settings-switch>span{transition:none}}
 @media (max-width:720px) {
   .mobile-navigation { grid-template-columns:repeat(4,minmax(0,1fr)); }
   .mobile-navigation button { min-width:0; }
