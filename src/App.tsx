@@ -50,16 +50,6 @@ function useOutsideDismiss(open: boolean, onDismiss: () => void) {
   }, [open, onDismiss])
   return ref
 }
-function TimeControl({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false)
-  const wrap = useOutsideDismiss(open, () => setOpen(false))
-  const h = Number(value.split(':')[0]), m = Number(value.split(':')[1])
-  return <div className="time-control" ref={wrap}><span className="field-label">{label}</span>
-    <button type="button" className="time-trigger" aria-expanded={open} onClick={() => setOpen(v => !v)}>{value}<ChevronDown size={16}/></button>
-    {open && <div className="clock-menu"><div className="clock-list" aria-label="Stunde wählen">{Array.from({ length:24 },(_,i)=><button type="button" key={i} className={i===h?'picked':''} onClick={()=>onChange(timeString(i*60+m))}>{String(i).padStart(2,'0')}</button>)}</div>
-    <div className="clock-list" aria-label="Minute wählen">{[0,5,10,15,20,25,30,35,40,45,50,55].map(i=><button type="button" key={i} className={i===m?'picked':''} onClick={()=>{onChange(timeString(h*60+i));setOpen(false)}}>{String(i).padStart(2,'0')}</button>)}</div></div>}
-  </div>
-}
 function DateControl({value,onChange,min,max}:{value:string;onChange:(v:string)=>void;min?:string;max?:string}) {
   const [open,setOpen]=useState(false),[month,setMonth]=useState(()=>value.slice(0,7))
   const wrap=useOutsideDismiss(open,()=>setOpen(false))
