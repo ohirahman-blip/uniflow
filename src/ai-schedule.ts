@@ -67,7 +67,7 @@ export function parseAiSchedulePreview(value:unknown):AiSchedulePreview {
         throw new Error('Ungültige Wiederholung, Datum, Lehrperson oder Link in '+label+
           ' (Termin '+(slotIndex+1)+'). Einmalige Termine benötigen ein konkretes Datum.')
       return {day,from,duration,room:room.trim().slice(0,100),
-        recurrence,date,endDate,organizer:organizer.trim().slice(0,120),
+        recurrence:recurrence as AiScheduleSlot['recurrence'],date,endDate,organizer:organizer.trim().slice(0,120),
         onlineLink:onlineLink.trim()}
     })
     return {label,category,slots}
