@@ -22,6 +22,39 @@ assert.equal(output.topics.length,2)
 assert.equal(output.topics[0].slots.length,2,'Explicit options kept together')
 assert.equal(output.topics[1].category,'Übung')
 assert.equal(output.topics[0].slots[1].from,'10:30')
+// "Weitere Angaben" must survive model parsing, editing and import.
+const withExtras={preview:{topics:[{
+  label:'VL 02',category:'Vorlesung',slots:[
+    {day:3,from:'08:00',duration:120,room:'MA 041',recurrence:'once',
+      date:'2026-10-22',organizer:'Prof. Müller',onlineLink:'https://uni.example.edu/live'},
+    {day:4,from:'12:00',duration:90,room:'MA 042',recurrence:'biweekly',
+      date:'2026-10-23',endDate:'2026-12-18',organizer:'Dr. Aydin',onlineLink:''}
+  ]
+}],errors:[]}}
+const all=parseAiSchedulePreview(withExtras)
+assert.equal(all.topics[0].slots[0].recurrence,'once')
+assert.equal(all.topics[0].slots[0].date,'2026-10-22')
+assert.equal(all.topics[0].slots[0].organizer,'Prof. Müller')
+assert.equal(all.topics[0].slots[0].onlineLink,'https://uni.example.edu/live')
+assert.equal(all.topics[0].slots[1].recurrence,'biweekly')
+assert.equal(all.topics[0].slots[1].endDate,'2026-12-18')
+const withUntilOnly=JSON.parse(JSON.stringify(input))
+withUntilOnly.preview.topics[0].slots[0].endDate='2027-02-15'
+assert.equal(parseAiSchedulePreview(withUntilOnly).topics[0].slots[0].endDate,'2027-02-15')
+for(const extra of [
+  {recurrence:'once'}, // A one-time session without an explicit date must not recur by accident.
+  {recurrence:'sometimes'},
+  {recurrence:'once',date:'2026-02-30'},
+  {recurrence:'once',date:'2026-10-23'}, // Day and date conflict (Friday != Monday).
+  {recurrence:'once',date:'2026-10-19',endDate:'2026-10-26'},
+  {recurrence:'biweekly',date:'2026-10-19',endDate:'2026-10-12'},
+  {organizer:9},
+  {onlineLink:'javascript:alert(1)'}
+]){
+  const invalid=JSON.parse(JSON.stringify(input))
+  Object.assign(invalid.preview.topics[0].slots[0],extra)
+  assert.throws(()=>parseAiSchedulePreview(invalid),'Unsafe or ambiguous advanced fields must be rejected')
+}
 for(const invalid of [
   {day:7,from:'08:00',duration:120,room:''},
   {day:0,from:'25:00',duration:120,room:''},
@@ -73,6 +106,27 @@ assert.match(edge,/model:Deno\.env\.get\('DEEPSEEK_MODEL'\)\?\.trim\(\)\|\|'deep
 assert.match(edge,/MODEL_AUTH_ERROR|MODEL_RATE_LIMIT|MODEL_PAYMENT_REQUIRED/,'HTTP provider failures are classified')
 assert.match(adviceEdge,/MODEL_AUTH_ERROR|MODEL_RATE_LIMIT|MODEL_PAYMENT_REQUIRED/,'Both edge functions expose precise codes')
 assert.match(editor,/module-fast-ai-slot/,'User can correct proposed schedule')
+assert.match(edge,/organizer:clip\(organizer,120\),onlineLink:onlineLink\.trim\(\)/,
+  'Server safely preserves organizer and online URL in preview')
+assert.match(edge,/recurrence=x\?\.recurrence===undefined\?'weekly':x\.recurrence/,
+  'Edge Function validates repetition and defaults only when unspecified')
+assert.match(edge,/Wenn "einmalig" und kein konkretes Datum vorliegt/,
+  'AI prompt must not invent a date for one-time sessions')
+assert.match(edge,/Lehrperson\/Dozent\/Professorin/,
+  'AI prompt recognizes organizer from free-form text')
+assert.match(editor,/recurrence,overrides:\{\}/,
+  'Existing module offerings must save AI recurrence')
+assert.match(editor,/room:slot\.room,onlineLink:slot\.onlineLink\|\|'',organizer:slot\.organizer\|\|''/,
+  'AI online link and lecturer are persisted through normal module editor storage')
+assert.match(editor,/endDate:recurrence==='once'\?date:slot\.endDate/,
+  'One-time entry ends on the exact selected date')
+assert.match(editor,/if\(date<semester\.start\|\|date>semester\.end\|\|endDate<date\|\|endDate>semester\.end\)/,
+  'No schedule outside semester may be silently saved')
+assert.match(editor,/module-fast-ai-extras/,'Extra AI fields are editable before accepting')
+assert.match(editor,/>Lehrperson<input/,'Preview allows manually correcting a lecturer')
+assert.match(editor,/type="url" placeholder="https:\/\/…"/,'Preview has online-link input')
+assert.match(editor,/Einmalig<\/option>/,'Preview supports switching to one-time')
+assert.match(editor,/endDate===fresh\.endDate/,'Duplicate check includes duration and repetition period')
 assert.match(editor,/disabled=\{!preview\.topics\.length\}/,'Valid recognized terms can be applied even with partial parsing warnings')
 assert.doesNotMatch(editor,/validated\.errors\.length\|\|!validated\.topics\.length/,'Partial parsing warnings cannot block importing valid terms')
 assert.match(editor,/<textarea ref=\{quickInputRef\} rows=\{1\}/,'Quick input starts at one line')

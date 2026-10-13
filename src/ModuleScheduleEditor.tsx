@@ -121,19 +121,21 @@ export default function ModuleScheduleEditor({
   const update=(id:string,changes:Partial<Offering>)=>
     commit(own.map(o=>o.id===id?{...o,...changes}:o))
   const newOffering=(contentId:string,label:string,category:string,slot:Slot,selected=false):Offering=>{
-    const date=initialDate(semester,slot.day)
+    const date=slot.date||initialDate(semester,slot.day)
+    const recurrence=slot.recurrence||'weekly'
     const id=uid()
     return {
       id,semesterId:semester.id,moduleId:module.id,name:module.name,category,
       contentId,contentLabel:label,date,
-      endDate:semester.lectureEnd>=date?semester.lectureEnd:date,
+      endDate:recurrence==='once'?date:slot.endDate||(semester.lectureEnd>=date?semester.lectureEnd:date),
       from:slot.from,to:timeString(minutes(slot.from)+slot.duration),
-      recurrence:'weekly',overrides:{},scheduleChanges:[],
-      room:slot.room,onlineLink:'',organizer:'',selected
+      recurrence,overrides:{},scheduleChanges:[],
+      room:slot.room,onlineLink:slot.onlineLink||'',organizer:slot.organizer||'',selected
     }
   }
   const collides=(candidate:Offering,others:Offering[])=>{
     for(let date=candidate.date,i=0;i<150&&date<=candidate.endDate;i++,date=addDays(date,7)){
+      if(!candidateOccurrencesOn([candidate],date,true).length)continue
       if(candidateOccurrencesOn(others,date).some(x=>x.offering.semesterId===semester.id&&intersects(x,candidate)))return true
     }
     return false
@@ -241,6 +243,16 @@ export default function ModuleScheduleEditor({
     try{validated=parseAiSchedulePreview(preview)}
     catch(error){setQuickError(error instanceof Error?error.message:'Bitte prüfe die Termine.');return}
     if(!validated.topics.length)return
+    for(const topic of validated.topics){
+      for(const slot of topic.slots){
+        const date=slot.date||initialDate(semester,slot.day)
+        const endDate=slot.recurrence==='once'?date:slot.endDate||(semester.lectureEnd>=date?semester.lectureEnd:date)
+        if(date<semester.start||date>semester.end||endDate<date||endDate>semester.end){
+          setQuickError('Der Termin "'+topic.label+'" liegt außerhalb des Semesters oder endet vor seinem Beginn. Bitte prüfe Startdatum und „Bis“.')
+          return
+        }
+      }
+    }
     imported.current=true
     const added:Offering[]=[]
     for(const topic of validated.topics){
@@ -252,8 +264,10 @@ export default function ModuleScheduleEditor({
         const fresh=newOffering(contentId,topic.label,topic.category,slot,false)
         const duplicate=[...own,...added].some(o=>
           (o.contentId||o.familyId||o.id)===contentId&&
-          weekday(o.date)===slot.day&&o.from===fresh.from&&o.to===fresh.to&&
-          o.room.trim().toLocaleLowerCase('de-DE')===slot.room.trim().toLocaleLowerCase('de-DE')
+          o.date===fresh.date&&o.endDate===fresh.endDate&&
+          o.recurrence===fresh.recurrence&&o.from===fresh.from&&o.to===fresh.to&&
+          o.room.trim().toLocaleLowerCase('de-DE')===fresh.room.trim().toLocaleLowerCase('de-DE')&&
+          (o.organizer||'')===fresh.organizer&&(o.onlineLink||'')===fresh.onlineLink
         )
         if(duplicate)continue
         fresh.selected=current.length===0&&![...own,...added].some(o=>
@@ -305,7 +319,7 @@ export default function ModuleScheduleEditor({
         <summary><Sparkles size={17}/> Schnelleingabe <span className="module-quick-premium-label">uniflow+</span><ChevronDown size={16}/></summary>
         <div className="module-fast-quick-body">
           <textarea ref={quickInputRef} rows={1} aria-label="Veranstaltungen per Schnelleingabe erfassen" value={quickText}
-            placeholder="Veranstaltungen, Wochentage, Zeiten und Räume eingeben …"
+            placeholder="Termine, einmalig/14-täglich, Lehrperson, Links und Räume …"
             maxLength={3500}
             onChange={e=>{previewRequest.current?.abort();previewRequest.current=null;setThinking(false);setQuickText(e.target.value);setPreview(null);setQuickError('')}}/>
           <button className="module-fast-preview-button" disabled={!quickText.trim()||thinking}
@@ -338,6 +352,41 @@ export default function ModuleScheduleEditor({
                   value={s.duration} onChange={e=>updateQuickSlot(ti,si,{duration:Number(e.target.value)})}/></label>
                 <label>Raum<input aria-label={t.label+' Raum '+(si+1)} value={s.room} maxLength={100}
                   placeholder="Optional" onChange={e=>updateQuickSlot(ti,si,{room:e.target.value})}/></label>
+                <details className="module-fast-ai-extras">
+                  <summary>Weitere Angaben
+                    {(s.recurrence==='once'||s.recurrence==='biweekly'||s.organizer||s.onlineLink||s.endDate||s.date)&&
+                      <small>{[s.recurrence==='once'?'Einmalig':s.recurrence==='biweekly'?'14-täglich':'',
+                        s.organizer,s.date||s.endDate,s.onlineLink?'Online':''].filter(Boolean).join(' · ')}</small>}
+                    <ChevronDown size={14}/>
+                  </summary>
+                  <div className="module-fast-ai-extra-fields">
+                    <label>Lehrperson<input aria-label={t.label+' Lehrperson '+(si+1)} maxLength={120}
+                      value={s.organizer||''} placeholder="Optional"
+                      onChange={e=>updateQuickSlot(ti,si,{organizer:e.target.value})}/></label>
+                    <label>Online-Link<input aria-label={t.label+' Online-Link '+(si+1)} maxLength={500}
+                      type="url" placeholder="https://…" value={s.onlineLink||''}
+                      onChange={e=>updateQuickSlot(ti,si,{onlineLink:e.target.value})}/></label>
+                    <label>Wiederholung<select aria-label={t.label+' Wiederholung '+(si+1)}
+                      value={s.recurrence||'weekly'} onChange={e=>updateQuickSlot(ti,si,{
+                        recurrence:e.target.value as Repeat,
+                        endDate:e.target.value==='once'?'':s.endDate
+                      })}>
+                      <option value="weekly">Wöchentlich</option>
+                      <option value="biweekly">Alle 2 Wochen</option>
+                      <option value="once">Einmalig</option>
+                    </select></label>
+                    <label>{s.recurrence==='once'?'Datum *':'Startdatum (optional)'}
+                      <input aria-label={t.label+' Datum '+(si+1)} type="date"
+                        min={semester.start} max={semester.end} value={s.date||''}
+                        onChange={e=>updateQuickSlot(ti,si,{
+                          date:e.target.value,
+                          day:e.target.value?weekday(e.target.value):s.day
+                        })}/></label>
+                    {s.recurrence!=='once'&&<label>Bis (optional)<input type="date"
+                      aria-label={t.label+' Bis '+(si+1)} min={s.date||semester.start} max={semester.end}
+                      value={s.endDate||''} onChange={e=>updateQuickSlot(ti,si,{endDate:e.target.value})}/></label>}
+                  </div>
+                </details>
               </div>)}
             </div>)}
             {preview.errors.map((message,i)=><p className="module-fast-warning" key={i}>{message}</p>)}

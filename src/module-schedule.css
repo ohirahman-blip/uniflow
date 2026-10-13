@@ -382,3 +382,29 @@
  .module-fast .module-fast-ai-slot{grid-template-columns:repeat(2,minmax(0,1fr))}
  .module-fast .module-fast-ai-topic-head{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Advanced AI-suggested schedule fields stay inside the existing preview.
+   The rest of the module editor and calendar are unchanged. */
+.module-fast .module-fast-ai-extras{
+  grid-column:1/-1;min-width:0;
+  margin:1px 0 0;padding:9px 0 0;border-top:1px solid #333337;
+}
+.module-fast .module-fast-ai-extras>summary{
+  display:flex;align-items:center;gap:7px;list-style:none;
+  cursor:pointer;color:#b9b7bd;font-size:11px;font-weight:600;
+}
+.module-fast .module-fast-ai-extras>summary::-webkit-details-marker{display:none}
+.module-fast .module-fast-ai-extras>summary small{
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:#a6a2aa;font-size:10px;font-weight:400;
+}
+.module-fast .module-fast-ai-extras>summary svg{margin-left:auto;flex-shrink:0}
+.module-fast .module-fast-ai-extras[open]>summary svg{transform:rotate(180deg)}
+.module-fast .module-fast-ai-extra-fields{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;margin-top:13px;
+}
+.module-fast .module-fast-ai-extra-fields :is(input,select){font-size:12px}
+@media(max-width:400px){
+  .module-fast .module-fast-ai-extra-fields{grid-template-columns:minmax(0,1fr)}
+}
