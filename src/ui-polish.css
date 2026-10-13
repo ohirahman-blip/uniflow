@@ -395,19 +395,15 @@ input.line-input.room-input {font-family:inherit;font-size:14px;font-weight:500;
   .screen-calendar{padding-top:18px}
 }
 
-/* Seamless header/footer bars throughout the app: no harsh separator lines. */
+/* Flat, seamless app bars: black all the way, no gradient or divider. */
 .app-top{border-bottom:0!important}
 @media(max-width:720px){
   .mobile-navigation{
-    border-top:0!important;
-    background:#171717;
+    border:0!important;
+    background:#000;
     overflow:visible;
   }
-  .mobile-navigation::after{
-    content:'';position:absolute;left:0;right:0;
-    height:30px;top:-30px;z-index:-1;pointer-events:none;
-    background:linear-gradient(to bottom,rgba(0,0,0,0),#171717);
-  }
+  .mobile-navigation::after{content:none;display:none}
 }
 
 /* A deadline preview is intentionally calmer than the full editor. */

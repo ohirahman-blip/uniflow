@@ -210,6 +210,10 @@ html[data-theme='light'] .mail-avatar{background:#e2e2e2;color:#202020}
   .uf-page-mail .mail-conversation{height:100%;min-height:0}
   .uf-page-mail .mail-messages{min-height:0;flex:1 1 auto;overflow-y:auto}
   .uf-page-mail .mail-compose{flex:0 0 auto;padding:11px 12px 9px}
+  /* The fixed mailbox already starts immediately below the app header.
+     Do not add a second visual top gap inside its first row. */
+  .uf-page-mail .mail-inbox-heading{padding:8px 18px 12px}
+  .uf-page-mail .mail-conversation-header{padding-top:10px;padding-bottom:10px;min-height:57px}
 }
 @media(max-width:760px) and (display-mode:standalone){
   .uf-page-mail{top:calc(57px + max(env(safe-area-inset-top,0px),14px))}
