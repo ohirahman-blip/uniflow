@@ -1,0 +1,56 @@
+/* One quiet feedback surface for a single actual teaching occurrence. */
+.lesson-feedback{
+  margin:19px 0;
+  padding:17px 16px;
+  border:1px solid #29292d;
+  border-radius:14px;
+  background:#19191b;
+  color:#eeeeef;
+}
+.lesson-feedback-heading{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:11px;}
+.lesson-feedback-heading>span{display:inline-flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:-.1px;}
+.lesson-feedback-heading>span svg{color:#9f9fa4;}
+.lesson-feedback-heading>small{display:flex;align-items:center;gap:5px;color:#b0b0b6;font-size:10px;}
+.lesson-feedback-topic{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  height:43px;
+  padding:9px 11px;
+  background:#29292c;
+  border:1px solid transparent;
+  border-radius:9px;
+  color:#f6f6f6;
+  font:inherit;
+  font-size:13px;
+  outline:0;
+}
+.lesson-feedback-topic:focus-visible{border-color:#888890;}
+.lesson-feedback-topic::placeholder{color:#787881;}
+.lesson-feedback-note{font-size:11px;line-height:1.55;color:#88888f;margin:9px 0 0;}
+.lesson-feedback-prompt{color:#cacacf;font-size:12px;font-weight:600;margin:18px 0 11px;}
+.lesson-feedback-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;}
+.lesson-feedback-options button{
+  min-width:0;
+  min-height:43px;
+  padding:9px 5px;
+  border:1px solid #37373b;
+  border-radius:9px;
+  background:#29292c;
+  color:#c7c7cc;
+  font:inherit;
+  font-size:11px;
+  font-weight:600;
+  line-height:1.3;
+  cursor:pointer;
+}
+.lesson-feedback-options button.chosen{border-color:#d6d6da;color:#101013;background:#eeeeef;}
+.lesson-feedback-options button:hover:not(:disabled){border-color:#777781;}
+.lesson-feedback-options button:disabled{opacity:.46;cursor:not-allowed;}
+.lesson-feedback-compact{background:transparent;border:0;padding:4px 0 0;margin:0;}
+.lesson-feedback-compact .lesson-feedback-heading>span{font-size:11px;}
+.lesson-feedback-compact .lesson-feedback-topic{height:39px;font-size:12px;}
+@media(max-width:430px){
+ .lesson-feedback{padding:15px 12px;}
+ .lesson-feedback-options{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
