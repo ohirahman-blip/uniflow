@@ -25,15 +25,10 @@ export function shiftVisibleDay(date: string, amount: number, weekEndDay: number
   return current
 }
 
-/** Deterministic two-day windows. Odd-length weeks end with one overlapping
- * window (Thu/Fri for a Friday cutoff, Sat/Sun for a Sunday cutoff). */
-export const twoDayStarts = (weekEndDay: number | undefined): number[] => {
-  const finalStart = lastVisibleWeekday(weekEndDay) - 1
-  const result: number[] = []
-  for (let i = 0; i <= finalStart; i += 2) result.push(i)
-  if (result[result.length - 1] !== finalStart) result.push(finalStart)
-  return result
-}
+/** Two-day pages glide ONE day at a time: Mo/Di → Di/Mi → Mi/Do.
+ * The final pair stays inside the configured Fri/Sat/Sun cutoff. */
+export const twoDayStarts = (weekEndDay: number | undefined): number[] =>
+  Array.from({length:lastVisibleWeekday(weekEndDay)},(_,i)=>i)
 
 /** Keep both two-day columns inside the same configured workweek.
  * Selecting its final day shows it together with the preceding visible day. */

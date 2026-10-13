@@ -6,7 +6,7 @@ import './UniflowPicker.css'
 export type PickerOption = { value: string; label: string; detail?: string }
 type Shared = { value: string; onChange: (value: string) => void; label: string; placeholder?: string; disabled?: boolean }
 type Props =
-  | (Shared & { kind?: 'select'; options: PickerOption[] })
+  | (Shared & { kind?: 'select'; options: PickerOption[]; allowCustom?: boolean })
   | (Shared & { kind: 'time'; maxMinutes?: number })
   | (Shared & { kind: 'date'; min?: string; max?: string })
   | (Shared & { kind: 'duration'; maxMinutes?: number })
@@ -27,6 +27,8 @@ const minutesLabel = (n: number) => n === 120 ? '2 Stunden' : n >= 60
 export default function UniflowPicker(props: Props) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(props.value)
+  const [creatingCustom, setCreatingCustom] = useState(false)
+  const [customLabel, setCustomLabel] = useState('')
   const [month, setMonth] = useState(() => {
     const d = parseDate(props.value)
     return new Date(d.getFullYear(), d.getMonth(), 1)
@@ -44,6 +46,8 @@ export default function UniflowPicker(props: Props) {
   const openPicker = () => {
     if (props.disabled) return
     setDraft(props.value)
+    setCreatingCustom(false)
+    setCustomLabel('')
     if (kind === 'date') {
       const d = parseDate(props.value)
       setMonth(new Date(d.getFullYear(), d.getMonth(), 1))
@@ -105,6 +109,18 @@ export default function UniflowPicker(props: Props) {
             {options.map(option => <button type="button" key={option.value} className={'uf-picker-option ' + (draft === option.value ? 'selected' : '')} onClick={() => commit(option.value)} aria-pressed={draft === option.value}>
               <span><strong>{option.label}</strong>{option.detail && <small>{option.detail}</small>}</span>{draft === option.value && <Check size={17}/>}
             </button>)}
+            {'allowCustom' in props && props.allowCustom && <>
+              <button type="button" className={'uf-picker-option uf-picker-custom-toggle'+(creatingCustom?' selected':'')} onClick={() => setCreatingCustom(value=>!value)} aria-expanded={creatingCustom}>
+                <span><Plus size={16}/> Eigene Art hinzufügen</span>
+              </button>
+              {creatingCustom && <div className="uf-picker-custom-entry">
+                <label htmlFor="uf-custom-category">Bezeichnung</label>
+                <div className="uf-picker-custom-row">
+                  <input id="uf-custom-category" type="text" maxLength={45} autoFocus placeholder="z. B. Workshop oder Praktikum" value={customLabel} onChange={e=>setCustomLabel(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&customLabel.trim())commit(customLabel.trim())}}/>
+                  <button type="button" disabled={!customLabel.trim()} onClick={()=>commit(customLabel.trim())}><Check size={16}/> Übernehmen</button>
+                </div>
+              </div>}
+            </>}
           </div>}
           {kind === 'time' && <>
             <p className="uf-picker-helper">Uhrzeit auswählen</p>

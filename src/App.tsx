@@ -1,4 +1,4 @@
-import { createPortal } from 'react-dom'
+import { createPortal, flushSync } from 'react-dom'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Menu, Plus, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, weekStart, type Alternative, type Assessment, type AppData, type CalendarView, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
@@ -11,6 +11,7 @@ import LearningDashboard from './LearningDashboard'
 import { journeyFor, pastLessons, type Journey, type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask } from './learning'
 import './styles.css'
 import './calendar-week-strip.css'
+import './ui-polish.css'
 
 type Page = 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
 type NewEntry = { date: string; from: string; to: string; category?: string; recurrence?: Repeat }
@@ -48,16 +49,6 @@ function useOutsideDismiss(open: boolean, onDismiss: () => void) {
     return () => { document.removeEventListener('pointerdown', dismiss, true); document.removeEventListener('keydown', esc) }
   }, [open, onDismiss])
   return ref
-}
-function TimeControl({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false)
-  const wrap = useOutsideDismiss(open, () => setOpen(false))
-  const h = Number(value.split(':')[0]), m = Number(value.split(':')[1])
-  return <div className="time-control" ref={wrap}><span className="field-label">{label}</span>
-    <button type="button" className="time-trigger" aria-expanded={open} onClick={() => setOpen(v => !v)}>{value}<ChevronDown size={16}/></button>
-    {open && <div className="clock-menu"><div className="clock-list" aria-label="Stunde wählen">{Array.from({ length:24 },(_,i)=><button type="button" key={i} className={i===h?'picked':''} onClick={()=>onChange(timeString(i*60+m))}>{String(i).padStart(2,'0')}</button>)}</div>
-    <div className="clock-list" aria-label="Minute wählen">{[0,5,10,15,20,25,30,35,40,45,50,55].map(i=><button type="button" key={i} className={i===m?'picked':''} onClick={()=>{onChange(timeString(h*60+i));setOpen(false)}}>{String(i).padStart(2,'0')}</button>)}</div></div>}
-  </div>
 }
 function DateControl({value,onChange,min,max}:{value:string;onChange:(v:string)=>void;min?:string;max?:string}) {
   const [open,setOpen]=useState(false),[month,setMonth]=useState(()=>value.slice(0,7))
@@ -231,22 +222,80 @@ function Onboarding({ onDone, onInfo, catalog, onSignOut }: { onDone: (data: App
   </div></main>
 }
 function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModule }: { initial: NewEntry; modules: StudyModule[]; semester: Semester; onSave: (o: Offering) => void; onClose: () => void; onCreateModule: (name: string, credits: number) => string }) {
-  const [moduleId, setModuleId] = useState(modules[0]?.id || ''), [picker, setPicker] = useState(!modules.length), [draftModule, setDraftModule] = useState(''), [draftCredits, setDraftCredits] = useState('6'), [search, setSearch] = useState(''), [entryDate, setEntryDate] = useState(initial.date), [from, setFrom] = useState(initial.from), [to, setTo] = useState(initial.to), [repeat, setRepeat] = useState<Repeat>(initial.recurrence || (initial.category && isAssessment(initial.category) ? 'once' : 'weekly')), [category, setCategory] = useState(initial.category || 'Vorlesung'), [custom, setCustom] = useState(false), [end, setEnd] = useState(semester.lectureEnd), [room, setRoom] = useState(''), [onlineLink, setOnlineLink] = useState(''), [organizer, setOrganizer] = useState(''), [err, setErr] = useState('')
-  const current = modules.find(m => m.id === moduleId)
-  const categorySuggestions = ['Vorlesung', 'Übung', 'Tutorium', 'Freies Lernen']
-  const categoryValue = custom ? category.trim() : category
-  const save = () => { if (!moduleId && categoryValue !== 'Freies Lernen') { setErr('Bitte wähle zuerst ein Modul.'); return } if (minutes(to) <= minutes(from)) { setErr('Das Ende muss nach dem Beginn liegen.'); return } if (repeat !== 'once' && end < entryDate) { setErr('Das Wiederholungsende liegt vor dem ersten Termin.'); return } onSave({ id: uid(), semesterId: semester.id, moduleId: moduleId || '', name: current?.name || categoryValue, category: categoryValue || 'Sonstiges', date: entryDate, endDate: repeat === 'once' ? entryDate : end, from, to, recurrence: repeat, overrides: {}, room, onlineLink: onlineLink.trim(), organizer, selected: true }) }
-  return <BottomSheet title="Neuer Termin" onClose={onClose} footer={<button className="primary-action" onClick={save}>Hinzufügen <ArrowRight size={19} /></button>}>
-    <div className="editor-field"><span className="field-label">Datum</span><DateControl value={entryDate} onChange={setEntryDate}/></div>
-    <div className="editor-field"><span className="field-label">Modul</span><button className="big-choice" onClick={() => setPicker(x => !x)}><span>{current?.name || 'Modul auswählen'}</span><ChevronDown size={19} /></button>{picker && <div className="module-dropdown"><label className="search-field"><Search size={18} /><input placeholder="Module suchen" value={search} onChange={e => setSearch(e.target.value)} /></label><div className="module-pick-list">{modules.filter(m => m.name.toLowerCase().includes(search.toLowerCase())).map(m => <button key={m.id} onClick={() => { setModuleId(m.id); setPicker(false) }}><span className="color-mark" style={{ background: m.color }} />{m.name}{m.id === moduleId && <Check size={17} />}</button>)}<button onClick={() => { setModuleId(''); setCategory('Freies Lernen'); setPicker(false) }}><BookOpen size={17} />Ohne Modul (freie Lernzeit)</button></div><form className="quick-new-module" onSubmit={e => { e.preventDefault(); if (!draftModule.trim()) return; const id = onCreateModule(draftModule.trim(), ensureCredits(draftCredits)); setModuleId(id); setDraftModule(''); setPicker(false) }}><input placeholder="+ Neues Modul" value={draftModule} onChange={e => setDraftModule(e.target.value)} /><input type="number" aria-label="LP" min="0" step="0.5" value={draftCredits} onChange={e => setDraftCredits(e.target.value)} /><span>LP</span><button type="submit" aria-label="Modul erstellen"><Plus size={19} /></button></form></div>}</div>
-    <div className="editor-time-row"><TimeControl label="Beginn" value={from} onChange={setFrom} /><span className="time-divider">–</span><TimeControl label="Ende" value={to} onChange={setTo} /></div>
-    <div className="editor-field"><span className="field-label">Veranstaltungsart</span><div className="category-list">{categorySuggestions.map(item => <button key={item} className={category === item && !custom ? 'chosen' : ''} onClick={() => { setCategory(item); setCustom(false) }}>{item}</button>)}<button className={custom ? 'chosen' : ''} onClick={() => { setCustom(true); setCategory('') }}><Plus size={16} /> Eigene</button></div>{custom && <input autoFocus className="line-input" placeholder="Neue Kategorie eingeben" value={category} maxLength={45} onChange={e => setCategory(e.target.value)} />}</div>
-    <div className="editor-field"><span className="field-label">Wiederholung</span><div className="repeat-switch">{([{ key: 'once', text: 'Einmalig' }, { key: 'weekly', text: 'Wöchentlich' }, { key: 'biweekly', text: 'Alle 2 Wochen' }] as const).map(item => <button key={item.key} className={repeat === item.key ? 'selected' : ''} onClick={() => setRepeat(item.key)}>{item.text}</button>)}</div></div>
-    {repeat !== 'once' && <div className="editor-field"><span className="field-label">Wiederholen bis</span><DateControl value={end} min={initial.date} onChange={setEnd} /><small>Vorgeschlagen: Vorlesungsende. Du kannst das Datum ändern.</small></div>}
-    <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={room} onChange={e => setRoom(e.target.value)} /></div>
-    <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://meet.google.com/..." value={onlineLink} onChange={e => setOnlineLink(e.target.value)} /></div>
-    <div className="editor-field"><span className="field-label">Veranstalter <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. Prof. Mustermann" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
-    {err && <div className="inline-error">{err}</div>}
+  const [moduleId,setModuleId]=useState(modules[0]?.id||'')
+  const [picker,setPicker]=useState(!modules.length)
+  const [draftModule,setDraftModule]=useState('')
+  const [draftCredits,setDraftCredits]=useState('6')
+  const [search,setSearch]=useState('')
+  const [entryDate,setEntryDate]=useState(initial.date)
+  const [from,setFrom]=useState(initial.from)
+  const [to,setTo]=useState(initial.to)
+  const [repeat,setRepeat]=useState<Repeat>(initial.recurrence||(initial.category&&isAssessment(initial.category)?'once':'weekly'))
+  const [category,setCategory]=useState(initial.category||'Vorlesung')
+  const [content,setContent]=useState('')
+  const [end,setEnd]=useState(semester.lectureEnd)
+  const [room,setRoom]=useState('')
+  const [onlineLink,setOnlineLink]=useState('')
+  const [organizer,setOrganizer]=useState('')
+  const [err,setErr]=useState('')
+  const current=modules.find(m=>m.id===moduleId)
+  const categoryChoices=['Vorlesung','Übung','Tutorium','Seminar','Praktikum','Freies Lernen']
+  const categoryOptions=[...(!categoryChoices.includes(category)?[category]:[]),...categoryChoices]
+  const save=()=>{
+    const kind=category.trim()
+    if(!kind)return setErr('Bitte gib eine Veranstaltungsart an.')
+    if(!moduleId&&kind!=='Freies Lernen')return setErr('Bitte wähle zuerst ein Modul.')
+    if(entryDate<semester.start||entryDate>semester.end)return setErr('Das Datum liegt außerhalb des Semesters.')
+    if(minutes(to)<=minutes(from))return setErr('Das Ende muss nach dem Beginn liegen.')
+    if(repeat!=='once'&&end<entryDate)return setErr('Das Wiederholungsende liegt vor dem ersten Termin.')
+    onSave({
+      id:uid(),semesterId:semester.id,moduleId:moduleId||'',
+      name:current?.name||kind,category:kind,
+      ...(content.trim()?{contentLabel:content.trim()}:{}),
+      date:entryDate,endDate:repeat==='once'?entryDate:end,
+      from,to,recurrence:repeat,overrides:{},room,
+      onlineLink:onlineLink.trim(),organizer,selected:true
+    })
+  }
+  return <BottomSheet title="Neuer Termin" onClose={onClose} footer={<button className="primary-action" onClick={save}>Hinzufügen <ArrowRight size={19}/></button>}>
+    <div className="uf-entry-form">
+      <div className="uf-entry-grid">
+        <div className="uf-entry-field"><span className="field-label">Datum</span><UniflowPicker kind="date" label="Datum" value={entryDate} min={semester.start} max={semester.end} onChange={setEntryDate}/></div>
+        <div className="uf-entry-field"><span className="field-label">Modul</span>
+          <button type="button" className="uf-entry-module-choice" aria-expanded={picker} onClick={()=>setPicker(v=>!v)}><span>{current?.name||'Modul auswählen'}</span><ChevronDown size={17}/></button>
+          {picker&&<div className="module-dropdown"><label className="search-field"><Search size={17}/><input placeholder="Module suchen" value={search} onChange={e=>setSearch(e.target.value)}/></label><div className="module-pick-list">
+            {modules.filter(m=>m.name.toLowerCase().includes(search.toLowerCase())).map(m=><button type="button" key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}{m.id===moduleId&&<Check size={16}/>}</button>)}
+            <button type="button" onClick={()=>{setModuleId('');setCategory('Freies Lernen');setPicker(false)}}><BookOpen size={16}/> Ohne Modul (Freies Lernen)</button>
+          </div>
+          <form className="quick-new-module" onSubmit={e=>{e.preventDefault();if(!draftModule.trim())return;const id=onCreateModule(draftModule.trim(),ensureCredits(draftCredits));setModuleId(id);setDraftModule('');setPicker(false)}}>
+            <input placeholder="+ Neues Modul" value={draftModule} onChange={e=>setDraftModule(e.target.value)}/>
+            <input type="number" aria-label="Leistungspunkte" min="0" step="0.5" value={draftCredits} onChange={e=>setDraftCredits(e.target.value)}/><span>LP</span>
+            <button type="submit" aria-label="Modul erstellen"><Plus size={18}/></button>
+          </form></div>}
+        </div>
+      </div>
+      <div className="uf-entry-grid">
+        <div className="uf-entry-field"><span className="field-label">Inhalt <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. Vorlesung Teil 1" value={content} onChange={e=>setContent(e.target.value)}/></div>
+        <div className="uf-entry-field"><span className="field-label">Art</span><UniflowPicker label="Veranstaltungsart" value={category} allowCustom options={categoryOptions.map(value=>({value,label:value}))} onChange={setCategory}/></div>
+      </div>
+      <div className="uf-entry-grid">
+        <div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div>
+        <div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div>
+      </div>
+      <div className="uf-entry-grid">
+        <div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={repeat} onChange={value=>setRepeat(value as Repeat)} options={[{value:'once',label:'Einmalig'},{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'}]}/></div>
+        {repeat!=='once'&&<div className="uf-entry-field"><span className="field-label">Wiederholen bis</span><UniflowPicker kind="date" label="Wiederholen bis" value={end} min={entryDate} max={semester.end} onChange={setEnd}/></div>}
+      </div>
+      <details className="uf-entry-advanced">
+        <summary>Weitere Angaben <ChevronDown size={16}/></summary>
+        <div className="uf-entry-grid">
+          <div className="uf-entry-field"><span className="field-label">Raum</span><input className="line-input" placeholder="z. B. MA 041" value={room} onChange={e=>setRoom(e.target.value)}/></div>
+          <div className="uf-entry-field"><span className="field-label">Lehrperson</span><input className="line-input" placeholder="Name" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
+          <div className="uf-entry-field uf-entry-full"><span className="field-label">Online-Link</span><input className="line-input" type="url" inputMode="url" placeholder="https://..." value={onlineLink} onChange={e=>setOnlineLink(e.target.value)}/></div>
+        </div>
+      </details>
+      {err&&<div className="inline-error" role="alert">{err}</div>}
+    </div>
   </BottomSheet>
 }
 /** Unlike a scheduled teaching event, an assessment lives on a calendar date
@@ -275,21 +324,20 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
   }
   return <BottomSheet title={existing?'Eintrag bearbeiten':type==='exam'?'Neue Klausur':'Neue Hausaufgabe'} onClose={onClose}
     footer={<button className="primary-action" onClick={save}>{existing?'Speichern':'Hinzufügen'}<Check size={18}/></button>}>
-    <div className="editor-field"><span className="field-label">Art</span><div className="category-list">
-      <button className={type==='exam'?'chosen':''} onClick={()=>{setType('exam');setHasTime(true)}}><GraduationCap size={16}/> Klausur</button>
-      <button className={type==='homework'?'chosen':''} onClick={()=>{setType('homework');setHasTime(false)}}><ClipboardList size={16}/> Hausaufgabe</button>
-    </div></div>
+    <div className="uf-entry-form">
+    <div className="editor-field"><span className="field-label">Art</span><UniflowPicker label="Eintragsart" value={type} options={[{value:'exam',label:'Klausur'},{value:'homework',label:'Hausaufgabe'}]} onChange={value=>{setType(value as 'exam'|'homework');setHasTime(value==='exam')}}/></div>
     <div className="editor-field"><span className="field-label">Titel</span><input autoFocus className="line-input" value={title} placeholder={type==='exam'?'z. B. Analysis 1 – Klausur':'z. B. Übungsblatt 4 abgeben'} onChange={e=>setTitle(e.target.value)}/></div>
     <div className="editor-field"><span className="field-label">Modul</span><button className="big-choice" onClick={()=>setPicker(v=>!v)}><span>{chosen?.name||'Kein Modul'}</span><ChevronDown size={18}/></button>
       {picker&&<div className="module-dropdown"><div className="module-pick-list"><button onClick={()=>{setModuleId('');setPicker(false)}}>Ohne Modul</button>
         {modules.map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}</div></div>}
     </div>
-    <div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><DateControl value={date} min={semester.start} max={semester.end} onChange={setDate}/></div>
+    <div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={semester.end} onChange={setDate}/></div>
     <div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>
-    {hasTime&&<div className="editor-time-row"><TimeControl label="Beginn" value={from} onChange={setFrom}/><span className="time-divider">–</span><TimeControl label="Ende" value={to} onChange={setTo}/></div>}
+    {hasTime&&<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>}
     {type==='homework'&&<button className={'assessment-check '+(completed?'completed':'')} onClick={()=>setCompleted(v=>!v)}><span>{completed?<Check size={15}/>:null}</span>{completed?'Erledigt':'Als erledigt markieren'}</button>}
     {existing&&onDelete&&<button className="danger-simple" onClick={onDelete}><Trash2 size={18}/> {type==='exam'?'Klausur':'Hausaufgabe'} löschen</button>}
-    {err&&<p className="inline-error">{err}</p>}
+    {err&&<p className="inline-error" role="alert">{err}</p>}
+    </div>
   </BottomSheet>
 }
 
@@ -340,7 +388,7 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
 }) {
   const [moduleId,setModuleId]=useState(editing?.moduleId ?? (kind==='group'?occ.offering.moduleId:''))
   const [picker,setPicker]=useState(false),[search,setSearch]=useState('')
-  const [category,setCategory]=useState(editing?.category || occ.offering.category),[custom,setCustom]=useState(false)
+  const [category,setCategory]=useState(editing?.category || occ.offering.category)
   const [date,setDate]=useState(editing?.date || occ.date),[from,setFrom]=useState(editing?.from || occ.from),[to,setTo]=useState(editing?.to || occ.to)
   const [room,setRoom]=useState(editing?.room || ''),[onlineLink,setOnlineLink]=useState(editing?.onlineLink || ''),[organizer,setOrganizer]=useState(editing?.organizer || '')
   const [recurrence,setRecurrence]=useState<Repeat>(editing?.recurrence || (kind==='group'?'weekly':'once'))
@@ -361,20 +409,24 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
     })
   }
   return <BottomSheet title={editing?'Termin bearbeiten':kind==='slot'?'Alternative zur gleichen Zeit':'Alternative Gruppe'} onClose={onClose} footer={<button className="primary-action" onClick={save}>{editing?'Speichern':'Alternative hinzufügen'}<ArrowRight size={18}/></button>}>
+    <div className="uf-entry-form">
     <p className="alternative-editor-copy">{editing?'Zeit, Kategorie und Wiederholung dieses Termins ändern.':kind==='slot'?'Andere Veranstaltung im selben Zeitraum.':'Gleicher Inhalt in einer anderen Gruppe – auch an einem anderen Tag.'}</p>
     <div className="editor-field"><span className="field-label">Modul</span><button className="big-choice" disabled={kind==='group'&&!editing} onClick={()=>setPicker(x=>!x)}><span>{chosenModule?.name||(category==='Freies Lernen'?'Freies Lernen':'Modul auswählen')}</span><ChevronDown size={18}/></button>
       {picker&&<div className="module-dropdown"><label className="search-field"><Search size={18}/><input placeholder="Module suchen" value={search} onChange={e=>setSearch(e.target.value)}/></label><div className="module-pick-list">{modules.filter(m=>m.name.toLowerCase().includes(search.toLowerCase())).map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}<button onClick={()=>{setModuleId('');setCategory('Freies Lernen');setPicker(false)}}><BookOpen size={17}/>Freies Lernen · ohne Modul</button></div></div>}
     </div>
-    <div className="editor-field"><span className="field-label">Datum</span><DateControl value={date} onChange={setDate}/></div>
-    <div className="editor-time-row"><TimeControl label="Beginn" value={from} onChange={setFrom}/><span className="time-divider">–</span><TimeControl label="Ende" value={to} onChange={setTo}/></div>
-    <div className="editor-field"><span className="field-label">Veranstaltungsart</span><div className="category-list">{['Vorlesung','Übung','Tutorium','Freies Lernen'].map(c=><button key={c} className={category===c&&!custom?'chosen':''} onClick={()=>{setCustom(false);setCategory(c);if(c==='Freies Lernen')setModuleId('')}}>{c}</button>)}<button className={custom?'chosen':''} onClick={()=>{setCustom(true);setCategory('')}}><Plus size={16}/>Eigene</button></div>{custom&&<input className="line-input" value={category} placeholder="Eigene Art" onChange={e=>setCategory(e.target.value)}/>}</div>
-    <div className="editor-field"><span className="field-label">Wiederholung</span><div className="repeat-switch">{([{v:'once',label:'Einmalig'},{v:'weekly',label:'Wöchentlich'},{v:'biweekly',label:'Alle 2 Wochen'}] as const).map(x=><button key={x.v} className={recurrence===x.v?'chosen':''} onClick={()=>setRecurrence(x.v)}>{x.label}</button>)}</div></div>
-    {recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><DateControl value={endDate} min={date} onChange={setEndDate}/></div>}
+    <div className="editor-field"><span className="field-label">Datum</span><UniflowPicker kind="date" label="Datum" value={date} onChange={setDate}/></div>
+    <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>
+    <div className="editor-field"><span className="field-label">Art</span><UniflowPicker label="Veranstaltungsart" value={category} allowCustom options={[...(!['Vorlesung','Übung','Tutorium','Seminar','Praktikum','Freies Lernen'].includes(category)?[category]:[]),'Vorlesung','Übung','Tutorium','Seminar','Praktikum','Freies Lernen'].map(value=>({value,label:value}))} onChange={value=>{setCategory(value);if(value==='Freies Lernen')setModuleId('')}}/></div>
+    <div className="uf-entry-grid">
+      <div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={recurrence} onChange={value=>setRecurrence(value as Repeat)} options={[{value:'once',label:'Einmalig'},{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'}]}/></div>
+      {recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Wiederholen bis</span><UniflowPicker kind="date" label="Wiederholen bis" value={endDate} min={date} onChange={setEndDate}/></div>}
+    </div>
     <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" value={room} onChange={e=>setRoom(e.target.value)}/></div>
     <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://meet.google.com/..." value={onlineLink} onChange={e=>setOnlineLink(e.target.value)}/></div>
     <div className="editor-field"><span className="field-label">Veranstalter <span className="optional">optional</span></span><input className="line-input" placeholder="Lehrperson oder Organisation" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
     {editing&&onDelete&&<button type="button" className="danger-simple" onClick={onDelete}><Trash2 size={18}/> Ganze Veranstaltungsreihe löschen</button>}
-    {error&&<p className="inline-error">{error}</p>}
+    {error&&<p className="inline-error" role="alert">{error}</p>}
+    </div>
   </BottomSheet>
 }
 function Notice({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void }) {
@@ -711,10 +763,10 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const siblings=events.filter(o=>o.key!==occ.key&&intersects(o,occ))
           const group=[occ,...siblings].sort((a,b)=>a.key.localeCompare(b.key)),ix=group.findIndex(x=>x.key===occ.key),n=group.length
           const numberOfAlternatives=linkedCandidates(data.offerings,occ).length
-          const past=date<today()
+          const past=date<today()||(date===today()&&minutes(occ.to)<=clockNow.getHours()*60+clockNow.getMinutes())
           const style:CSSProperties={top:start+2,height:Math.max(32,end-start-4),background:inactive?'#29292b':module?.color||'#A5A5A5',left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`}
           return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
-            className={'course '+(inactive?'course-inactive ':'')+(numberOfAlternatives?'course-stacked ':'')+(past?'course-past ':'')+(pressed===occ.key?'being-dragged':'')}
+            className={'course '+(inactive?'course-inactive ':'')+(numberOfAlternatives?'course-stacked ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
             style={style} onPointerDown={e=>{e.stopPropagation();if(!inactive)onDown(e,occ)}} onPointerMove={onMove}
             onPointerUp={e=>{e.stopPropagation();onUp(e)}} onPointerCancel={cancelGesture}
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ,e.currentTarget as HTMLElement)}} onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(occ)}} onKeyDown={e=>{if(e.key==='Enter')openFan(occ,e.currentTarget as HTMLElement)}}>
@@ -863,6 +915,23 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
 export default function App() {
   const [choiceAttendance,setChoiceAttendance] = useState<'replace'|'both'>('replace')
   const [data, setData] = useState<AppData>(() => supabase ? { ...emptyData } : loadData()), [onboarding, setOnboarding] = useState(() => supabase ? true : !loadData().activeDegreeId), [page, setPage] = useState<Page>('dashboard'), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework'}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
+  const [pageDirection,setPageDirection]=useState<'forward'|'backward'>('forward')
+  const navigatePage=(next:Page)=>{
+    if(page===next)return
+    const order:Page[]=['dashboard','calendar','modules','settings','admin']
+    const direction=order.indexOf(next)>order.indexOf(page)?'forward':'backward'
+    const apply=()=>{setPageDirection(direction);setPage(next);window.scrollTo(0,0)}
+    const doc=document as Document & {startViewTransition?:(update:()=>void)=>{finished:Promise<void>}}
+    if(doc.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      document.documentElement.dataset.navDirection=direction
+      document.documentElement.dataset.navTransition='on'
+      const transition=doc.startViewTransition(()=>flushSync(apply))
+      void transition.finished.finally(()=>{
+        delete document.documentElement.dataset.navDirection
+        delete document.documentElement.dataset.navTransition
+      })
+    }else apply()
+  }
   const [user, setUser] = useState<User | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [cloudReady, setCloudReady] = useState(false)
@@ -1104,8 +1173,9 @@ export default function App() {
   if (!user) return <><AuthScreen/>{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(null)}/>}</>
   if (!cloudReady) return <main className="auth-loading auth-cloud-loading"><div><div className="wordmark">uniflow<span className="wordmark-dot">.</span></div><p>{cloudStatus === 'error' ? cloudError : 'Deine Daten werden sicher geladen …'}</p>{cloudStatus === 'error' && <><button className="primary-action" onClick={() => void loadUserWorkspace(user, authEpoch.current)}>Erneut versuchen</button><button className="auth-secondary" onClick={() => void logOut()}>Abmelden</button></>}</div></main>
   if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); setPage('calendar') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
-  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side">{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</div><nav>{([{ id: 'dashboard' as const, title: 'Übersicht', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'modules', title: 'Module', icon: BookOpen }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => setPage(n.id)}><n.icon size={19} />{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
-    <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => setPage('dashboard')}>{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
+  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side">{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</div><nav>{([{ id: 'dashboard' as const, title: 'Übersicht', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'modules', title: 'Module', icon: BookOpen }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><n.icon size={19} />{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
+    <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}>{premium?<span className="premium-logo">uniflow<span>+</span></span>:<>uniflow<span>.</span></>}</button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
+      <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
       {page === 'dashboard' && <LearningDashboard
         data={data} semester={semester} modules={semesterModules}
         onCheckin={(lesson:LearningLesson,rating:LearningRating)=>mutate(d=>{
@@ -1157,11 +1227,12 @@ export default function App() {
       {page === 'admin' && user && admin && <AdminPanel user={user} notice={note} onBack={()=>setPage('settings')} />}
       {page === 'settings' && <div className="screen secondary-screen settings-screen"><div className="page-title-row"><div><span className="overline">UNIFLOW</span><h1>Einstellungen.</h1><p>Weniger Optionen. Mehr Überblick.</p></div></div><section className="settings-section"><h2>Profil</h2><label className="setting-input"><span>Dein Name</span><input value={data.profile} onChange={e => mutate(d => ({ ...d, profile: e.target.value }))} /></label><div className="setting-line"><span>Studiengang</span><strong>{degree?.name}</strong></div><div className="setting-line"><span>Hochschule</span><strong>{degree?.university || 'Nicht angegeben'}</strong></div><div className="setting-line"><span>LP-Ziel</span><div className="number-setting"><input type="number" min="0" value={degree?.targetCredits || 0} onChange={e => mutate(d => ({ ...d, degrees: d.degrees.map(x => x.id === degree?.id ? { ...x, targetCredits: +e.target.value || 0 } : x) }))} /> LP</div></div></section>{admin && <section className="settings-section admin-settings-link">
         <h2>Administration</h2>
-        <button className="settings-action" onClick={()=>setPage('admin')}><Settings2 size={19}/> Adminbereich öffnen <ArrowRight size={17}/></button>
+        <button className="settings-action" onClick={()=>navigatePage('admin')}><Settings2 size={19}/> Adminbereich öffnen <ArrowRight size={17}/></button>
         <p className="quiet-copy">Nur für dein Administratorkonto sichtbar.</p>
       </section>}<section className="settings-section"><h2>Design</h2><div className="setting-line"><span>Darstellung</span><div className="inline-toggle theme-icon-switch"><button className="selected" aria-label="Dunkler Modus" title="Dunkler Modus" onClick={()=>mutate(d=>({...d,theme:'dark'}))}><Moon size={17}/></button><button disabled aria-label="Heller Modus – folgt später" title="Heller Modus folgt später"><Sun size={17}/></button></div></div></section><section className="settings-section"><h2>Stundenplan</h2><div className="setting-line"><span>Erste Stunde</span><div className="small-picker"><button disabled={data.firstHour <= 0} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour - 2 }))}>−</button><strong>{timeString(data.firstHour * 60)}</strong><button disabled={data.firstHour >= data.lastHour - 2} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Letzte Stunde</span><div className="small-picker"><button disabled={data.lastHour <= data.firstHour + 2} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour - 2 }))}>−</button><strong>{timeString(data.lastHour * 60)}</strong><button disabled={data.lastHour >= 24} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Woche anzeigen bis</span><div className="inline-toggle week-end-toggle">{([{v:4,label:'Fr'},{v:5,label:'Sa'},{v:6,label:'So'}] as const).map(x=><button key={x.v} className={(data.weekEndDay??4)===x.v?'selected':''} onClick={()=>mutate(d=>({...d,weekEndDay:x.v}))}>{x.label}</button>)}</div></div><small className="setting-hint">Die Wochenansicht endet am gewählten Tag. Spätere Termine bleiben über die Tages- oder Zwei-Tage-Ansicht erreichbar.</small><small className="setting-hint">Das Raster bleibt in Zwei-Stunden-Schritten. Veranstaltungen können minutengenau beginnen und enden.</small></section><section className="settings-section"><h2>Semester</h2><div className="semester-picker-list">{data.semesters.filter(s => s.degreeId === degree?.id).map(s => <button key={s.id} className={s.id === semester?.id ? 'current' : ''} onClick={() => { mutate(d => ({ ...d, activeSemesterId: s.id })); note(`${s.name} geöffnet.`) }}><span><strong>{s.name}</strong><small>{formDate(s.start)} – {formDate(s.end)}</small></span>{s.id === semester?.id && <Check size={18} />}</button>)}</div>{semester && <label className="setting-input"><span>Letzter Vorlesungstag</span><DateControl value={semester.lectureEnd} min={semester.start} max={semester.end} onChange={v => mutate(d => ({ ...d, semesters: d.semesters.map(s => s.id === semester.id ? { ...s, lectureEnd: v } : s) }))} /></label>}<button className="underlined-link" onClick={() => { if (!degree) return; const recent = data.semesters.filter(s => s.degreeId === degree.id).sort((a, b) => b.end.localeCompare(a.end))[0]; const start = recent ? addDays(recent.end, 1) : currentSemesterDates().start; const next = semesterFromStart(start); if (data.semesters.some(s => s.degreeId === degree.id && overlaps(s.start, s.end, next.start, next.end))) { note('Dieses Semester ist bereits vorhanden.'); return } const newSemester: Semester = { ...next, id: uid(), degreeId: degree.id, archived: false }; mutate(d => ({ ...d, semesters: [...d.semesters, newSemester], activeSemesterId: d.activeSemesterId })); note('Nächstes Semester gespeichert. Das aktuelle bleibt ausgewählt.') }}>Nächstes Semester hinzufügen <Plus size={17} /></button><div className="semester-management"><h3>Semester verwalten</h3>{data.semesters.filter(x=>x.degreeId===degree?.id).map(x=><div key={x.id} className="semester-manage-row"><span><strong>{x.name}</strong><small>{x.id===semester?.id?'Ausgewählt':x.start>today()?'Geplant':x.end<today()?'Vergangen':'Laufend'} · {formDate(x.start)} – {formDate(x.end)}</small></span><button aria-label={`${x.name} löschen`} onClick={()=>setConfirmDeleteSemester(x)}><Trash2 size={18}/></button></div>)}</div></section><section className="settings-section"><h2>Deine Daten</h2><button className="settings-action" onClick={saveBackup}><Download size={19} /> Backup herunterladen <ArrowRight size={17} /></button><button className="settings-action" onClick={() => fileRef.current?.click()}><Upload size={19} /> Backup importieren <ArrowRight size={17} /></button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => { void readBackup(e.target.files?.[0]); e.target.value = '' }} /><button className="settings-action settings-danger" onClick={() => setConfirmReset(true)}><RotateCcw size={19} /> Alles zurücksetzen <ArrowRight size={17} /></button><div className="cloud-account-state"><div><strong>Supabase Cloud</strong><small>{cloudStatus === 'synced' ? 'Alle Änderungen gespeichert' : cloudStatus === 'saving' ? 'Synchronisiere …' : cloudStatus === 'error' ? 'Synchronisierung fehlgeschlagen' : 'Verbunden'}</small></div>{cloudStatus === 'synced' ? <Check size={19}/> : <RefreshCw size={19}/>}</div>{cloudStatus === 'error' && <p className="auth-error">{cloudError}</p>}<button className="settings-action" disabled={cloudBusy || cloudStatus === 'saving'} onClick={() => void syncNow()}><RefreshCw size={19}/> Jetzt synchronisieren <ArrowRight size={17}/></button><button className="settings-action" onClick={() => void logOut()}><LogOut size={19}/> Abmelden <ArrowRight size={17}/></button><p className="quiet-copy">Angemeldet als {user.email || user.id.slice(0,8) + '…'}. Deine Daten werden beim Öffnen geladen und bei Änderungen automatisch nach Supabase gespeichert. Bei gleichzeitigen Änderungen auf mehreren Geräten kann der zuletzt gespeicherte Stand gewinnen.</p></section></div>}
+      </div>
     </div>
-    <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Heute', icon: Layers2 }, { id: 'calendar', name: 'Plan', icon: CalendarDays }, { id: 'modules', name: 'Module', icon: BookOpen }, { id: 'settings', name: 'Mehr', icon: Menu }] as const).map(item => <button key={item.id} className={page === item.id || (page === 'admin' && item.id === 'settings') ? 'active' : ''} onClick={() => setPage(item.id)}><item.icon size={21} /><span>{item.name}</span></button>)}</nav>
+    <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Heute', icon: Layers2 }, { id: 'calendar', name: 'Plan', icon: CalendarDays }, { id: 'modules', name: 'Module', icon: BookOpen }, { id: 'settings', name: 'Mehr', icon: Menu }] as const).map(item => <button key={item.id} className={page === item.id || (page === 'admin' && item.id === 'settings') ? 'active' : ''} onClick={() => navigatePage(item.id)}><item.icon size={21} /><span>{item.name}</span></button>)}</nav>
     {assessmentDraft&&semester&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={semester} modules={semesterModules} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:[...d.assessments,assessment]}));setAssessmentDraft(null);note(assessment.type==='exam'?'Klausur hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
     {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={semester} modules={semesterModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:d.assessments.map(x=>x.id===assessment.id?assessment:x)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
     {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Klausur löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“ am {formDate(deletingAssessment.date)} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>({...d,assessments:d.assessments.filter(x=>x.id!==deletingAssessment.id)}));setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}

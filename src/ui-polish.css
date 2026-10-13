@@ -1,0 +1,272 @@
+/* uniflow refinement: navigation motion, consistent editor controls,
+   and deliberate modal/overlay levels. No calendar data or module relations. */
+.course.course-past.course-past-today,
+.course.course-past.course-past-today:hover,
+.course.course-past.course-past-today:focus-visible {
+  filter:none;
+  opacity:1;
+}
+/* The sticky calendar header is z=90 and its menus live inside it.
+   Sheets are portaled to body and MUST paint in front of the calendar;
+   a nested uniflow picker is yet higher (z=5000). */
+.sheet-backdrop {
+  z-index:1400;
+}
+.sheet { max-height:min(90svh,860px); }
+.sheet-body {
+  min-height:0;
+  flex:1 1 auto;
+  overscroll-behavior:contain;
+}
+
+/* Directional page switch, with native view-transition on supporting Safari.
+   The fallback still slides the newly selected page instead of flashing it. */
+.uf-page-stage {
+  min-width:0;
+  position:relative;
+  view-transition-name:uniflow-main-page;
+}
+.uf-page-stage.uf-page-enter-forward {
+  animation:uf-page-enter-forward 290ms cubic-bezier(.2,.8,.22,1);
+}
+.uf-page-stage.uf-page-enter-backward {
+  animation:uf-page-enter-backward 290ms cubic-bezier(.2,.8,.22,1);
+}
+@keyframes uf-page-enter-forward {
+  from {opacity:.5;transform:translate3d(24px,0,0);}
+  to {opacity:1;transform:none;}
+}
+@keyframes uf-page-enter-backward {
+  from {opacity:.5;transform:translate3d(-24px,0,0);}
+  to {opacity:1;transform:none;}
+}
+html[data-nav-transition='on'] .uf-page-stage {animation:none;}
+::view-transition-old(uniflow-main-page),
+::view-transition-new(uniflow-main-page) {animation-duration:300ms;animation-timing-function:cubic-bezier(.22,.8,.23,1);}
+html[data-nav-direction='forward']::view-transition-old(uniflow-main-page) {animation-name:uf-page-leave-left;}
+html[data-nav-direction='forward']::view-transition-new(uniflow-main-page) {animation-name:uf-page-enter-forward;}
+html[data-nav-direction='backward']::view-transition-old(uniflow-main-page) {animation-name:uf-page-leave-right;}
+html[data-nav-direction='backward']::view-transition-new(uniflow-main-page) {animation-name:uf-page-enter-backward;}
+@keyframes uf-page-leave-left {from {opacity:1;transform:none;} to {opacity:0;transform:translate3d(-22px,0,0);}}
+@keyframes uf-page-leave-right {from {opacity:1;transform:none;} to {opacity:0;transform:translate3d(22px,0,0);}}
+/* Fill, then gently empty, the nav highlight when tabs change. */
+.mobile-navigation button {
+  position:relative;
+  isolation:isolate;
+  overflow:visible;
+  -webkit-tap-highlight-color:transparent;
+}
+.mobile-navigation button::before {
+  content:'';
+  position:absolute;
+  left:50%;
+  top:6px;
+  width:49px;
+  height:37px;
+  border-radius:14px;
+  background:color-mix(in srgb,var(--uniflow-accent,#f94f72) 19%,transparent);
+  transform:translateX(-50%) scale(.6);
+  opacity:0;
+  transition:transform 270ms cubic-bezier(.2,1.15,.28,1),opacity 245ms ease,background-color 245ms;
+  pointer-events:none;
+  z-index:-1;
+}
+.mobile-navigation button.active::before {
+  opacity:1;
+  transform:translateX(-50%) scale(1);
+}
+.mobile-navigation button svg {
+  fill:transparent;
+  transition:fill 240ms ease,stroke 240ms ease,transform 270ms cubic-bezier(.2,1,.3,1);
+}
+.mobile-navigation button.active svg {
+  stroke:var(--uniflow-accent,#f94f72);
+  fill:color-mix(in srgb,var(--uniflow-accent,#f94f72) 24%,transparent);
+  transform:scale(1.055);
+}
+.mobile-navigation button span {
+  transition:color 240ms ease;
+}
+/* Form fields mimic Module > Veranstaltungen: same labels, height, type and
+   dark compact surfaces. All native date/time wheels remain custom. */
+.uf-entry-form {
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  padding:3px 0 8px;
+  min-width:0;
+  font-size:14px;
+}
+.uf-entry-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:start;
+  gap:12px;
+  min-width:0;
+}
+.uf-entry-field {
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  min-width:0;
+}
+.uf-entry-full {grid-column:1/-1;}
+.uf-entry-form .field-label,
+.uf-entry-field .field-label {
+  display:block;
+  margin:0;
+  color:#a6a6ac;
+  font-size:12px;
+  font-weight:500;
+  line-height:17px;
+}
+.uf-entry-form .editor-field {min-width:0;margin:0;display:flex;flex-direction:column;gap:8px;}
+.uf-entry-form .editor-field .field-label {margin:0;}
+.uf-entry-form input.line-input,
+.uf-entry-form .uf-entry-field input,
+.uf-entry-form .big-choice,
+.uf-entry-form .uf-entry-module-choice,
+.uf-entry-form .uf-picker-trigger {
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  max-width:100%;
+  border:1px solid transparent;
+  border-radius:10px;
+  padding:0 12px;
+  background:#2b2b2d;
+  color:#f0f0f2;
+  font-family:inherit;
+  font-size:14px;
+  font-weight:500;
+  line-height:1.3;
+}
+.uf-entry-form input.line-input,
+.uf-entry-form .uf-entry-field input {
+  display:block;
+  font-size:14px;
+  font-weight:500;
+}
+.uf-entry-form .uf-picker-trigger:hover,
+.uf-entry-form .big-choice:hover,
+.uf-entry-form .uf-entry-module-choice:hover {background:#37373b;}
+.uf-entry-form .uf-picker-trigger:focus-visible,
+.uf-entry-form input:focus-visible,
+.uf-entry-form .big-choice:focus-visible,
+.uf-entry-form .uf-entry-module-choice:focus-visible {border-color:#92909a;outline:none;}
+.uf-entry-module-choice,
+.uf-entry-form .big-choice {text-align:left;justify-content:space-between;gap:8px;}
+/* The module search/create panel needs more space than the half-width
+   collapsed selector; give the entire grid row to it while it is open. */
+.uf-entry-grid > .uf-entry-field:has(> .module-dropdown) {
+  grid-column:1/-1;
+}
+.uf-entry-module-choice span,
+.uf-entry-form .big-choice span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.uf-entry-module-choice svg,
+.uf-entry-form .big-choice svg {flex:0 0 auto;color:#9999a0;}
+.uf-entry-form .module-dropdown {
+  position:relative;
+  width:100%;
+  max-width:100%;
+  margin:2px 0 0;
+  background:#242427;
+  border:1px solid #35353a;
+  border-radius:11px;
+  padding:9px;
+}
+.uf-entry-form .module-pick-list {max-height:min(32svh,220px);}
+.uf-entry-form .module-pick-list button {gap:9px;font-size:12px;padding:12px 4px;overflow-wrap:anywhere;}
+.uf-entry-form .quick-new-module {display:flex;align-items:center;gap:7px;min-width:0;}
+.uf-entry-form .quick-new-module input {min-width:0;flex:1 1 auto;padding:7px;background:#343438;font-size:12px;min-height:38px;}
+.uf-entry-form .quick-new-module input[type=number] {flex:0 0 52px;width:52px;}
+.uf-entry-form .quick-new-module button {flex:0 0 36px;min-height:38px;}
+.uf-entry-form .alternative-editor-copy {margin:0 0 3px;color:#a4a3a8;font-size:12px;line-height:1.5;}
+.uf-entry-form .assessment-time-switch {width:100%;min-height:44px;}
+.uf-entry-form .assessment-check {max-width:100%;}
+.uf-entry-advanced {
+  margin:2px 0 0;
+  border-top:1px solid #353539;
+}
+.uf-entry-advanced > summary {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:9px;
+  padding:15px 1px;
+  list-style:none;
+  color:#aaaab0;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:540;
+}
+.uf-entry-advanced > summary::-webkit-details-marker {display:none;}
+.uf-entry-advanced > summary svg {transition:transform 220ms ease;}
+.uf-entry-advanced[open] > summary svg {transform:rotate(180deg);}
+.uf-entry-advanced .uf-entry-grid {padding:3px 0 7px;}
+/* Custom category entry inside all shared option sheets. */
+.uf-picker-custom-toggle {color:#e9d1d9!important;}
+.uf-picker-custom-toggle > span {display:flex;align-items:center;gap:9px;}
+.uf-picker-custom-entry {padding:8px 0 4px;display:grid;gap:8px;}
+.uf-picker-custom-entry label {font-size:11px;color:#a5a4aa;}
+.uf-picker-custom-row {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;}
+.uf-picker-custom-row input {
+  box-sizing:border-box;
+  min-width:0;
+  min-height:44px;
+  width:100%;
+  background:#303035;
+  color:#fff;
+  border:1px solid #48484e;
+  border-radius:10px;
+  padding:10px;
+  font-size:14px;
+}
+.uf-picker-custom-row > button {display:flex;gap:7px;align-items:center;background:#f1eaf0;color:#171316;border:0;border-radius:10px;padding:0 12px;font-size:12px;font-weight:700;}
+.uf-picker-custom-row > button:disabled {opacity:.4;}
+/* Match font sizes in the two module fields: Inhalt and Art. */
+.module-fast .module-fast-topic-inputs label {
+  font-size:12px;
+  font-weight:500;
+  line-height:17px;
+}
+.module-fast .module-fast-topic-inputs :is(input,.uf-picker-trigger) {
+  height:44px;
+  min-height:44px;
+  max-height:44px;
+  font-size:14px;
+  font-weight:500;
+  line-height:normal;
+  border:1px solid transparent;
+  border-radius:10px;
+  background:#2b2b2d;
+  color:#f0f0f2;
+  padding:0 12px;
+}
+.module-fast .module-fast-topic-inputs .uf-picker-trigger>span {font-size:14px;font-weight:500;}
+.module-fast .module-fast-topic-inputs input:focus-visible {border-color:#8c8b94;}
+html[data-theme='light'] .uf-entry-form input.line-input,
+html[data-theme='light'] .uf-entry-form .uf-entry-field input,
+html[data-theme='light'] .uf-entry-form .big-choice,
+html[data-theme='light'] .uf-entry-form .uf-entry-module-choice,
+html[data-theme='light'] .uf-entry-form .uf-picker-trigger {background:#ededf0;color:#18181b;}
+html[data-theme='light'] .uf-entry-form .module-dropdown {background:#eee;color:#161616;border-color:#d7d7dc;}
+html[data-theme='light'] .uf-picker-custom-row input {background:#eee;color:#222;border-color:#ccc;}
+@media(max-width:380px) {
+  .uf-entry-grid {gap:9px;}
+  .uf-entry-form .uf-entry-module-choice,
+  .uf-entry-form .uf-entry-field input,
+  .uf-entry-form input.line-input {padding:0 9px;}
+  .uf-picker-custom-row {grid-template-columns:minmax(0,1fr);}
+  .uf-picker-custom-row > button {justify-content:center;min-height:40px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .uf-page-stage,.mobile-navigation button::before,
+  .mobile-navigation button svg,.mobile-navigation button span,
+  .uf-entry-advanced > summary svg {animation:none!important;transition:none!important;}
+  ::view-transition-old(uniflow-main-page),
+  ::view-transition-new(uniflow-main-page) {animation-duration:0ms!important;}
+}
