@@ -81,7 +81,7 @@ export default function LearningDashboard({data,semester,modules,premium,userId,
       if(result)break
     }
     return result
-  },[data.offerings,semester?.id])
+  },[data.offerings,semester?.id,clockTick])
   const submitStudy=()=>{
     if(!chosenModule||!Number.isInteger(duration)||duration<5||duration>360)return
     onSession({moduleId:chosenModule.id,date:today(),duration,kind,rating:result,
