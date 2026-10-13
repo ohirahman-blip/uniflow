@@ -97,7 +97,7 @@
   grid-template-columns:minmax(240px,330px) minmax(0,1fr);
 }
 .mail-inbox{min-height:0;overflow:hidden;background:#0d0d0e;border-color:#242426}
-.mail-inbox-heading{padding:23px 18px 17px}
+.mail-inbox-heading{padding:55px 18px 17px}
 .mail-inbox-heading strong{font-size:17px;letter-spacing:-.4px}
 .mail-inbox-heading small{font-size:10px;color:#72727b}
 .mail-search{background:#202022;border-radius:12px;margin:0 14px 10px;color:#aaa}
@@ -181,11 +181,11 @@ html[data-theme='light'] .mail-bubble p,html[data-theme='light'] .mail-thread-ma
 html[data-theme='light'] .mail-search input,html[data-theme='light'] .mail-compose-box textarea{color:#171717}
 html[data-theme='light'] .mail-avatar{background:#e2e2e2;color:#202020}
 
-/* Entire Postfach is true black; only text and controls are gray. */
+/* Share the same dark-grey surface as the mobile navigation. */
 .uf-page-mail,.uf-page-mail .mail-prototype,.uf-page-mail .mail-layout,
 .uf-page-mail .mail-inbox,.uf-page-mail .mail-conversation,
 .uf-page-mail .mail-conversation-header,.uf-page-mail .mail-compose{
-  background:#000!important;
+  background:#171717!important;
 }
 .mail-inbox-heading strong{
   font-size:12px;font-weight:700;line-height:1.4;
@@ -220,7 +220,7 @@ html[data-theme='light'] .mail-avatar{background:#e2e2e2;color:#202020}
   .uf-page-mail .mail-conversation{height:100%;min-height:0}
   .uf-page-mail .mail-messages{min-height:0;flex:1 1 auto;overflow-y:auto}
   .uf-page-mail .mail-compose{flex:0 0 auto;padding:11px 12px 9px}
-  .uf-page-mail .mail-inbox-heading{padding:8px 18px 12px}
+  .uf-page-mail .mail-inbox-heading{padding:45px 18px 12px}
   .uf-page-mail .mail-conversation-header{padding-top:10px;padding-bottom:10px;min-height:57px}
 }
 @media(max-width:720px){

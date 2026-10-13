@@ -395,12 +395,12 @@ input.line-input.room-input {font-family:inherit;font-size:14px;font-weight:500;
   .screen-calendar{padding-top:18px}
 }
 
-/* Flat, seamless app bars: black all the way, no gradient or divider. */
+/* Flat, seamless bars in the shared dark-grey UI, without borders or fades. */
 .app-top{border-bottom:0!important}
 @media(max-width:720px){
   .mobile-navigation{
     border:0!important;
-    background:#000;
+    background:#171717;
     overflow:visible;
   }
   .mobile-navigation::after{content:none;display:none}
@@ -412,3 +412,19 @@ input.line-input.room-input {font-family:inherit;font-size:14px;font-weight:500;
 .uf-assessment-preview h2{font-size:22px;letter-spacing:-.6px;color:#f4f4f5;font-weight:750;margin:3px 0 0;overflow-wrap:anywhere}
 .uf-assessment-preview>p{font-size:13px;line-height:1.5;color:#a9a9b0;margin:0}
 .uf-assessment-preview-toggle{margin-top:14px;width:100%;justify-content:flex-start}
+
+/* Week-end day picker: genuinely circular buttons, small centered letters. */
+.settings-screen .setting-line .week-end-toggle{gap:4px}
+.settings-screen .setting-line .week-end-toggle button{
+  flex:0 0 30px;
+  width:30px;
+  min-width:30px;
+  height:30px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-size:10px;
+  line-height:1;
+  font-weight:600;
+}
