@@ -144,3 +144,37 @@ html[data-theme='light'] .learn-hero-subject strong { color:color-mix(in srgb,va
 .learn-recommendation { border-left:0; padding-left:20px; }
 .learn-checkin { border-left:0; }
 @media(max-width:740px){ .learn-hero-subject {padding-left:16px;} }
+
+/* Realtime one-tip home assistant: narrow scope, no chat window. */
+.learn-advice-section {margin-top:25px;}
+.learn-recommendation-dynamic {margin-top:8px;}
+.learn-recommendation-dynamic h3 {font-size:clamp(20px,4vw,25px);letter-spacing:-.65px;}
+.learn-recommendation-dynamic>p {max-width:640px;line-height:1.7;font-size:13px;}
+.learn-recommendation-dynamic .learn-recommendation-footer {flex-wrap:wrap;}
+.learn-ai-controls {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:16px 2px 0;
+}
+.learn-ai-controls>div {display:flex;flex-direction:column;gap:5px;flex:1;min-width:0;}
+.learn-ai-controls strong {font-size:12px;font-weight:700;color:#d9d9dd;}
+.learn-ai-controls small {font-size:11px;line-height:1.55;color:#8f8f97;}
+.learn-ai-controls button {
+  flex:0 0 auto;
+  min-height:38px;
+  padding:9px 14px;
+  border:1px solid #48484e;
+  border-radius:10px;
+  color:#e6e6ea;
+  background:#252528;
+  font-size:11px;
+  font-weight:700;
+}
+.learn-ai-controls button.active {border-color:#77777d;background:#dedee1;color:#171717;}
+.learn-checkin .lesson-feedback {margin-top:10px;}
+@media(max-width:560px) {
+  .learn-ai-controls {align-items:flex-start;flex-direction:column;}
+  .learn-ai-controls button {align-self:flex-start;}
+}
