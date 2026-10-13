@@ -75,7 +75,7 @@ function PickerWheel({label,items,selected,onSelect}:{
           if(e.key==='ArrowDown'){e.preventDefault();step(1)}
           if(e.key==='ArrowUp'){e.preventDefault();step(-1)}
           if(e.key==='Home'){e.preventDefault();choose(items.findIndex(x=>!x.disabled),true)}
-          if(e.key==='End'){e.preventDefault();choose(items.findLastIndex(x=>!x.disabled),true)}
+          if(e.key==='End'){e.preventDefault();choose(items.reduce((last,x,i)=>x.disabled?last:i,-1),true)}
         }}>
         {items.map((item,index)=><button type="button" role="option" key={item.value}
           id={label==='Stunde'?'uf-wheel-hour-'+item.value:'uf-wheel-minute-'+item.value}
