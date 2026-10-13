@@ -89,3 +89,88 @@ input[type="range"].uf-slider::-moz-range-thumb {
   border-radius:50%; background:var(--module-accent,#e7c1cf);
 }
 input[type="range"].uf-slider:focus-visible::-webkit-slider-thumb {box-shadow:0 0 0 3px #9f8493;}
+
+/* Scroll-to-select time wheels, inspired by iOS but in uniflow's quiet dark UI.
+   Both columns allow exact times, including minute values between 5-minute ticks. */
+.uf-picker-wheel-columns {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:15px;
+  flex:0 0 auto;
+}
+.uf-wheel-column {
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  gap:9px;
+}
+.uf-wheel-shell {
+  position:relative;
+  width:100%;
+  height:240px;
+  overflow:hidden;
+  border-radius:14px;
+  background:#1d1d20;
+}
+.uf-wheel-selected-area {
+  pointer-events:none;
+  position:absolute;
+  z-index:0;
+  top:calc(50% - 24px);
+  left:4px;
+  right:4px;
+  height:48px;
+  border:1px solid #45454a;
+  border-radius:9px;
+  background:#313135;
+}
+.uf-wheel-list {
+  position:absolute;
+  z-index:1;
+  inset:0;
+  height:100%;
+  display:block;
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
+  scroll-snap-type:y mandatory;
+  scroll-padding-block:96px;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  padding:96px 0;
+  box-sizing:border-box;
+  mask-image:linear-gradient(to bottom,transparent 0%,#000 28%,#000 73%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 28%,#000 73%,transparent 100%);
+}
+.uf-wheel-list::-webkit-scrollbar {display:none;}
+.uf-wheel-option {
+  width:100%;
+  height:48px;
+  min-height:48px;
+  padding:0;
+  margin:0;
+  display:grid;
+  place-items:center;
+  background:transparent;
+  border:0;
+  color:#86868d;
+  font-family:inherit;
+  font-size:18px;
+  font-weight:500;
+  font-variant-numeric:tabular-nums;
+  scroll-snap-align:center;
+  scroll-snap-stop:always;
+  transition:color .12s ease,font-size .12s ease;
+}
+.uf-wheel-option.is-selected {
+  color:#f6f6f8;
+  font-weight:780;
+  font-size:23px;
+}
+.uf-wheel-option:disabled {opacity:.22;cursor:default;}
+.uf-wheel-list:focus-visible {outline:2px solid #d7bdcb;outline-offset:-2px;border-radius:13px;}
+.uf-picker-wheel-columns + .uf-picker-preview {margin-top:16px;}
+html[data-theme='light'] .uf-wheel-shell {background:#ededee;}
+html[data-theme='light'] .uf-wheel-selected-area {background:#dcdce0;border-color:#c5c5ce;}
+html[data-theme='light'] .uf-wheel-option {color:#777781;}
+html[data-theme='light'] .uf-wheel-option.is-selected {color:#212125;}
+@media(prefers-reduced-motion:reduce){.uf-wheel-option{transition:none;}}
