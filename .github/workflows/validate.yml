@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/learning-journey-dashboard
+      - feature/onboarding-otp-calendar-polish
 jobs:
   test:
     runs-on: ubuntu-latest
