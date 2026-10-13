@@ -86,7 +86,6 @@ assert.match(mail,/onPointerUp=\{e=>onMessageUp\(e,message\)\}/,'Right swipe cre
 assert.match(mail,/useLayoutEffect\(\(\)=>\{/,'Composer height is measured on change')
 assert.match(mail,/el\.scrollHeight/,'Composer auto expands')
 assert.doesNotMatch(mail,/\.send\(|postMessage\(|fetch\(|supabase/,'No network sending in design prototype')
-const mailCss=fs.readFileSync('src/mail-prototype.css','utf8')
 assert.match(mailCss,/resize:none!important/,'Composer has no manual resize handle')
 assert.match(mailCss,/\.uf-page-mail \.mail-layout/,'Mailbox fills entire available page')
 assert.match(mailCss,/\.mail-confirm-subject/,'Confirmation is visually actionable')
