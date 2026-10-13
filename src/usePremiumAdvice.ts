@@ -25,8 +25,9 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
   const [unavailable,setUnavailable]=useState(false)
   const [errorMessage,setErrorMessage]=useState('')
   const [foregroundEpoch,setForegroundEpoch]=useState(0)
+  const [activationEpoch,setActivationEpoch]=useState(0)
   const [visible,setVisible]=useState(()=>document.visibilityState==='visible')
-  const requestedEpoch=useRef<{userId:string;epoch:number}|null>(null)
+  const requestedEpoch=useRef<{userId:string;epoch:number;activation:number}|null>(null)
   const wasHidden=useRef(document.visibilityState!=='visible')
   const signature=aiAdviceSignature(context)
 
@@ -67,8 +68,13 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
 
   const setConsent=(allowed:boolean)=>{
     if(!userId)return
-    if(allowed)localStorage.setItem(consentKey(userId),'yes')
-    else {
+    if(allowed){
+      localStorage.setItem(consentKey(userId),'yes')
+      // Each explicit OFF → ON is a fresh test, not a cached recommendation.
+      sessionStorage.removeItem(cacheKey(userId))
+      setDisplayed(null)
+      setActivationEpoch(e=>e+1)
+    }else{
       localStorage.removeItem(consentKey(userId))
       sessionStorage.removeItem(cacheKey(userId))
       setDisplayed(null)
@@ -90,7 +96,8 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
     if(!visible||document.visibilityState!=='visible')return
     // Avoid another request after navigation, rating edits, study feedback
     // or a clock tick. Only a NEW opening/foreground epoch may request.
-    if(requestedEpoch.current?.userId===userId&&requestedEpoch.current.epoch===foregroundEpoch)return
+    if(requestedEpoch.current?.userId===userId&&requestedEpoch.current.epoch===foregroundEpoch&&
+      requestedEpoch.current.activation===activationEpoch)return
 
     // Reuse matching advice while an opening is being prepared. If feedback
     // changed, drop stale AI advice and display the local recommendation.
@@ -101,21 +108,28 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
     }catch{setDisplayed(null)}
 
     if(!canRequestOnOpen(true,true,readAiDailyAttempts(userId))){
-      requestedEpoch.current={userId,epoch:foregroundEpoch}
+      requestedEpoch.current={userId,epoch:foregroundEpoch,activation:activationEpoch}
+      setWorking(false)
       setErrorMessage('Das lokale KI-Tageslimit (25 Anfragen) ist erreicht. Morgen sind wieder Anfragen möglich.')
       return
     }
     let cancelled=false
     const controller=new AbortController()
+    // Show immediate feedback as soon as the switch is turned on, even while
+    // the short StrictMode-safe debounce is still pending.
+    setWorking(true)
+    setErrorMessage('')
     const timer=window.setTimeout(()=>{
       if(cancelled||document.visibilityState!=='visible')return
       // Reserve only when the debounce actually fires. This also handles
       // React StrictMode's development effect setup/cleanup cycle correctly.
-      if(requestedEpoch.current?.userId===userId&&requestedEpoch.current.epoch===foregroundEpoch)return
-      requestedEpoch.current={userId,epoch:foregroundEpoch}
+      if(requestedEpoch.current?.userId===userId&&requestedEpoch.current.epoch===foregroundEpoch&&
+        requestedEpoch.current.activation===activationEpoch)return
+      requestedEpoch.current={userId,epoch:foregroundEpoch,activation:activationEpoch}
       // Count attempts even on API failure so a broken API never causes a storm.
       if(!recordAiDailyAttempt(userId)){
         setErrorMessage('Das lokale KI-Tageslimit (25 Anfragen) ist erreicht.')
+        setWorking(false)
         return
       }
       setWorking(true)
@@ -143,7 +157,7 @@ export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceCon
       })()
     },500)
     return()=>{cancelled=true;window.clearTimeout(timer);controller.abort()}
-  },[appActive,userId,premium,consent,visible,foregroundEpoch,signature])
+  },[appActive,userId,premium,consent,visible,foregroundEpoch,activationEpoch,signature])
 
   // The cache never overrides newly changed classes, times or check-ins.
   return {

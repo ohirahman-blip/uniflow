@@ -15,8 +15,10 @@
 .learn-counter{padding:7px 11px;background:#202020;color:#aaa;border-radius:99px;font-size:11px}
 .learn-checkins{display:grid;gap:10px;margin-top:15px}
 .learn-checkin{padding:17px 18px;background:#171717;border-radius:15px}
-.learn-checkin-heading{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:14px}
-.learn-checkin-heading>div{display:flex;flex-direction:column;gap:6px}
+.learn-checkin-heading{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:12px;align-items:start;margin-bottom:14px}
+.learn-checkin-heading>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.learn-checkin-heading>div :is(strong,span){overflow-wrap:anywhere;white-space:normal}
+.learn-checkin-heading>.learn-eyebrow{white-space:nowrap;justify-self:end;align-self:start;line-height:1.4;margin-top:2px}
 .learn-checkin-heading strong{font-size:15px;letter-spacing:-.2px}
 .learn-checkin-heading span{font-size:11px;color:#939399}
 .learn-rating-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}

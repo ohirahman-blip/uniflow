@@ -122,9 +122,11 @@ export function adviceContext(data:AppData,semester:Semester|undefined,modules:S
   const exams=data.assessments.filter(a=>a.type==='exam'&&!a.completed&&a.date>=day&&moduleMap.has(a.moduleId))
     .map(a=>({moduleId:a.moduleId,moduleName:moduleMap.get(a.moduleId)!.name,date:a.date,daysUntil:diffDays(a.date,day)}))
     .sort((a,b)=>a.daysUntil-b.daysUntil).slice(0,4)
-  // "Free" means only that no selected teaching event overlaps this interval.
+  // Only describe a gap before another class TODAY. Tomorrow's lecture is not
+  // a 180-minute gap after today's timetable has already ended.
   // Do not claim the user has no other private commitments.
-  const freeMinutes=currentlyInClass?0:Math.max(0,Math.min(nextIn===Infinity?0:nextIn,180))
+  const freeMinutes=!currentlyInClass&&next?.date===day?
+    Math.max(0,Math.min(nextIn,180)):0
   return {...empty,freeMinutes,nextLecture,previousWeak,pendingFeedback,exams,otherWeak:weak.slice(0,6)}
 }
 

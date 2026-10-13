@@ -97,3 +97,10 @@
 @media(prefers-reduced-motion:reduce) {
   .settings-ai-toggle,.settings-ai-toggle span {transition:none;}
 }
+
+/* Reveal a fresh answer on activation so Plus can be tested in Settings. */
+.settings-ai-status{display:flex;align-items:center;gap:9px;margin:9px 0 3px;color:#c7a9ba;font-size:12px;line-height:1.5}
+.settings-ai-result{display:flex;flex-direction:column;gap:7px;padding:13px 14px;margin:10px 0 4px;border-radius:11px;background:#242026;color:#eee;min-width:0}
+.settings-ai-result>span{display:flex;align-items:center;gap:6px;color:#dab6c8;font-size:11px;font-weight:700}
+.settings-ai-result>strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.settings-ai-result>p{font-size:12px;line-height:1.6;color:#b6aeb5;overflow-wrap:anywhere}

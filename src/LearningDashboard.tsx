@@ -11,6 +11,7 @@ import {
 import UniflowPicker from './UniflowPicker'
 import LessonFeedback from './LessonFeedback'
 import { localAdvice, type AdviceContext, type StudyAdvice } from './study-advice'
+import { greetingForHour } from './dashboard-greeting'
 import './learning-dashboard.css'
 
 type Props = {
@@ -105,7 +106,7 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
   return <div className="screen secondary-screen learn-dashboard">
     <div className="learn-heading">
       <span className="learn-heading-date">{formatDate(today(),{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('de-DE')}</span>
-      <h1>Dein Tag<span className="learn-heading-dot">.</span></h1>
+      <h1>{greetingForHour(new Date().getHours())}<span className="learn-heading-dot">.</span></h1>
     </div>
     <div className="learn-hero-grid">
       <section className={'learn-hero '+(nextModule?'learn-hero-subject':'')} style={accent(nextModule?.color)}>
