@@ -179,3 +179,12 @@
     transform:none!important;
   }
 }
+
+/* OTP heading gets enough height for its descenders and animation. */
+.auth-screen .auth-intro{min-width:0;overflow:visible;padding-block:20px 30px}
+.auth-screen .auth-intro h1{max-width:100%;font-size:clamp(49px,11.8vw,86px);line-height:1.15;letter-spacing:-.045em;overflow:visible;padding:0 .08em .13em}
+.auth-screen .auth-intro p{max-width:100%;overflow-wrap:anywhere}
+@media(max-height:700px){
+  .auth-screen .auth-intro{padding-block:9px 10px}
+  .auth-screen .auth-intro h1{font-size:clamp(47px,11vw,72px);line-height:1.13}
+}

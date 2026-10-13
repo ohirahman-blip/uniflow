@@ -372,3 +372,25 @@ input.line-input.room-input {font-family:inherit;font-size:14px;font-weight:500;
   .mobile-navigation button span{font-size:9px;letter-spacing:-.1px;white-space:nowrap}
   .mobile-navigation button::before{width:min(49px,90%)}
 }
+
+/* In the installed iOS/Android PWA, the status bar overlaps normal content.
+   Reserve safe-area space before BOTH the toolbar and the calendar week strip.
+   Bottom tabs sit slightly lower by using a more compact touch-safe height. */
+@media(max-width:720px){
+  .mobile-navigation{
+    height:calc(58px + env(safe-area-inset-bottom,0px));
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  .mobile-navigation button{gap:4px}
+  .mobile-navigation button svg{width:19px;height:19px}
+}
+@media(max-width:720px) and (display-mode:standalone){
+  .app-main{padding-top:max(env(safe-area-inset-top,0px),14px)}
+  .app-root{min-height:100dvh}
+  .app-top{min-height:57px}
+  .screen-calendar{padding-top:18px}
+}
+@media(max-width:720px) and (display-mode:fullscreen){
+  .app-main{padding-top:max(env(safe-area-inset-top,0px),14px)}
+  .screen-calendar{padding-top:18px}
+}

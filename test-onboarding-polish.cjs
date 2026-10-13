@@ -26,6 +26,13 @@ assert.match(polish,/\.auth-screen \.auth-otp-grid\s*\{[^}]*grid-template-column
 
 // Onboarding finishes from Modules and immediately opens the calendar.
 assert.match(app,/if \(step === 4\) \{ finish\(\); return \}/)
+assert.match(app,/\[step, setStep\] = useState\(1\)/,'Onboarding starts directly at name entry after OTP')
+assert.doesNotMatch(app,/step === 0 && <div className="intro-copy"/,'Redundant Willkommen screen removed')
+assert.doesNotMatch(app,/Deine Module und Termine werden geschützt in deinem Supabase-Konto gespeichert\./,'Overexplaining account note removed')
+assert.match(app,/stage === 'code' && <p className="auth-footnote">/,'OTP help stays visible only after requesting code')
+assert.match(polish,/\.auth-screen \.auth-intro h1/,'Fast geschafft heading has overflow-safe dimensions')
+assert.match(fs.readFileSync('src/ui-polish.css','utf8'),/display-mode:standalone/,'Standalone iOS PWA receives safe top padding')
+assert.match(fs.readFileSync('src/ui-polish.css','utf8'),/height:calc\(58px \+ env\(safe-area-inset-bottom/,'Mobile bottom nav sits slightly lower')
 assert.doesNotMatch(app,/step === 5/)
 assert.doesNotMatch(app,/onboard-dots/)
 assert.match(app,/onDone=\{d => \{ setData\(d\); setOnboarding\(false\); setPage\('calendar'\) \}\}/)
