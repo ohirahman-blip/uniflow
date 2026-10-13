@@ -44,9 +44,10 @@ Der Schlüssel gehört ausschließlich in **Supabase Edge Function Secrets**.
 5. In Supabase muss der angemeldete Nutzer bereits mit
    `account_directory.premium=true` geführt werden (wie bisher durch
    Adminbereich / Admin-RPC). Die App prüft Plus im UI, der Server erneut.
-6. Auf „Heute“ als Plus-Nutzer **„KI aktivieren“** wählen.
-   Das ist eine bewusste Zustimmung zur Verarbeitung der angegebenen
-   Lern- und Termininformationen durch DeepSeek.
+6. Unter **Einstellungen → KI-Modus** als Plus-Nutzer den Regler einschalten.
+   Das ist die bewusste Zustimmung zur Verarbeitung der angegebenen
+   Lern- und Termininformationen durch DeepSeek. Der KI-Modus erscheint
+   nur bei uniflow+-Konten. Auf „Heute“ gibt es dafür keinen Schalter.
 
 Erst nach diesen Schritten werden echte DeepSeek-Anfragen gestellt. Ein
 unvollständiges Setup beeinträchtigt den Stundenplan, Lernfortschritt und
@@ -62,9 +63,23 @@ die lokalen Empfehlungen nicht.
   `account_directory` und ruft erst dann DeepSeek auf.
 - Die SQL-Funktion `uniflow_consume_ai_quota` limitiert **atomar** auf
   **25 Anfragen pro Nutzer/UTC-Tag** und mindestens **90 Sekunden** Abstand.
-- Das Frontend verwendet einen **20-Minuten-Sitzungscache**. Bei neuem
-  Check-in erscheint sofort wieder eine aktuelle lokale Empfehlung;
-  keine veraltete KI-Ausgabe wird beibehalten.
+- Das Frontend stellt **höchstens eine DeepSeek-Anfrage pro Stunde und Nutzer**.
+  Der Zeitpunkt des letzten Versuchs wird im Browser über einen Neustart hinaus
+  gespeichert. Die erste Anfrage findet nur bei aktivem Premium-KI-Modus
+  und sichtbarer/geöffneter App statt. Danach ist frühestens **60 Minuten**
+  später eine weitere Anfrage möglich.
+- **Während die App geschlossen oder im Hintergrund ist, finden keine neuen
+  Anfragen statt.** Es wird nichts nachgeholt oder in einer Warteschlange
+  gesammelt. Beim nächsten Öffnen wird nur dann einmal angefragt, wenn die
+  Stunde seit der letzten Anfrage bereits vergangen ist.
+- Die letzte passende KI-Empfehlung wird in der Browser-Sitzung zwischengespeichert.
+  Ändern sich relevante Vorlesungen, Themen oder Bewertungen, erscheint sofort
+  wieder der lokal berechnete, aktuelle Tipp; dadurch entsteht keine zusätzliche
+  DeepSeek-Anfrage vor Ablauf der Stunde.
+- Fehler und fehlende API-Konfiguration führen ebenfalls zu lokalen Empfehlungen.
+  Nur tatsächlich mit DeepSeek erzeugte Premium-Empfehlungen zeigen das
+  **Sternsymbol (Sparkles)** und einen dezenten Farbverlauf. Kostenlose
+  Empfehlungen behalten das normale Design.
 - DeepSeek erhält eine JSON-Anfrage und soll eine kurze deutschsprachige
   JSON-Empfehlung zurückgeben. Fehler/ungültige Ergebnisse => lokale
   Empfehlung statt App-Absturz.
