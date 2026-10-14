@@ -294,8 +294,8 @@
 .module-quick-premium-label{
   padding:4px 7px;
   border-radius:6px;
-  background:#382a36;
-  color:#e6c4d5;
+  background:var(--uf-premium-surface,rgba(115,79,124,.36));
+  color:var(--uf-premium-text,#e6c4d5);
   font-size:10px;
   font-weight:700;
   letter-spacing:.2px;
