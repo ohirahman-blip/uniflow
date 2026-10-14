@@ -131,8 +131,8 @@ export const connectMailAccount = (input: MailConnectionInput) => mailRequest<Ma
 export const disconnectMailAccount = () => mailRequest<{ ok: true }>('disconnect', { method: 'POST', body: '{}' })
 export const sendMailMessage = (input: { to: string; subject: string; text: string; attachments: MailDraftAttachment[] }) =>
   mailRequest<{ message: MailMessage }>('send', { method: 'POST', body: JSON.stringify(input) })
-export const updateMailThread = (input: { address: string; operation: 'mute' | 'unmute' | 'delete' | 'read' | 'unread'; messageIds?: string[] }) =>
-  mailRequest<{ ok: true }>('thread', { method: 'POST', body: JSON.stringify(input) })
+export const updateMailThread = (input: { address: string; operation: 'mute' | 'unmute' | 'delete' | 'read' | 'unread' | 'restore'; messageIds?: string[];undoToken?:string }) =>
+  mailRequest<{ ok: true;undoToken?:string }>('thread', { method: 'POST', body: JSON.stringify(input) })
 
 export function suggestedMailServers(address: string) {
   const domain = address.trim().toLowerCase().split('@')[1] || ''
