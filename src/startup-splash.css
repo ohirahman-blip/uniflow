@@ -4,8 +4,9 @@
 }
 .uf-startup-wordmark{
   display:flex;align-items:baseline;font-family:inherit;font-size:clamp(42px,8vw,60px);
-  font-weight:800;letter-spacing:-2px;line-height:1;transform:translateY(-5vh);
+  font-weight:800;letter-spacing:-2px;line-height:1;transform:translateY(-5vh);isolation:isolate;
 }
+.uf-startup-wordmark>span:first-child{position:relative;z-index:2;background:var(--uf-page-background,#080808)}
 .uf-startup-symbol{display:inline-block;position:relative;width:.85em;height:.85em;margin-left:.02em;letter-spacing:0}
 .uf-startup-dot{
   position:absolute;left:.05em;bottom:0;width:.15em;height:.15em;border-radius:50%;
@@ -13,13 +14,13 @@
   transform-origin:center bottom;animation:uf-startup-bounce 780ms infinite;
 }
 .uf-startup-plus{
-  position:absolute;inset:0;opacity:0;transform-origin:center;
+  position:absolute;inset:0;z-index:1;opacity:0;transform-origin:center;
   /* Draw the cross as one layer so transparency stays even at its center. */
   background:var(--uf-premium-surface,rgba(115,79,124,.36));
   clip-path:polygon(39% 10%,61% 10%,61% 39%,90% 39%,90% 61%,61% 61%,61% 90%,39% 90%,39% 61%,10% 61%,10% 39%,39% 39%);
 }
-.uf-startup.is-finishing.is-premium .uf-startup-dot{animation:uf-startup-final-jump 620ms cubic-bezier(.3,0,.6,1) forwards}
-.uf-startup.is-finishing.is-premium .uf-startup-plus{animation:uf-startup-plus-land 480ms 480ms cubic-bezier(.2,.8,.25,1) forwards}
+.uf-startup.is-finishing.is-premium .uf-startup-dot{animation:uf-startup-dot-drop 320ms cubic-bezier(.4,0,.8,.5) forwards}
+.uf-startup.is-finishing.is-premium .uf-startup-plus{animation:uf-startup-plus-reveal 650ms 180ms cubic-bezier(.2,.75,.25,1) both}
 .uf-startup.is-finishing:not(.is-premium) .uf-startup-dot{animation:none;transform:none}
 .uf-startup.is-finishing{animation:uf-startup-exit 250ms 950ms ease forwards}
 .uf-startup.is-finishing:not(.is-premium){animation-delay:170ms}
@@ -28,17 +29,15 @@
   48%{transform:translateY(-.7em) scale(.94,1.05);animation-timing-function:cubic-bezier(.65,0,.85,.4)}
   90%{transform:translateY(0) scale(1,1)}
 }
-@keyframes uf-startup-final-jump{
-  0%{transform:translateY(0) scale(1.12,.85);opacity:1}
-  43%{transform:translateY(-.85em) scale(.94,1.05);opacity:1}
-  77%{transform:translateY(0) scale(1.3,.7);opacity:1}
-  88%,100%{transform:translateY(0) scale(.3);opacity:0}
+@keyframes uf-startup-dot-drop{
+  from{transform:translateY(0);opacity:1}
+  to{transform:translateY(.65em);opacity:0}
 }
-@keyframes uf-startup-plus-land{
-  0%{opacity:0;transform:translateY(.05em) scale(.35) rotate(-16deg)}
-  48%{opacity:1;transform:translateY(.03em) scale(1.15,.85) rotate(5deg)}
-  78%{opacity:1;transform:translateY(0) scale(.96,1.04) rotate(-2deg)}
-  100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
+@keyframes uf-startup-plus-reveal{
+  0%{opacity:0;transform:translateX(-.85em) rotate(-180deg)}
+  22%{opacity:1}
+  85%{opacity:1;transform:translateX(.035em) rotate(7deg)}
+  100%{opacity:1;transform:translateX(0) rotate(0)}
 }
 @keyframes uf-startup-exit{to{opacity:0}}
 @media(prefers-reduced-motion:reduce){
