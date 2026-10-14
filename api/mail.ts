@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { loadEnvFile } from 'node:process'
 import { createClient, type User } from '@supabase/supabase-js'
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { isIP } from 'node:net'
@@ -18,6 +19,15 @@ type ApiMessage = {
   id: string; uid: number; mailbox: string; from: string; fromName: string; to: string
   subject: string; text: string; date: string; outgoing: boolean; unread: boolean
   attachments: { filename: string; contentType: string; size: number }[]
+}
+
+// vercel dev can start API workers without locally defined variables.
+// Read the project file before creating clients; deployed environments use Vercel.
+if (process.env.VERCEL_ENV !== 'production' && process.env.VERCEL_ENV !== 'preview') {
+  try { loadEnvFile('.env.local') }
+  catch (reason) {
+    if ((reason as NodeJS.ErrnoException).code !== 'ENOENT') throw reason
+  }
 }
 
 const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim()
