@@ -181,14 +181,18 @@ export default function ModuleScheduleEditor({
     commit([...own,...deleted.filter(o=>!ids.has(o.id))])
     setDeleted([])
   }
-  const setDay=(o:Offering,day:number)=>{
-    let next=addDays(weekStart(o.date),day)
-    if(next<semester.start)next=initialDate(semester,day)
-    if(next>semester.end){setWarning('Dieser Wochentag liegt außerhalb des Semesters.');return}
+  const setSeriesStart=(o:Offering,next:string)=>{
+    if(next<semester.start||next>semester.end){setWarning('Der Beginn liegt außerhalb des Semesters.');return}
     const shift=Math.round((fromDate(next).getTime()-fromDate(o.date).getTime())/86400000)
     const overrides=Object.fromEntries(Object.entries(o.overrides||{}).map(([key,value])=>[addDays(key,shift),value]))
     const scheduleChanges=o.scheduleChanges?.map(change=>({...change,fromOrigin:addDays(change.fromOrigin,shift)}))
     update(o.id,{date:next,endDate:o.recurrence==='once'?next:next>o.endDate?next:o.endDate,overrides,scheduleChanges})
+  }
+  const setDay=(o:Offering,day:number)=>{
+    let next=addDays(weekStart(o.date),day)
+    if(next<semester.start)next=initialDate(semester,day)
+    if(next>semester.end){setWarning('Dieser Wochentag liegt außerhalb des Semesters.');return}
+    setSeriesStart(o,next)
   }
   const setClock=(o:Offering,from:string)=>{
     if(!from||minutes(from)+durationOf(o)>1440){setWarning('Die Veranstaltung muss am selben Tag enden.');return}
@@ -455,7 +459,7 @@ export default function ModuleScheduleEditor({
                   <label>Wiederholung<UniflowPicker label="Wiederholung" value={o.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>update(o.id,{recurrence:value as Repeat,endDate:value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}/></label>
                   {o.recurrence==='once'
                     ?<label>Datum<UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={o.date} onChange={value=>{if(value>=semester.start&&value<=semester.end)update(o.id,{date:value,endDate:value})}}/></label>
-                    :<label>Bis<UniflowPicker kind="date" label="Bis" min={o.date} max={semester.end} value={o.endDate} onChange={value=>{if(value>=o.date&&value<=semester.end)update(o.id,{endDate:value})}}/></label>}
+                    :<><label>Beginn<UniflowPicker kind="date" label="Beginn" min={semester.start} max={o.endDate} value={o.date} onChange={value=>setSeriesStart(o,value)}/></label><label>Bis<UniflowPicker kind="date" label="Bis" min={o.date} max={semester.end} value={o.endDate} onChange={value=>{if(value>=o.date&&value<=semester.end)update(o.id,{endDate:value})}}/></label></>}
                 </div>
               </details>
             </div>
