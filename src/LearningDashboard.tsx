@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { ArrowRight, CalendarClock, Check, ChevronRight, Clock3, GraduationCap, Plus, Sparkles, X } from 'lucide-react'
 import {
-  formatDate, fromDate, isAssessment, minutes, occurrencesOn, today,
+  formatDate, fromDate, isAssessment, minutes, occurrencesOn, selectedAssessment, today,
   type AppData, type Semester, type StudyModule
 } from './model'
 import {
@@ -99,7 +99,7 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
     setDuration(45)
     setStudyOpen(true)
   }
-  const recentExam=data.assessments.filter(a=>a.type==='exam'&&!a.completed&&a.date>=today()&&active.some(m=>m.id===a.moduleId))
+  const recentExam=data.assessments.filter(a=>a.type==='exam'&&!a.completed&&a.date>=today()&&active.some(m=>m.id===a.moduleId)&&selectedAssessment(a,data.assessments))
     .sort((a,b)=>a.date.localeCompare(b.date))[0]
   const nextModule=modules.find(m=>m.id===next?.moduleId)
   const examModule=modules.find(m=>m.id===recentExam?.moduleId)
@@ -118,7 +118,7 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
       <section className={'learn-hero '+(examModule?'learn-hero-subject':'')} style={accent(examModule?.color)}>
         <span className="learn-eyebrow"><GraduationCap size={15}/> NÄCHSTE KLAUSUR</span>
         {recentExam?<><strong>{examModule?.name||recentExam.title}</strong><p>{shortDate(recentExam.date)} · in {Math.max(0,Math.round((fromDate(recentExam.date).getTime()-fromDate(today()).getTime())/86400000))} Tagen</p></>:
-          <><strong>Keine Klausur geplant</strong><p>Neue Prüfungen erscheinen automatisch hier.</p></>}
+          <><strong>Keine Prüfung geplant</strong><p>Neue Prüfungen erscheinen automatisch hier.</p></>}
       </section>
     </div>
     <section className="learn-section learn-advice-section" aria-label="Aktuelle Empfehlung">
@@ -186,8 +186,8 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
           const examFocus=j.daysUntilExam!==undefined&&j.daysUntilExam<=7&&!target
           return <div className="learn-suggestion" key={module.id} style={accent(module.color)}>
             <span className="learn-suggestion-num">{String(index+1).padStart(2,'0')}</span>
-            <div><strong>{module.name}</strong><small>{target?'Wiederholen: '+target.label:examFocus?'Klausuraufgaben üben':'Wissen festigen'} · Vorschlag 45 Min.</small></div>
-            <button aria-label={'Lernziel für '+module.name+' übernehmen'} title="Für heute einplanen" onClick={()=>onPlan({id:module.id+'-'+Date.now(),moduleId:module.id,date:today(),title:target?'Wiederholen: '+target.label:examFocus?'Klausuraufgaben üben':'Wissen festigen',kind:examFocus?'exam':'review',duration:45,lessonKey:target?.key})}><Plus size={17}/></button>
+            <div><strong>{module.name}</strong><small>{target?'Wiederholen: '+target.label:examFocus?'Prüfungsaufgaben üben':'Wissen festigen'} · Vorschlag 45 Min.</small></div>
+            <button aria-label={'Lernziel für '+module.name+' übernehmen'} title="Für heute einplanen" onClick={()=>onPlan({id:module.id+'-'+Date.now(),moduleId:module.id,date:today(),title:target?'Wiederholen: '+target.label:examFocus?'Prüfungsaufgaben üben':'Wissen festigen',kind:examFocus?'exam':'review',duration:45,lessonKey:target?.key})}><Plus size={17}/></button>
           </div>
         })}
       </div>}
@@ -197,7 +197,7 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
       <div className="learn-sheet" role="dialog" aria-modal="true" aria-label="Lerneinheit erfassen">
         <div className="learn-sheet-head"><div><h2>Freies Lernen</h2></div><button aria-label="Schließen" onClick={()=>setStudyOpen(false)}><X size={20}/></button></div>
         <label>Modul<UniflowPicker label="Modul" value={chosenModule?.id||''} onChange={value=>{setModuleId(value);setLessonKey('')}} options={active.map(m=>({value:m.id,label:m.name}))}/></label>
-        <label>Was hast du gemacht?<UniflowPicker label="Lernart" value={kind} onChange={value=>setKind(value as 'review'|'exam')} options={[{value:'review',label:'Stoff wiederholt / gelernt'},{value:'exam',label:'Klausuraufgaben geübt'}]}/></label>
+        <label>Was hast du gemacht?<UniflowPicker label="Lernart" value={kind} onChange={value=>setKind(value as 'review'|'exam')} options={[{value:'review',label:'Stoff wiederholt / gelernt'},{value:'exam',label:'Prüfungsaufgaben geübt'}]}/></label>
         {kind==='review'&&<label>Welche Veranstaltung? (optional)<UniflowPicker label="Veranstaltung" value={lessonKey} onChange={setLessonKey} options={[{value:'',label:'Allgemeines Lernen'},...options.map(l=>({value:l.key,label:l.label+' · '+shortDate(l.date)}))]}/></label>}
         <label>Dauer<UniflowPicker kind="duration" label="Lerndauer" value={String(duration)} maxMinutes={360} onChange={value=>setDuration(Number(value))}/></label>
         <span className="learn-field-title">Wie lief es?</span>
