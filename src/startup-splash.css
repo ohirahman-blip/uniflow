@@ -24,6 +24,8 @@
   clip-path:polygon(39% 10%,61% 10%,61% 39%,90% 39%,90% 61%,61% 61%,61% 90%,39% 90%,39% 61%,10% 61%,10% 39%,39% 39%);
 }
 .uf-startup.is-finishing{animation:uf-startup-exit 250ms ease forwards}
+.uf-startup.is-reload{animation:none}
+.uf-startup.is-reload>.uf-startup-loading-line{bottom:auto;top:50%}
 @keyframes uf-startup-plus-spin{
   from{transform:rotate(-360deg)}
   to{transform:rotate(0)}
