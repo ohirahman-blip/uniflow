@@ -1101,9 +1101,9 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         </div>}
         <div key={stripMonday} className={'uf-week-strip-days'+(weekSlide?' uf-week-slide-in-'+weekSlide.direction:'')}>
           {mode!=='week'&&<span className="uf-week-range" aria-hidden="true" style={{left:(stripRangeIndex/stripDates.length*100)+'%',width:(stripRangeDays/stripDates.length*100)+'%'}}/>}
-          {todayIndex!==-1&&(mode==='week'||anchor!==today())&&<span className="uf-week-today-marker" aria-hidden="true" style={{left:(todayIndex/stripDates.length*100)+'%'}}/>}
+          {todayIndex!==-1&&(mode==='week'||displayCalendarStart!==today())&&<span className="uf-week-today-marker" aria-hidden="true" style={{left:(todayIndex/stripDates.length*100)+'%'}}/>}
           {mode!=='week'&&<span className="uf-week-liquid" aria-hidden="true" style={{left:(stripIndex/stripDates.length*100)+'%'}}>
-            <span className={'uf-week-liquid-core'+(anchor===today()?' uf-week-liquid-today':'')} key={anchor}/>
+            <span className={'uf-week-liquid-core'+(displayCalendarStart===today()?' uf-week-liquid-today':'')}/>
           </span>}
           {stripDates.map(date=>{
             const selected=mode!=='week'&&date===displayCalendarStart
