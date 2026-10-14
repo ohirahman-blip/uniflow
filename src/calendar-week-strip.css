@@ -104,6 +104,7 @@
   border-radius:51% 49% 49% 51% / 50% 50% 50% 50%;
   box-shadow:0 1px 0 rgba(255,255,255,.18);
   transform-origin:center;
+  transition:background-color 260ms cubic-bezier(.22,.8,.2,1),box-shadow 260ms cubic-bezier(.22,.8,.2,1);
   animation:uf-week-liquid-pop 470ms cubic-bezier(.22,1,.32,1) both;
 }
 @keyframes uf-week-liquid-pop {
