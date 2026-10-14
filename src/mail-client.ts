@@ -64,12 +64,12 @@ export type MailDraftAttachment = {
   content: string
 }
 
-async function mailRequest<T>(action: string, init?: RequestInit): Promise<T> {
+async function mailRequest<T>(action: string, init?: RequestInit, cursor?: string): Promise<T> {
   if (!supabase) throw new Error('Supabase ist nicht verbunden.')
   const { data: { session } } = await supabase.auth.getSession()
   if (!session?.access_token) throw new Error('Bitte melde dich erneut an.')
   let response: Response
-  try { response = await fetch(`/api/mail?action=${encodeURIComponent(action)}`, {
+  try { response = await fetch(`/api/mail?action=${encodeURIComponent(action)}${cursor?'&cursor='+encodeURIComponent(cursor):''}`, {
     ...init,
     headers: {
       'content-type': 'application/json',
@@ -84,18 +84,30 @@ async function mailRequest<T>(action: string, init?: RequestInit): Promise<T> {
 }
 
 export const getMailAccount = () => mailRequest<MailAccount>('account')
-type MailThreadResult = { threads: MailThread[]; unread: number; syncedAt: string }
+type MailThreadResult = { threads: MailThread[]; unread: number; syncedAt: string; nextCursor?:string|null }
 const threadRequests=new Map<string,Promise<MailThreadResult>>()
-export async function getMailThreads(): Promise<MailThreadResult> {
+export async function getMailThreads(cursor?:string): Promise<MailThreadResult> {
   const session=await supabase?.auth.getSession()
   const userId=session?.data.session?.user.id
   if(!userId)throw new Error('Bitte melde dich erneut an.')
-  const existing=threadRequests.get(userId)
+  const key=userId+':'+(cursor||'first')
+  const existing=threadRequests.get(key)
   if(existing)return existing
-  const request=mailRequest<MailThreadResult>('threads')
-  threadRequests.set(userId,request)
+  const request=mailRequest<MailThreadResult>('threads',undefined,cursor)
+  threadRequests.set(key,request)
   try {return await request}
-  finally {if(threadRequests.get(userId)===request)threadRequests.delete(userId)}
+  finally {if(threadRequests.get(key)===request)threadRequests.delete(key)}
+}
+
+export function mergeMailPages(existing:MailThread[],incoming:MailThread[]):MailThread[]{
+  const byAddress=new Map(existing.map(thread=>[thread.address,thread]))
+  for(const thread of incoming){
+    const previous=byAddress.get(thread.address)
+    const messages=[...new Map([...(previous?.messages||[]),...thread.messages].map(message=>[message.id,message])).values()].sort((a,b)=>a.date.localeCompare(b.date))
+    const latest=messages[messages.length-1]
+    byAddress.set(thread.address,{...thread,messages,date:latest?.date||thread.date,preview:latest?.text.replace(/\s+/g,' ').slice(0,110)||latest?.subject||thread.preview,unread:messages.filter(message=>!message.outgoing&&message.unread).length})
+  }
+  return [...byAddress.values()].sort((a,b)=>b.date.localeCompare(a.date))
 }
 export const connectMailAccount = (input: MailConnectionInput) => mailRequest<MailAccount>('connect', {
   method: 'POST', body: JSON.stringify(input)
