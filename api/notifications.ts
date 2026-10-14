@@ -73,8 +73,9 @@ async function notifyMail(userId: string, rows: SubscriptionRow[]) {
   const account = data as MailAccountRow | null
   if (!account) return 0
   const client = new ImapFlow({ host: account.imap_host, port: account.imap_port, secure: account.imap_secure, auth: { user: account.username, pass: decrypt(account.encrypted_password) }, logger: false, tls: { rejectUnauthorized: true, servername: account.imap_host } })
-  await client.connect()
+  client.on('error', () => { client.close() })
   try {
+    await client.connect()
     const lock = await client.getMailboxLock('INBOX')
     try {
       const found = await client.search({ seen: false }, { uid: true })
@@ -97,7 +98,11 @@ async function notifyMail(userId: string, rows: SubscriptionRow[]) {
       })
       return senders.length
     } finally { lock.release() }
-  } finally { await client.logout().catch(() => undefined) }
+  } finally {
+    if (client.usable) {
+      try { await client.logout() } catch { client.close() }
+    } else client.close()
+  }
 }
 async function notifyLessons(userId: string, rows: SubscriptionRow[]) {
   const { data } = await database!.from('private_workspaces').select('payload').eq('user_id', userId).maybeSingle()
