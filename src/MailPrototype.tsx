@@ -91,6 +91,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
   const [active, setActive] = useState<string | null>(snapshot.active)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [syncBusy, setSyncBusy] = useState(false)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [revealed, setRevealed] = useState<string | null>(null)
@@ -115,6 +116,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
   const loadThreads = useCallback(async (quiet = false) => {
     if(syncing.current)return
     syncing.current=true
+    setSyncBusy(true)
     if (!quiet) setLoading(true)
     try {
       let cursor:string|undefined
@@ -135,7 +137,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
       setThreads(current=>[...collected.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0),...current.filter(item=>item.id.startsWith('new:')&&!collected.some(incoming=>incoming.address===item.address))])
       setActive(current=>current?.startsWith('new:')?(collected.find(item=>item.address===current.slice(4))?.id||current):current)
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Mails konnten nicht geladen werden.') }
-    finally { syncing.current=false; if (!quiet) setLoading(false) }
+    finally { syncing.current=false; setSyncBusy(false); if (!quiet) setLoading(false) }
   }, [onUnreadChange])
 
   useEffect(()=>{
@@ -281,12 +283,12 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
     setActive(id); setQuery('')
   }
 
-  if (loading && !account) return <section className="mail-prototype mail-loading" aria-live="polite">Postfach wird geladen …</section>
+  if (loading && !account) return <section className="mail-prototype mail-loading" aria-live="polite"><span className="mail-loading-spinner" aria-hidden="true"/><span>Postfach wird geladen …</span></section>
   if (account && !account.connected) return <section className="mail-prototype screen secondary-screen"><MailOnboarding onConnected={connected}/></section>
   return <section className="mail-prototype screen secondary-screen" aria-label="Postfach">
     <div className={'mail-layout' + (thread ? ' has-thread' : '')}>
       <aside className="mail-inbox" aria-label="Unterhaltungen">
-        <div className="mail-inbox-heading"><strong>{selected.size ? `${selected.size} ausgewählt` : 'Postfach'}</strong>{selected.size ? <span className="mail-selection-actions"><button type="button" onClick={() => void actSelected('mute')} aria-label="Auswahl stummschalten"><BellOff size={16}/></button><button type="button" onClick={() => void actSelected('delete')} aria-label="Auswahl löschen"><Trash2 size={16}/></button><button type="button" title="Alle auswählen" aria-label="Alle Unterhaltungen auswählen" onClick={() => setSelected(new Set(threads.map(item=>item.id)))}><CheckCheck size={16}/></button><button type="button" onClick={() => setSelected(new Set())} aria-label="Auswahl aufheben"><X size={16}/></button></span> : null}</div>
+        <div className="mail-inbox-heading"><strong>{selected.size ? `${selected.size} ausgewählt` : 'Postfach'}</strong>{selected.size ? <span className="mail-selection-actions"><button type="button" onClick={() => void actSelected('mute')} aria-label="Auswahl stummschalten"><BellOff size={16}/></button><button type="button" onClick={() => void actSelected('delete')} aria-label="Auswahl löschen"><Trash2 size={16}/></button><button type="button" title="Alle auswählen" aria-label="Alle Unterhaltungen auswählen" onClick={() => setSelected(new Set(threads.map(item=>item.id)))}><CheckCheck size={16}/></button><button type="button" onClick={() => setSelected(new Set())} aria-label="Auswahl aufheben"><X size={16}/></button></span> : syncBusy ? <span className="mail-loading-spinner small" role="status" aria-label="Postfach wird synchronisiert"/> : null}</div>
         <label className="mail-search"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Name oder E-Mail suchen" aria-label="Unterhaltungen suchen"/></label>
         {error && <button className="mail-sync-error" onClick={() => void loadThreads()}>{error} · erneut versuchen</button>}
         <div className="mail-thread-list">
