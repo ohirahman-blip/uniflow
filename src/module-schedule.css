@@ -168,6 +168,14 @@
 .module-fast .module-fast-topic-inputs select{background:#232323;border:0}
 .module-fast .module-fast-slot-list{margin:0;padding:0 11px}
 .module-fast .module-fast-slot{background:#202020;border:0;border-radius:11px;padding:13px;margin-bottom:7px}
+.module-fast .module-fast-alternatives{margin:2px 0 4px}
+.module-fast .module-fast-alternatives-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:43px;padding:9px 5px 9px 11px;border:0;border-top:1px solid #29292c;background:transparent;color:#b6b6bb;text-align:left}
+.module-fast .module-fast-alternatives-toggle>span{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:650}
+.module-fast .module-fast-alternatives-toggle small{display:grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#242427;color:#85858d;font-size:10px;font-weight:600}
+.module-fast .module-fast-alternatives-toggle svg{color:#74747b;transform:rotate(-90deg);transition:transform .2s ease}
+.module-fast .module-fast-alternatives-toggle svg.expanded{transform:rotate(0)}
+.module-fast .module-fast-alternative-list{animation:module-alternatives-reveal .22s ease-out both}
+@keyframes module-alternatives-reveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
 .module-fast .module-fast-slot-caption{margin-bottom:11px}
 .module-fast .module-fast-dot.active{background:#98c5a5}
 .module-fast .module-fast-fields input,.module-fast .module-fast-fields select{background:#2b2b2b;border:0;height:40px;border-radius:8px;padding:8px 10px;color:#eee}
@@ -192,6 +200,7 @@
  .module-fast .module-fast-slot-list{padding:0 8px}
  .module-fast .module-fast-slot{padding:12px}
 }
+@media(prefers-reduced-motion:reduce){.module-fast .module-fast-alternative-list{animation:none}.module-fast .module-fast-alternatives-toggle svg{transition:none}}
 
 .module-hub .module-journey-inline{color:#d0d0d4;font-size:11px}
 .module-fast .module-fast-journey{background:#171717;border-radius:14px;padding:18px;margin:13px 0}
