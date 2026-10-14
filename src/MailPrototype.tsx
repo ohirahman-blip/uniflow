@@ -9,6 +9,7 @@ import {
 } from './mail-client'
 
 type Props = {
+  userId: string
   onUnreadChange?: (count: number) => void
   onAccountChange?: (account: MailAccount) => void
   onNotice?: (text: string) => void
@@ -74,16 +75,26 @@ function MailOnboarding({ onConnected }: { onConnected: (account: MailAccount) =
   </div>
 }
 
-export default function MailPrototype({ onUnreadChange, onAccountChange, onNotice }: Props) {
-  const [account, setAccount] = useState<MailAccount | null>(null)
-  const [threads, setThreads] = useState<MailThread[]>([])
-  const [active, setActive] = useState<string | null>(null)
+type MailSnapshot = { account: MailAccount | null; threads: MailThread[]; active: string | null; drafts: Record<string,string> }
+function readSnapshot(userId: string): MailSnapshot {
+  try {
+    const value=JSON.parse(sessionStorage.getItem('uniflow-mail:'+userId)||'null')
+    if(value&&Array.isArray(value.threads))return {account:value.account||null,threads:value.threads,active:typeof value.active==='string'?value.active:null,drafts:value.drafts||{}}
+  } catch { /* A missing or invalid cache must not prevent opening mail. */ }
+  return {account:null,threads:[],active:null,drafts:{}}
+}
+
+export default function MailPrototype({ userId, onUnreadChange, onAccountChange, onNotice }: Props) {
+  const [snapshot]=useState(()=>readSnapshot(userId))
+  const [account, setAccount] = useState<MailAccount | null>(snapshot.account)
+  const [threads, setThreads] = useState<MailThread[]>(snapshot.threads)
+  const [active, setActive] = useState<string | null>(snapshot.active)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [revealed, setRevealed] = useState<string | null>(null)
-  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [drafts, setDrafts] = useState<Record<string, string>>(snapshot.drafts)
   const [files, setFiles] = useState<Record<string, File[]>>({})
   const [replyingTo, setReplyingTo] = useState<Record<string, MailMessage | undefined>>({})
   const [subjectOpen, setSubjectOpen] = useState(false)
@@ -94,19 +105,28 @@ export default function MailPrototype({ onUnreadChange, onAccountChange, onNotic
   const fileInput = useRef<HTMLInputElement>(null)
   const swipeStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null)
   const ignoreClick = useRef(false)
+  const syncing = useRef(false)
   const thread = threads.find(item => item.id === active) || null
   const currentText = thread ? drafts[thread.id] || '' : ''
   const currentFiles = thread ? files[thread.id] || [] : []
   const currentReply = thread ? replyingTo[thread.id] : undefined
 
   const loadThreads = useCallback(async (quiet = false) => {
+    if(syncing.current)return
+    syncing.current=true
     if (!quiet) setLoading(true)
     try {
       const result = await getMailThreads()
-      setThreads(result.threads); onUnreadChange?.(result.unread); setError('')
+      setThreads(current=>[...result.threads,...current.filter(item=>item.id.startsWith('new:')&&!result.threads.some(incoming=>incoming.address===item.address))]); onUnreadChange?.(result.unread); setError('')
+      setActive(current=>current?.startsWith('new:')?(result.threads.find(item=>item.address===current.slice(4))?.id||current):current)
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Mails konnten nicht geladen werden.') }
-    finally { if (!quiet) setLoading(false) }
+    finally { syncing.current=false; if (!quiet) setLoading(false) }
   }, [onUnreadChange])
+
+  useEffect(()=>{
+    try { sessionStorage.setItem('uniflow-mail:'+userId,JSON.stringify({account,threads,active,drafts})) }
+    catch { /* Storage quota must not interrupt sending or synchronization. */ }
+  },[userId,account,threads,active,drafts])
 
   useEffect(() => {
     let alive = true
@@ -114,14 +134,17 @@ export default function MailPrototype({ onUnreadChange, onAccountChange, onNotic
       if (!alive) return
       setAccount(value); onAccountChange?.(value)
       if (value.connected) void loadThreads()
-      else setLoading(false)
+      else {setThreads([]);setActive(null);setDrafts({});setLoading(false)}
     }).catch(reason => { if (alive) { setError(reason instanceof Error ? reason.message : 'Postfachstatus nicht verfügbar.'); setLoading(false) } })
     return () => { alive = false }
   }, [loadThreads, onAccountChange])
   useEffect(() => {
     if (!account?.connected) return
     const timer = window.setInterval(() => void loadThreads(true), 60_000)
-    return () => window.clearInterval(timer)
+    const refresh=()=>{if(document.visibilityState==='visible')void loadThreads(true)}
+    window.addEventListener('online',refresh)
+    window.addEventListener('focus',refresh)
+    return () => {window.clearInterval(timer);window.removeEventListener('online',refresh);window.removeEventListener('focus',refresh)}
   }, [account?.connected, loadThreads])
   useEffect(() => {
     if (!context) return
