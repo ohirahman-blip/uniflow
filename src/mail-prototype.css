@@ -289,3 +289,15 @@ html[data-theme='light'] .mail-avatar{background:#e2e2e2;color:#202020}
 }
 
 @media(prefers-reduced-motion:reduce){.mail-thread-swipe .mail-thread{transition:none}}
+
+/* Match the section-heading baseline used by Modules and Settings. */
+.uf-page-mail .mail-inbox-heading{padding-top:55px}
+.mail-onboarding{margin:0 auto;padding-top:55px}
+.mail-onboarding-brand{min-height:0}
+.mail-onboarding-brand strong{font-size:12px;font-weight:700;line-height:1.4;letter-spacing:1.8px;color:#a4a4ad}
+@media(max-width:900px){
+  .uf-page-mail .mail-inbox-heading,.mail-onboarding{padding-top:45px}
+}
+@media(max-width:420px){
+  .uf-page-mail .mail-inbox-heading,.mail-onboarding{padding-top:38px}
+}
