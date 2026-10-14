@@ -2636,11 +2636,11 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
    No module colors are used for unselected offerings.
    ================================================================ */
 .course.course-inactive {
-  background: #29292b !important;
-  color: #99999c !important;
-  border: 1px solid #454548;
+  background: #0d0d0e !important;
+  color: #39393c !important;
+  border: 1px solid #18181a;
   outline: 0;
-  opacity: .3;
+  opacity: 1;
   filter: none;
   box-shadow: none;
 }
@@ -2651,12 +2651,14 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .course.course-inactive .course-place,
 .course.course-inactive .course-place span,
 .course.course-inactive .course-kind-icon,
-.course.course-inactive svg { color:#a6a6a9 !important; }
+.course.course-inactive svg { color:#3f3f42 !important; }
 .course.course-inactive .course-emoji { filter: grayscale(1); opacity:.65; }
 .course.course-inactive:hover,.course.course-inactive:focus-visible {
-  opacity:.52;filter:none;background:#343438!important;
+  opacity:1;filter:none;background:#171719!important;
 }
-.course.course-inactive.course-cancelled{opacity:.3}
+.course.course-inactive:hover :is(strong,small,.course-category,.course-hours,.course-place,.course-place span,.course-kind-icon,svg),
+.course.course-inactive:focus-visible :is(strong,small,.course-category,.course-hours,.course-place,.course-place span,.course-kind-icon,svg){color:#69696d!important}
+.course.course-inactive.course-cancelled{opacity:1}
 .course.course-cancelled{opacity:.52;filter:saturate(.45);outline:1px dashed rgba(255,255,255,.45);outline-offset:-2px}
 .course.course-cancelled::after{content:"";position:absolute;left:8px;right:8px;top:50%;height:2px;background:rgba(30,30,32,.78);transform:rotate(-7deg);pointer-events:none}
 .course.course-cancelled .course-title,.course.course-cancelled .course-category,.course.course-cancelled .course-place{text-decoration:line-through;text-decoration-thickness:1.5px}
@@ -2715,12 +2717,15 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .wallet-card-top span{font-size:13px;flex-shrink:0}
 .wallet-card small{font-size:10px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wallet-card-caption{font-size:9px;opacity:.7;margin-top:2px}
-.wallet-card-inactive{background:#2a2a2d;color:#b3b3b7;border-color:#404044;opacity:.42}
-.wallet-card-inactive:hover,.wallet-card-inactive:focus-visible,.wallet-card-inactive.wallet-card-picked{opacity:.68}
-.wallet-card-inactive .wallet-card-top,.wallet-card-inactive small,.wallet-card-inactive .wallet-card-caption{color:#b3b3b7}
+.wallet-card-inactive{background:#1f1f21;color:#59595d;border-color:#28282b;opacity:1}
+.wallet-card-inactive:hover,.wallet-card-inactive:focus-visible,.wallet-card-inactive.wallet-card-picked{background:#252528;color:#85858a;opacity:1}
+.wallet-card-inactive .wallet-card-top,.wallet-card-inactive small,.wallet-card-inactive .wallet-card-caption{color:#59595d}
+.wallet-card-inactive:hover :is(.wallet-card-top,small,.wallet-card-caption),.wallet-card-inactive:focus-visible :is(.wallet-card-top,small,.wallet-card-caption),.wallet-card-inactive.wallet-card-picked :is(.wallet-card-top,small,.wallet-card-caption){color:#85858a}
 .wallet-card-active{border-color:rgba(0,0,0,.15)}
 .wallet-card-cancelled{background:#29292c!important;color:#aaa!important;opacity:.74}
 .wallet-card-cancelled :is(strong,small,.wallet-card-caption){color:#aaa!important;text-decoration:line-through}
+.wallet-card-inactive.wallet-card-cancelled{background:#1f1f21!important;color:#59595d!important;opacity:1}
+.wallet-card-inactive.wallet-card-cancelled :is(strong,small,.wallet-card-caption){color:#59595d!important}
 .wallet-tip {font-size:10px;line-height:1.5;color:#949499;padding:4px 4px 2px}
 .wallet-actions {background:#202022;border-radius:7px;padding:8px;display:flex;flex-direction:column;gap:7px;animation:content-appear 190ms ease both}
 .wallet-action-title{font-size:11px;font-weight:700;color:#ededed;display:flex;flex-direction:column;gap:2px}
