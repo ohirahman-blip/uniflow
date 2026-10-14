@@ -108,6 +108,20 @@
 /* uniflow module refresh — intentionally scoped; calendar CSS unchanged. */
 .module-hub .page-title-row{margin-bottom:30px}
 .module-hub .page-title-row h1{margin:10px 0}
+.module-header-actions{display:flex;align-items:center;gap:5px}
+.module-sort-wrap{position:relative}
+.module-sort-trigger{width:44px;height:44px;border:0;border-radius:50%;display:grid;place-items:center;background:transparent;color:#9a9aa0}
+.module-sort-trigger:hover,.module-sort-trigger:focus-visible,.module-sort-trigger.active{background:#252527;color:#f0d5e2;outline:none}
+.module-sort-trigger.active::after{content:"";position:absolute;right:7px;top:7px;width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,#ff8249,#ee3e83)}
+.module-sort-popover{position:absolute;right:0;top:50px;z-index:80;width:min(260px,calc(100vw - 34px));padding:9px;border:1px solid #343438;border-radius:13px;background:#202023;box-shadow:0 15px 36px #0008;display:grid;gap:3px}
+.module-sort-popover>strong{padding:7px 9px 5px;color:#85858c;font-size:9px;text-transform:uppercase;letter-spacing:1px}
+.module-sort-popover>button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;border-radius:9px;padding:10px;background:transparent;color:#d5d5d8;text-align:left;font-size:12px}
+.module-sort-popover>button:hover,.module-sort-popover>button.selected{background:#303034;color:#fff}
+.module-sort-divider{height:1px;margin:5px 6px;background:#37373b}
+.module-sort-direction{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:0 4px 4px}
+.module-sort-direction button{border:1px solid #39393e;border-radius:8px;padding:9px 6px;background:#29292d;color:#aaa;font-size:10px}
+.module-sort-direction button.selected{background:#e7dde2;color:#1d171b;border-color:#e7dde2;font-weight:700}
+.module-list-row-wrap.module-auto-sorted .module-list-row{padding-left:17px}
 .module-hub .module-degree-summary{background:#161616;border:0;border-radius:15px;padding:19px 21px;margin:0 0 28px}
 .module-hub .module-degree-summary strong{font-size:21px;letter-spacing:-.5px}
 .module-hub .module-group{margin-top:18px}
