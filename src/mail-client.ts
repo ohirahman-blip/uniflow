@@ -84,7 +84,19 @@ async function mailRequest<T>(action: string, init?: RequestInit): Promise<T> {
 }
 
 export const getMailAccount = () => mailRequest<MailAccount>('account')
-export const getMailThreads = () => mailRequest<{ threads: MailThread[]; unread: number; syncedAt: string }>('threads')
+type MailThreadResult = { threads: MailThread[]; unread: number; syncedAt: string }
+const threadRequests=new Map<string,Promise<MailThreadResult>>()
+export async function getMailThreads(): Promise<MailThreadResult> {
+  const session=await supabase?.auth.getSession()
+  const userId=session?.data.session?.user.id
+  if(!userId)throw new Error('Bitte melde dich erneut an.')
+  const existing=threadRequests.get(userId)
+  if(existing)return existing
+  const request=mailRequest<MailThreadResult>('threads')
+  threadRequests.set(userId,request)
+  try {return await request}
+  finally {if(threadRequests.get(userId)===request)threadRequests.delete(userId)}
+}
 export const connectMailAccount = (input: MailConnectionInput) => mailRequest<MailAccount>('connect', {
   method: 'POST', body: JSON.stringify(input)
 })
