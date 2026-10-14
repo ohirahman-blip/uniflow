@@ -97,7 +97,14 @@ function transport(account: AccountRow, password = decrypt(account.encrypted_pas
     host: account.smtp_host, port: account.smtp_port, secure: account.smtp_port === 587 ? false : account.smtp_secure,
     requireTLS: account.smtp_port === 587 || !account.smtp_secure, auth: { user: account.username, pass: password },
     connectionTimeout: 15000, greetingTimeout: 15000, socketTimeout: 30000,
-    tls: { rejectUnauthorized: true, servername: account.smtp_host }
+    tls: {
+      rejectUnauthorized: true, servername: account.smtp_host,
+      // TU Berlin Exchange: the Node STARTTLS handshake succeeds with TLS 1.2.
+      // Scope this compatibility setting to the verified host only.
+      ...(account.smtp_host.toLowerCase() === 'mail.tu-berlin.de'
+        ? { minVersion: 'TLSv1.2' as const, maxVersion: 'TLSv1.2' as const }
+        : {})
+    }
   })
 }
 function publicAccount(account?: AccountRow | null) {
