@@ -14,30 +14,22 @@
   transform-origin:center bottom;animation:uf-startup-bounce 780ms infinite;
 }
 .uf-startup-plus{
-  position:absolute;inset:0;z-index:1;opacity:0;transform-origin:center;
+  position:absolute;inset:0;z-index:1;opacity:1;transform-origin:center;
+  animation:uf-startup-plus-spin 700ms cubic-bezier(.25,.65,.3,1) both;
   /* Draw the cross as one layer so transparency stays even at its center. */
   background:var(--uf-premium-surface,rgba(115,79,124,.36));
   clip-path:polygon(39% 10%,61% 10%,61% 39%,90% 39%,90% 61%,61% 61%,61% 90%,39% 90%,39% 61%,10% 61%,10% 39%,39% 39%);
 }
-.uf-startup.is-finishing.is-premium .uf-startup-dot{animation:uf-startup-dot-drop 240ms linear forwards}
-.uf-startup.is-finishing.is-premium .uf-startup-plus{animation:uf-startup-plus-reveal 650ms 100ms cubic-bezier(.2,.75,.25,1) both}
 .uf-startup.is-finishing:not(.is-premium) .uf-startup-dot{animation:none;transform:none}
-.uf-startup.is-finishing{animation:uf-startup-exit 250ms 950ms ease forwards}
-.uf-startup.is-finishing:not(.is-premium){animation-delay:170ms}
+.uf-startup.is-finishing{animation:uf-startup-exit 250ms ease forwards}
 @keyframes uf-startup-bounce{
   0%{transform:translateY(0);animation-timing-function:cubic-bezier(.2,.65,.35,1)}
   50%{transform:translateY(-.7em);animation-timing-function:cubic-bezier(.65,0,.85,.4)}
   100%{transform:translateY(0)}
 }
-@keyframes uf-startup-dot-drop{
-  from{transform:translateY(0);opacity:1}
-  to{transform:translateY(.65em);opacity:0}
-}
-@keyframes uf-startup-plus-reveal{
-  0%{opacity:0;transform:translateX(-.85em) rotate(-180deg)}
-  22%{opacity:1}
-  85%{opacity:1;transform:translateX(.035em) rotate(7deg)}
-  100%{opacity:1;transform:translateX(0) rotate(0)}
+@keyframes uf-startup-plus-spin{
+  from{transform:rotate(-360deg)}
+  to{transform:rotate(0)}
 }
 @keyframes uf-startup-exit{to{opacity:0}}
 @media(prefers-reduced-motion:reduce){
