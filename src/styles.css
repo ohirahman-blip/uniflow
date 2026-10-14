@@ -2640,7 +2640,7 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
   color: #99999c !important;
   border: 1px solid #454548;
   outline: 0;
-  opacity: .72;
+  opacity: .42;
   filter: none;
   box-shadow: none;
 }
@@ -2654,7 +2654,7 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .course.course-inactive svg { color:#a6a6a9 !important; }
 .course.course-inactive .course-emoji { filter: grayscale(1); opacity:.65; }
 .course.course-inactive:hover,.course.course-inactive:focus-visible {
-  opacity:.95;filter:none;background:#343438!important;
+  opacity:.72;filter:none;background:#343438!important;
 }
 .wallet-shade {
   position: fixed;
