@@ -495,7 +495,7 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
 function Notice({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void }) {
   const [leaving, setLeaving] = useState(false)
   useEffect(() => {
-    const start = window.setTimeout(() => setLeaving(true), 4000)
+    const start = window.setTimeout(() => setLeaving(true), toast.action?8000:4000)
     return () => window.clearTimeout(start)
   }, [])
   useEffect(() => {
@@ -1304,11 +1304,11 @@ export default function App() {
     catch (e) { setToast({ id: uid(), text: e instanceof Error ? e.message : 'Abmelden fehlgeschlagen.' }) }
   }
   const undoOfferings = useRef<Offering[] | null>(null)
-  const note = (text: string) => {
+  const note = (text: string, action?:()=>void) => {
     const previous = undoOfferings.current
     const undoable = previous && (text.includes('verschoben') || text.includes('entfernt') || text.includes('übernommen'))
     if (undoable) undoOfferings.current = null
-    setToast({ id: uid(), text, action: undoable ? () => setData(d => ({ ...d, offerings: previous!, lastUpdate: Date.now() })) : undefined, actionLabel: undoable ? 'Rückgängig' : undefined })
+    setToast({ id: uid(), text, action: action||(undoable ? () => setData(d => ({ ...d, offerings: previous!, lastUpdate: Date.now() })) : undefined), actionLabel: action||undoable ? 'Rückgängig' : undefined })
   }
   const mutate = (f: (d: AppData) => AppData) => setData(prev => ({ ...f(prev), lastUpdate: Date.now() }))
   const setNotificationPreference = async (key:'mail'|'lessonFeedback',enabled:boolean) => {
