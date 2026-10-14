@@ -1,5 +1,5 @@
 import {
-  addDays, fromDate, isAssessment, minutes, occurrencesOn, today, weekStart,
+  addDays, fromDate, isAssessment, minutes, occurrencesOn, selectedAssessment, today, weekStart,
   type AppData, type Occurrence, type Semester, type StudyModule
 } from './model'
 
@@ -137,7 +137,7 @@ export function pastFreeStudy(data:AppData,semester:Semester|undefined,now=new D
 }
 const todayFrom=(date:Date)=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
 export function futureExam(data:AppData,moduleId:string,ref=today()){
-  return data.assessments.filter(a=>a.moduleId===moduleId&&a.type==='exam'&&!a.completed&&a.date>=ref)
+  return data.assessments.filter(a=>a.moduleId===moduleId&&a.type==='exam'&&!a.completed&&a.date>=ref&&selectedAssessment(a,data.assessments))
     .sort((a,b)=>a.date.localeCompare(b.date))[0]
 }
 export function journeyFor(data:AppData, module:StudyModule, allLessons:LearningLesson[], ref=today()):Journey {
@@ -208,7 +208,7 @@ export function journeyFor(data:AppData, module:StudyModule, allLessons:Learning
   if(rated.length){
     if(understanding!==null&&understanding>=85&&weakLessons.length===0&&repetition>=55){
       status='Sehr gut dabei'
-      message='Sehr gut vorbereitet auf die weitere Klausurvorbereitung. Bleib bei deinen Wiederholungen.'
+      message='Sehr gut vorbereitet auf die weitere Prüfungsvorbereitung. Bleib bei deinen Wiederholungen.'
     }else if(understanding!==null&&understanding>=65&&weakLessons.length<=Math.max(2,Math.ceil(lessons.length*.3))){
       status='Auf Kurs'
       message='Ein paar Wiederholungen und du bist wieder auf dem neuesten Stand.'
@@ -221,8 +221,8 @@ export function journeyFor(data:AppData, module:StudyModule, allLessons:Learning
     }
     if(rated.length<lessons.length*.5)message+=' Dein Lernstand ist noch nicht vollständig erfasst.'
     if(daysUntilExam!==undefined&&daysUntilExam<=7&&preparation!==null&&preparation<80){
-      status='Klausur hat Vorrang'
-      message='Die Klausur rückt näher. Wiederhole die wichtigsten Lücken und übe klausurähnliche Aufgaben.'
+      status='Prüfung hat Vorrang'
+      message='Die Prüfung rückt näher. Wiederhole die wichtigsten Lücken und übe prüfungsähnliche Aufgaben.'
     }
   }
   return {moduleId:module.id,lessons,rated:rated.length,total:lessons.length,missing:lessons.length-rated.length,
