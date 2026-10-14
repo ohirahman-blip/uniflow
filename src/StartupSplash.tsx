@@ -7,7 +7,7 @@ export default function StartupSplash({ready,premium,premiumKnown=true,onFinish}
   useEffect(()=>{
     if(!ready)return
     const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const timer=window.setTimeout(()=>setFinishing(true),reduced?0:premium?700:Math.max(0,650-(Date.now()-started.current)))
+    const timer=window.setTimeout(()=>setFinishing(true),reduced?0:premium?5000:Math.max(0,5000-(Date.now()-started.current)))
     return()=>window.clearTimeout(timer)
   },[ready,premium])
   useEffect(()=>{
