@@ -133,8 +133,8 @@
   width:100%;
   height:46px;
   color:#f1f1f2;
-  font-size:18px;
-  font-weight:400;
+  font-size:16px;
+  font-weight:700;
   line-height:1;
   font-variant-numeric:tabular-nums;
   cursor:pointer;
@@ -142,7 +142,7 @@
 }
 .uf-week-strip-button.uf-week-first {
   color:#080808;
-  font-weight:400;
+  font-weight:700;
 }
 .uf-week-strip-button.uf-week-today:not(.uf-week-first) {
   color:#f45866;
@@ -248,7 +248,7 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
 @media(max-width:420px){
   .uf-week-strip{padding-top:6px;padding-bottom:6px;}
   .uf-week-strip-labels{margin-bottom:4px;}
-  .uf-week-strip-button{font-size:17px;height:41px;}
+  .uf-week-strip-button{font-size:15px;height:41px;}
   .uf-week-range{top:2px;height:39px;}
   .uf-week-liquid{top:1px;height:41px;}
   .uf-week-liquid-core{height:38px;width:min(38px,calc(100% - 6px));}
@@ -341,8 +341,8 @@ html[data-theme='light'] .uf-week-strip-button.uf-week-today:not(.uf-week-first)
   place-items:center;
   height:46px;
   color:#f1f1f2;
-  font-size:18px;
-  font-weight:400;
+  font-size:16px;
+  font-weight:700;
   font-variant-numeric:tabular-nums;
   position:relative;
 }
@@ -392,7 +392,7 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
   .uf-week-today-marker {top:1px;height:41px;}
   .uf-week-today-marker::after {width:min(38px,calc(100% - 6px));height:38px;}
   .uf-week-dates-previous {min-height:55px;}
-  .uf-week-dates-previous > span {font-size:17px;height:41px;}
+  .uf-week-dates-previous > span {font-size:15px;height:41px;}
   .uf-week-dates-previous > span.uf-week-previous-today::before {width:min(38px,calc(100% - 6px));height:38px;}
 }
 @media(prefers-reduced-motion:reduce) {
