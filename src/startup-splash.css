@@ -15,7 +15,7 @@
 }
 .uf-startup-plus{
   position:absolute;inset:0;z-index:1;opacity:1;transform-origin:center;
-  animation:uf-startup-plus-spin 700ms cubic-bezier(.25,.65,.3,1) both;
+  animation:uf-startup-plus-spin 5000ms cubic-bezier(.25,.65,.3,1) both;
   /* Draw the cross as one layer so transparency stays even at its center. */
   background:var(--uf-premium-surface,rgba(115,79,124,.36));
   clip-path:polygon(39% 10%,61% 10%,61% 39%,90% 39%,90% 61%,61% 61%,61% 90%,39% 90%,39% 61%,10% 61%,10% 39%,39% 39%);
