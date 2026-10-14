@@ -214,11 +214,9 @@ export default function ModuleScheduleEditor({
     if(!from||minutes(from)+durationOf(o)>1440){setWarning('Die Veranstaltung muss am selben Tag enden.');return}
     update(o.id,{from,to:timeString(minutes(from)+durationOf(o))})
   }
-  const setDuration=(o:Offering,value:number)=>{
-    if(!Number.isInteger(value)||value<5||value>1440||minutes(o.from)+value>1440){
-      setWarning('Dauer: 5 bis 1440 Minuten, ohne Tageswechsel.');return
-    }
-    update(o.id,{to:timeString(minutes(o.from)+value)})
+  const setEnd=(o:Offering,to:string)=>{
+    if(!to||minutes(to)<=minutes(o.from)){setWarning('Das Ende muss nach dem Beginn liegen.');return}
+    update(o.id,{to})
   }
   const renameTopic=(items:Offering[],label:string)=>
     commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,contentLabel:label}:o))
@@ -512,21 +510,16 @@ export default function ModuleScheduleEditor({
                   <button title="Alternative löschen" aria-label="Alternative löschen" onClick={()=>remove([o])}><Trash2 size={16}/></button>
                 </div>
               </div>
-              <div className="module-fast-fields">
-                {o.recurrence==='once'
-                  ?<label>Datum<UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={o.date} onChange={value=>{if(value>=semester.start&&value<=semester.end)update(o.id,{date:value,endDate:value})}}/></label>
-                  :<label>Wochentag<UniflowPicker label="Wochentag" value={String(weekday(o.date))} onChange={value=>setDay(o,Number(value))} options={dayNames.map((label,n)=>({value:String(n),label:label+'s'}))}/></label>}
-                <label>Beginn<UniflowPicker kind="time" label="Beginn" value={o.from} maxMinutes={1440-durationOf(o)} onChange={value=>setClock(o,value)}/></label>
-                <label>Dauer<UniflowPicker kind="duration" label="Dauer" value={String(durationOf(o))} maxMinutes={1440-minutes(o.from)} onChange={value=>setDuration(o,Number(value))}/></label>
-                <label>Raum<input placeholder="z. B. MA 041" value={o.room} onChange={e=>update(o.id,{room:e.target.value})}/></label>
-              </div>
-              <div className="module-fast-time"><span>{dayNames[weekday(o.date)]} · {o.from}–{o.to}</span><span>{o.recurrence==='once'?'Einmalig':o.recurrence==='biweekly'?'14-täglich':'Wöchentlich'}</span></div>
-              <div className="module-fast-slot-details module-fast-fields">
-                <label>Lehrperson<input value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></label>
-                <label>Online-Link<input type="url" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></label>
-                <label>Wiederholung<UniflowPicker label="Wiederholung" value={o.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>update(o.id,{recurrence:value as Repeat,endDate:value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}/></label>
-                {o.recurrence!=='once'&&<label>Ab<UniflowPicker kind="date" label="Ab" min={semester.start} max={o.endDate} value={o.date} onChange={value=>setSeriesStart(o,value)}/></label>}
-                {o.recurrence!=='once'&&<label>Bis<UniflowPicker kind="date" label="Bis" min={o.date} max={semester.end} value={o.endDate} onChange={value=>{if(value>=o.date&&value<=semester.end)update(o.id,{endDate:value})}}/></label>}
+              <div className="module-slot-edit-form uf-entry-form">
+                <div className="editor-field"><span className="field-label">{o.recurrence==='once'?'Datum':'Wochentag'}</span>{o.recurrence==='once'
+                  ?<UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={o.date} onChange={value=>{if(value>=semester.start&&value<=semester.end)update(o.id,{date:value,endDate:value})}}/>
+                  :<UniflowPicker label="Wochentag" value={String(weekday(o.date))} onChange={value=>setDay(o,Number(value))} options={dayNames.map((label,n)=>({value:String(n),label:label+'s'}))}/>}</div>
+                <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={o.from} maxMinutes={1440-durationOf(o)} onChange={value=>setClock(o,value)}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={o.to} onChange={value=>setEnd(o,value)}/></div></div>
+                <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={o.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>update(o.id,{recurrence:value as Repeat,endDate:value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}/></div>{o.recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" min={semester.start} max={o.endDate} value={o.date} onChange={value=>setSeriesStart(o,value)}/></div>}</div>
+                {o.recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" min={o.date} max={semester.end} value={o.endDate} onChange={value=>{if(value>=o.date&&value<=semester.end)update(o.id,{endDate:value})}}/></div>}
+                <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={o.room} onChange={e=>update(o.id,{room:e.target.value})}/></div>
+                <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://…" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></div>
+                <div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></div>
               </div>
             </div>
           })}
