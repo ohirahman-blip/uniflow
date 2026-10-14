@@ -11,7 +11,7 @@
 .uf-startup-dot{
   position:absolute;left:.05em;bottom:0;width:.15em;height:.15em;border-radius:50%;
   background:var(--uf-primary-gradient,linear-gradient(120deg,#ff8c37,#ff5270 63%,#ec4085));
-  transform-origin:center bottom;animation:uf-startup-bounce 780ms infinite;
+  transform-origin:center;animation:uf-startup-float 1800ms cubic-bezier(.45,0,.55,1) infinite;
 }
 .uf-startup-plus{
   position:absolute;inset:0;z-index:1;opacity:1;transform-origin:center;
@@ -22,10 +22,9 @@
 }
 .uf-startup.is-finishing:not(.is-premium) .uf-startup-dot{animation:none;transform:none}
 .uf-startup.is-finishing{animation:uf-startup-exit 250ms ease forwards}
-@keyframes uf-startup-bounce{
-  0%{transform:translateY(0);animation-timing-function:cubic-bezier(.2,.65,.35,1)}
-  50%{transform:translateY(-.7em);animation-timing-function:cubic-bezier(.65,0,.85,.4)}
-  100%{transform:translateY(0)}
+@keyframes uf-startup-float{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-.45em)}
 }
 @keyframes uf-startup-plus-spin{
   from{transform:rotate(-360deg)}
