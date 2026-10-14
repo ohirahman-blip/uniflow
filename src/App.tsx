@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, Mail, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
-import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, weekStart, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
+import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, rebalanceAssessmentWeights, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
@@ -49,6 +49,7 @@ const formDate = (iso: string) => formatDate(iso, { day: 'numeric', month: 'long
 const placeLabel = (offering: Offering) => [offering.room?.trim(), offering.onlineLink?.trim() ? 'Online' : ''].filter(Boolean).join(' + ')
 const onlineHref = (link: string) => /^https?:\/\//i.test(link.trim()) ? link.trim() : `https://${link.trim()}`
 const singleVisitLabel = (occ: Occurrence) => {
+  if (occ.cancelled) return 'Fällt aus'
   if (occ.offering.recurrence === 'once') return 'Einmalig'
   const change = occ.offering.overrides?.[occ.origin]
   if (!change || change.scope === 'future') return ''
@@ -276,6 +277,11 @@ function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModu
   const current=modules.find(m=>m.id===moduleId)
   const categoryChoices=['Vorlesung','Übung','Tutorium','Seminar','Praktikum','Freies Lernen']
   const categoryOptions=[...(!categoryChoices.includes(category)?[category]:[]),...categoryChoices]
+  const setEntryDay=(day:number)=>{
+    let next=addDays(weekStart(entryDate),day)
+    if(next<semester.start)next=addDays(semester.start,(day-weekday(semester.start)+7)%7)
+    if(next<=semester.end)setEntryDate(next)
+  }
   const save=()=>{
     const kind=category.trim()
     if(!kind)return setErr('Bitte gib eine Veranstaltungsart an.')
@@ -295,7 +301,7 @@ function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModu
   return <BottomSheet title="Neuer Termin" onClose={onClose} footer={<button className="primary-action" onClick={save}>Hinzufügen <ArrowRight size={19}/></button>}>
     <div className="uf-entry-form">
       <div className="uf-entry-grid">
-        <div className="uf-entry-field"><span className="field-label">Datum</span><UniflowPicker kind="date" label="Datum" value={entryDate} min={semester.start} max={semester.end} onChange={setEntryDate}/></div>
+        <div className="uf-entry-field"><span className="field-label">{repeat==='once'?'Datum':'Wochentag'}</span>{repeat==='once'?<UniflowPicker kind="date" label="Datum" value={entryDate} min={semester.start} max={semester.end} onChange={setEntryDate}/>:<UniflowPicker label="Wochentag" value={String(weekday(entryDate))} options={['Montags','Dienstags','Mittwochs','Donnerstags','Freitags','Samstags','Sonntags'].map((label,index)=>({value:String(index),label}))} onChange={value=>setEntryDay(Number(value))}/>}</div>
         <div className="uf-entry-field"><span className="field-label">Modul</span>
           <button type="button" className="uf-entry-module-choice" aria-expanded={picker} onClick={()=>setPicker(v=>!v)}><span>{current?.name||'Modul auswählen'}</span><ChevronDown size={17}/></button>
           {picker&&<div className="module-dropdown"><label className="search-field"><Search size={17}/><input placeholder="Module suchen" value={search} onChange={e=>setSearch(e.target.value)}/></label><div className="module-pick-list">
@@ -319,16 +325,14 @@ function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModu
       </div>
       <div className="uf-entry-grid">
         <div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={repeat} onChange={value=>setRepeat(value as Repeat)} options={[{value:'once',label:'Einmalig'},{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'}]}/></div>
-        {repeat!=='once'&&<div className="uf-entry-field"><span className="field-label">Wiederholen bis</span><UniflowPicker kind="date" label="Wiederholen bis" value={end} min={entryDate} max={semester.end} onChange={setEnd}/></div>}
+        {repeat!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" value={entryDate} min={semester.start} max={end} onChange={setEntryDate}/></div>}
       </div>
-      <details className="uf-entry-advanced">
-        <summary>Weitere Angaben <ChevronDown size={16}/></summary>
-        <div className="uf-entry-grid">
-          <div className="uf-entry-field"><span className="field-label">Raum</span><input className="line-input room-input" placeholder="z. B. MA 041" value={room} onChange={e=>setRoom(e.target.value)}/></div>
-          <div className="uf-entry-field"><span className="field-label">Lehrperson</span><input className="line-input" placeholder="Name" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
-          <div className="uf-entry-field uf-entry-full"><span className="field-label">Online-Link</span><input className="line-input" type="url" inputMode="url" placeholder="https://..." value={onlineLink} onChange={e=>setOnlineLink(e.target.value)}/></div>
-        </div>
-      </details>
+      {repeat!=='once'&&<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" value={end} min={entryDate} max={semester.end} onChange={setEnd}/></div></div>}
+      <div className="uf-entry-grid">
+        <div className="uf-entry-field"><span className="field-label">Raum</span><input className="line-input room-input" placeholder="z. B. MA 041" value={room} onChange={e=>setRoom(e.target.value)}/></div>
+        <div className="uf-entry-field"><span className="field-label">Lehrperson</span><input className="line-input" placeholder="Name" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
+        <div className="uf-entry-field uf-entry-full"><span className="field-label">Online-Link</span><input className="line-input" type="url" inputMode="url" placeholder="https://..." value={onlineLink} onChange={e=>setOnlineLink(e.target.value)}/></div>
+      </div>
       {err&&<div className="inline-error" role="alert">{err}</div>}
     </div>
   </BottomSheet>
@@ -336,32 +340,34 @@ function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModu
 /** Unlike a scheduled teaching event, an assessment lives on a calendar date
  * and never has a recurring group, attendance or a Wallet stack. */
 function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDelete}:{
-  initial:{date:string;from:string;to:string;type:'exam'|'homework'};
+  initial:{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string};
   existing?:Assessment;modules:StudyModule[];semester:Semester;
   onSave:(a:Assessment)=>void;onClose:()=>void;onDelete?:()=>void
 }) {
   const [type,setType]=useState<'exam'|'homework'>(existing?.type||initial.type)
   const [title,setTitle]=useState(existing?.title||'')
   const [date,setDate]=useState(existing?.date||initial.date)
-  const [moduleId,setModuleId]=useState(existing?.moduleId||modules[0]?.id||'')
+  const [moduleId,setModuleId]=useState(existing?.moduleId||initial.moduleId||modules[0]?.id||'')
   const [picker,setPicker]=useState(false)
   const [hasTime,setHasTime]=useState(!!(existing ? existing.from : initial.type==='exam'))
   const [from,setFrom]=useState(existing?.from||initial.from)
   const [to,setTo]=useState(existing?.to||initial.to)
   const [completed,setCompleted]=useState(existing?.completed||false)
+  const [weight,setWeight]=useState(existing?.weight===undefined?'':String(existing.weight))
   const [err,setErr]=useState('')
   const chosen=modules.find(m=>m.id===moduleId)
   const save=()=>{
     if (!title.trim()) return setErr('Gib bitte einen Titel ein.')
     if (hasTime && minutes(to)<=minutes(from)) return setErr('Das Ende muss nach dem Beginn liegen.')
+    const parsedWeight=weight===''?undefined:Math.max(0,Math.min(100,Number(weight.replace(',','.'))||0))
     onSave({id:existing?.id||uid(),semesterId:semester.id,moduleId,type,title:title.trim(),date,
-      from:hasTime?from:undefined,to:hasTime?to:undefined,completed})
+      from:hasTime?from:undefined,to:hasTime?to:undefined,completed,componentId:existing?.componentId,selected:existing?.selected,weight:parsedWeight})
   }
-  return <BottomSheet title={existing?'Eintrag bearbeiten':type==='exam'?'Neue Klausur':'Neue Hausaufgabe'} onClose={onClose}
+  return <BottomSheet title={existing?'Eintrag bearbeiten':type==='exam'?'Neue Prüfung':'Neue Hausaufgabe'} onClose={onClose}
     footer={<button className="primary-action" onClick={save}>{existing?'Speichern':'Hinzufügen'}<Check size={18}/></button>}>
     <div className="uf-entry-form">
-    <div className="editor-field"><span className="field-label">Art</span><UniflowPicker label="Eintragsart" value={type} options={[{value:'exam',label:'Klausur'},{value:'homework',label:'Hausaufgabe'}]} onChange={value=>{setType(value as 'exam'|'homework');setHasTime(value==='exam')}}/></div>
-    <div className="editor-field"><span className="field-label">Titel</span><input autoFocus className="line-input" value={title} placeholder={type==='exam'?'z. B. Analysis 1 – Klausur':'z. B. Übungsblatt 4 abgeben'} onChange={e=>setTitle(e.target.value)}/></div>
+    <div className="editor-field"><span className="field-label">Art</span><UniflowPicker label="Eintragsart" value={type} options={[{value:'exam',label:'Prüfung'},{value:'homework',label:'Hausaufgabe'}]} onChange={value=>{setType(value as 'exam'|'homework');setHasTime(value==='exam')}}/></div>
+    <div className="editor-field"><span className="field-label">Titel</span><input autoFocus className="line-input" value={title} placeholder={type==='exam'?'z. B. Analysis 1 – Prüfung':'z. B. Übungsblatt 4 abgeben'} onChange={e=>setTitle(e.target.value)}/></div>
     <div className="editor-field"><span className="field-label">Modul</span><button className="big-choice" onClick={()=>setPicker(v=>!v)}><span>{chosen?.name||'Kein Modul'}</span><ChevronDown size={18}/></button>
       {picker&&<div className="module-dropdown"><div className="module-pick-list"><button onClick={()=>{setModuleId('');setPicker(false)}}>Ohne Modul</button>
         {modules.map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}</div></div>}
@@ -369,8 +375,9 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
     <div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={semester.end} onChange={setDate}/></div>
     <div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>
     {hasTime&&<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>}
+    <div className="editor-field"><span className="field-label">Gewichtung in Prozent <span className="optional">wird automatisch ausgeglichen</span></span><input className="line-input" type="number" min="0" max="100" step="0.1" value={weight} placeholder="Automatisch" onChange={e=>setWeight(e.target.value)}/></div>
     {<button className={'assessment-check '+(completed?'completed':'')} onClick={()=>setCompleted(v=>!v)}><span>{completed?<Check size={15}/>:null}</span>{completed?'Erledigt':'Als erledigt markieren'}</button>}
-    {existing&&onDelete&&<button className="danger-simple" onClick={onDelete}><Trash2 size={18}/> {type==='exam'?'Klausur':'Hausaufgabe'} löschen</button>}
+    {existing&&onDelete&&<button className="danger-simple" onClick={onDelete}><Trash2 size={18}/> {type==='exam'?'Prüfung':'Hausaufgabe'} löschen</button>}
     {err&&<p className="inline-error" role="alert">{err}</p>}
     </div>
   </BottomSheet>
@@ -380,11 +387,11 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
 function AssessmentPreview({item,module,onToggle,onEdit,onClose}:{
   item:Assessment;module?:StudyModule;onToggle:()=>void;onEdit:()=>void;onClose:()=>void
 }){
-  return <BottomSheet title={item.type==='exam'?'Klausur':'Hausaufgabe'} onClose={onClose}
+  return <BottomSheet title={item.type==='exam'?'Prüfung':'Hausaufgabe'} onClose={onClose}
     footer={<button type="button" className="primary-action" onClick={onEdit}><PenLine size={17}/> Bearbeiten</button>}>
     <div className="uf-assessment-preview">
       <span className="uf-assessment-preview-kind">{item.type==='exam'?<GraduationCap size={16}/>:<ClipboardList size={16}/>}
-        {item.type==='exam'?'Klausur':'Hausaufgabe'}</span>
+        {item.type==='exam'?'Prüfung':'Hausaufgabe'}</span>
       <h2>{item.title}</h2>
       {module&&<p>{module.name}</p>}
       <p>{formDate(item.date)}{item.from?' · '+item.from+(item.to?'–'+item.to:'')+' Uhr':''}</p>
@@ -458,6 +465,7 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
   const [recurrence,setRecurrence]=useState<Repeat>(editing?.recurrence || (kind==='group'?'weekly':'once'))
   const [endDate,setEndDate]=useState(editing?.endDate || occ.offering.endDate),[error,setError]=useState('')
   const chosenModule=modules.find(m=>m.id===moduleId)
+  const setEditDay=(day:number)=>setDate(addDays(weekStart(date),day))
   const save=()=>{
     if (kind==='group' && moduleId!==occ.offering.moduleId) return setError('Gleicher Inhalt muss zum selben Modul gehören. Für andere Module nutze die Zeit-Alternative.')
     if (!moduleId && category.trim()!=='Freies Lernen') return setError('Wähle ein Modul oder Freies Lernen.')
@@ -478,13 +486,14 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
     <div className="editor-field"><span className="field-label">Modul</span><button className="big-choice" disabled={kind==='group'&&!editing} onClick={()=>setPicker(x=>!x)}><span>{chosenModule?.name||(category==='Freies Lernen'?'Freies Lernen':'Modul auswählen')}</span><ChevronDown size={18}/></button>
       {picker&&<div className="module-dropdown"><label className="search-field"><Search size={18}/><input placeholder="Module suchen" value={search} onChange={e=>setSearch(e.target.value)}/></label><div className="module-pick-list">{modules.filter(m=>m.name.toLowerCase().includes(search.toLowerCase())).map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}<button onClick={()=>{setModuleId('');setCategory('Freies Lernen');setPicker(false)}}><BookOpen size={17}/>Freies Lernen · ohne Modul</button></div></div>}
     </div>
-    <div className="editor-field"><span className="field-label">Datum</span><UniflowPicker kind="date" label="Datum" value={date} onChange={setDate}/></div>
+    <div className="editor-field"><span className="field-label">{recurrence==='once'?'Datum':'Wochentag'}</span>{recurrence==='once'?<UniflowPicker kind="date" label="Datum" value={date} onChange={setDate}/>:<UniflowPicker label="Wochentag" value={String(weekday(date))} options={['Montags','Dienstags','Mittwochs','Donnerstags','Freitags','Samstags','Sonntags'].map((label,index)=>({value:String(index),label}))} onChange={value=>setEditDay(Number(value))}/>}</div>
     <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>
     <div className="editor-field"><span className="field-label">Art</span><UniflowPicker label="Veranstaltungsart" value={category} allowCustom options={[...(!['Vorlesung','Übung','Tutorium','Seminar','Praktikum','Freies Lernen'].includes(category)?[category]:[]),'Vorlesung','Übung','Tutorium','Seminar','Praktikum','Freies Lernen'].map(value=>({value,label:value}))} onChange={value=>{setCategory(value);if(value==='Freies Lernen')setModuleId('')}}/></div>
     <div className="uf-entry-grid">
       <div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={recurrence} onChange={value=>setRecurrence(value as Repeat)} options={[{value:'once',label:'Einmalig'},{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'}]}/></div>
-      {recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Wiederholen bis</span><UniflowPicker kind="date" label="Wiederholen bis" value={endDate} min={date} onChange={setEndDate}/></div>}
+      {recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" value={date} max={endDate} onChange={setDate}/></div>}
     </div>
+    {recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" value={endDate} min={date} onChange={setEndDate}/></div>}
     <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input room-input" value={room} onChange={e=>setRoom(e.target.value)}/></div>
     <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://meet.google.com/..." value={onlineLink} onChange={e=>setOnlineLink(e.target.value)}/></div>
     <div className="editor-field"><span className="field-label">Veranstalter <span className="optional">optional</span></span><input className="line-input" placeholder="Lehrperson oder Organisation" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
@@ -511,6 +520,12 @@ function Notice({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void
 }
 
 function MoveScope({ proposal, onClose, onConfirm, mode }: { proposal: MoveProposal; onClose: () => void; onConfirm: (scope: 'single' | 'future') => void; mode: 'move' | 'delete' }) { const isOnce = proposal.occ.offering.recurrence === 'once'; return <BottomSheet title={mode === 'delete' ? 'Besuch aussetzen' : 'Termin verschieben'} onClose={onClose}><div className="move-summary"><strong>{proposal.occ.offering.name}</strong><span>{mode === 'move' ? `${formatDate(proposal.date)} · ${proposal.from}–${proposal.to}` : `${formatDate(proposal.occ.date)} · ${proposal.occ.from}–${proposal.occ.to}`}</span></div><p className="scope-intro">{isOnce ? 'Diese Veranstaltung findet nur einmal statt.' : 'Welche Termine sollen geändert werden?'}</p><div className="scope-choices"><button onClick={() => onConfirm('single')}><span><strong>{isOnce ? 'Bestätigen' : 'Nur dieses Mal'}</strong><small>{mode === 'move' ? 'Nur diesen einen Termin ändern' : 'Nur diesen Besuch aussetzen'}</small></span><ArrowRight size={20} /></button>{!isOnce && <button onClick={() => onConfirm('future')}><span><strong>Alle zukünftigen Termine</strong><small>Vergangene Termine bleiben unverändert</small></span><ArrowRight size={20} /></button>}</div><button className="dismiss-action" onClick={onClose}>Abbrechen</button></BottomSheet> }
+
+function MoveVisitEditor({occ,onClose,onConfirm}:{occ:Occurrence;onClose:()=>void;onConfirm:(proposal:MoveProposal)=>void}){
+  const [date,setDate]=useState(occ.date),[from,setFrom]=useState(occ.from),[to,setTo]=useState(occ.to),[error,setError]=useState('')
+  const submit=()=>{if(minutes(to)<=minutes(from)){setError('Das Ende muss nach dem Beginn liegen.');return}onConfirm({occ,date,from,to})}
+  return <BottomSheet title="Termin verschieben" onClose={onClose} footer={<button className="primary-action" onClick={submit}>Weiter <ArrowRight size={18}/></button>}><div className="uf-entry-form"><div className="editor-field"><span className="field-label">Neues Datum</span><UniflowPicker kind="date" label="Neues Datum" value={date} onChange={setDate}/></div><div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>{error&&<p className="inline-error">{error}</p>}</div></BottomSheet>
+}
 function DeleteSheet({proposal,onConfirm,onClose}:{proposal:MoveProposal;onConfirm:()=>void;onClose:()=>void}) {
   return <BottomSheet title="Veranstaltungsgruppe endgültig löschen?" onClose={onClose}>
     <p className="scope-intro">{proposal.occ.offering.name} · {proposal.occ.offering.organizer || 'Ohne Veranstalter'} wird vollständig aus Kalender, Modul und Alternativen entfernt. Das betrifft die ganze Reihe und lässt sich nicht rückgängig machen.</p>
@@ -551,7 +566,7 @@ function ModuleHub({ degree, modules, goals, assessments, journeys, currentSemes
   const passed=modules.filter(m=>m.status==='passed'||m.status==='recognized')
   const planned=modules.filter(m=>m.status==='planned'||m.status==='open')
   const current=modules.filter(m=>!['passed','recognized','planned','open'].includes(m.status))
-  const nextExam=(m:StudyModule)=>assessments.filter(x=>x.moduleId===m.id&&x.type==='exam'&&x.date>=today()).map(x=>x.date).sort()[0]
+  const nextExam=(m:StudyModule)=>assessments.filter(x=>x.moduleId===m.id&&x.type==='exam'&&x.date>=today()&&selectedAssessment(x,assessments)).map(x=>x.date).sort()[0]
   const activeGoal=goals.find(goal=>goal.id===activeGoalId)||null
   const goalProgress=(goal:CreditGoal)=>{
     const assigned=goal.moduleIds.map(id=>modules.find(module=>module.id===id)).filter((module):module is StudyModule=>!!module)
@@ -574,7 +589,7 @@ function ModuleHub({ degree, modules, goals, assessments, journeys, currentSemes
   const handle=(kind:string,id:string,label:string)=><button type="button" className="module-reorder-handle" aria-label={`${label} verschieben`} onPointerDown={event=>beginReorder(event,kind,id)} onPointerMove={moveReorder} onPointerUp={endReorder} onPointerCancel={endReorder} onKeyDown={event=>{if(event.key==='ArrowUp'||event.key==='ArrowLeft'){event.preventDefault();keyboardReorder(kind,id,-1)}else if(event.key==='ArrowDown'||event.key==='ArrowRight'){event.preventDefault();keyboardReorder(kind,id,1)}}}><Grip size={17}/></button>
   const row=(m:StudyModule,isFuture=false)=>{const kind=moduleKind(m);return <div key={m.id} data-reorder-kind={kind} data-reorder-id={m.id} className={'module-list-row-wrap'+(dragging?.id===m.id?' is-reordering':'')}>{handle(kind,m.id,m.name)}<button className={'module-list-row '+(isFuture?'module-future':'')} onClick={()=>onEdit(m)}>
     <span className="module-emoji" style={{background:isFuture?'#292929':m.color}}>{m.emoji||<BookOpen size={19}/>} </span>
-    <span className="module-main"><strong>{m.name}</strong><small>{m.credits} LP · {m.shortName}{m.semesterIds.includes(currentSemesterId)?'':' · Anderes Semester'}</small>{nextExam(m)&&<small className="module-exam-countdown"><CalendarCheck2 size={13}/>Klausur in {Math.round((fromDate(nextExam(m)).getTime()-fromDate(today()).getTime())/86400000)} Tagen · {formDate(nextExam(m))}</small>}{m.status==='current'&&journeys[m.id]&&<small className="module-journey-inline">{journeys[m.id].status} · {journeys[m.id].rated}/{journeys[m.id].total} Check-ins</small>}</span><ArrowRight size={18}/>
+    <span className="module-main"><strong>{m.name}</strong><small>{m.credits} LP · {m.shortName}{m.semesterIds.includes(currentSemesterId)?'':' · Anderes Semester'}</small>{nextExam(m)&&<small className="module-exam-countdown"><CalendarCheck2 size={13}/>Prüfung in {Math.round((fromDate(nextExam(m)).getTime()-fromDate(today()).getTime())/86400000)} Tagen · {formDate(nextExam(m))}</small>}{m.status==='current'&&journeys[m.id]&&<small className="module-journey-inline">{journeys[m.id].status} · {journeys[m.id].rated}/{journeys[m.id].total} Check-ins</small>}</span><ArrowRight size={18}/>
   </button></div>}
   return <div className="screen secondary-screen module-hub"><div className="page-title-row"><div><h1>Module<span className="title-count">{modules.length}</span></h1><p>{degree?.name} · {degree?.level} · {degree?.university}</p></div><button className="round-add" aria-label="Modul hinzufügen" onClick={onAdd}><Plus size={22}/></button></div>
     <div className="module-degree-summary"><div><small>Leistungspunkte</small><strong>{creditsPassed} <em>/ {degree?.targetCredits || 180} LP</em></strong></div><div><small>Notendurchschnitt</small><strong>{average}</strong></div></div>
@@ -589,11 +604,12 @@ function ModuleHub({ degree, modules, goals, assessments, journeys, currentSemes
 }
 
 
-function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNew,onEditOccurrence,onRateOccurrence,onPreviewAssessment,onSelectGroup,onSuspendVisit,onRestoreVisit,onRequestDeleteOccurrence,onOfferingsChange,onNotice}:{
+function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNew,onEditOccurrence,onRateOccurrence,onPreviewAssessment,onSelectGroup,onSuspendVisit,onCancelVisit,onRestoreVisit,onRequestDeleteOccurrence,onOfferingsChange,onNotice}:{
   data:AppData;semester:Semester;modules:StudyModule[];userId:string;focusModuleId:string;onFocusChange:(id:string)=>void;
   onNew:(slot:NewEntry)=>void;onEditOccurrence:(occ:Occurrence)=>void;onRateOccurrence:(occ:Occurrence)=>void;onPreviewAssessment:(assessment:Assessment)=>void;
   onSelectGroup:(source:Occurrence|null,target:Occurrence,scope:'single'|'future',both:boolean)=>void;
   onSuspendVisit:(occ:Occurrence,scope:'single'|'future')=>void;
+  onCancelVisit:(occ:Occurrence)=>void;
   onRestoreVisit:(occ:Occurrence)=>void;
   onRequestDeleteOccurrence:(occ:Occurrence)=>void;
   onOfferingsChange:(offers:Offering[])=>void;onNotice:(text:string)=>void
@@ -617,7 +633,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const weekGesture=useRef<{x:number;y:number}|null>(null)
   const suppressWeekTap=useRef(0)
   const weekWheel=useRef({sum:0,last:0,shifted:0})
-  const [proposal,setProposal]=useState<MoveProposal|null>(null),[dragUI,setDragUI]=useState<MoveProposal|null>(null),[pressed,setPressed]=useState('')
+  const [proposal,setProposal]=useState<MoveProposal|null>(null),[walletMove,setWalletMove]=useState<Occurrence|null>(null),[dragUI,setDragUI]=useState<MoveProposal|null>(null),[pressed,setPressed]=useState('')
   const [focusOpen,setFocusOpen]=useState(false),[taskMenu,setTaskMenu]=useState(false),[clockNow,setClockNow]=useState(()=>new Date())
   const [motion,setMotion] = useState<'idle'|'exit-left'|'exit-right'|'exit-switch'|'enter'>('idle')
   type FanState = { occ:Occurrence; rect:{left:number;top:number;width:number;height:number}; openedAt:number }
@@ -679,12 +695,12 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     useEffect(()=>{const t=window.setInterval(()=>setClockNow(new Date()),30000);return()=>clearInterval(t)},[])
   useEffect(()=>{const blockDrag=(e:TouchEvent)=>{if(gesture.current?.active)e.preventDefault()};document.addEventListener('touchmove',blockDrag,{passive:false,capture:true});return()=>document.removeEventListener('touchmove',blockDrag,true)},[])
   useEffect(()=>setAnchor(today()<semester.start?semester.start:today()>semester.end?semester.end:today()),[semester.id])
-  const visible=(date:string)=>occurrencesOn(data.offerings,date).filter(o=>o.offering.semesterId===semester.id&&(!focusModuleId||o.offering.moduleId===focusModuleId))
+  const visible=(date:string)=>candidateOccurrencesOn(data.offerings,date,false,true).filter(o=>o.offering.semesterId===semester.id&&(!focusModuleId||o.offering.moduleId===focusModuleId))
   const ghosts=(date:string)=>{
     const active=visible(date)
-    return candidateOccurrencesOn(data.offerings,date,true).filter(o=>
+    return candidateOccurrencesOn(data.offerings,date,true,true).filter(o=>
       o.offering.semesterId===semester.id && (!focusModuleId||o.offering.moduleId===focusModuleId) &&
-      !occurrenceAtOrigin(o.offering,o.origin,false) &&
+      !o.cancelled && !occurrenceAtOrigin(o.offering,o.origin,false) &&
       // An occupied slot shows alternatives in the main card's detail panel.
       !active.some(a=>intersects(a,o))
     )
@@ -929,7 +945,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   // portrayed as a different appointment occurring at this slot.
   const fanItems=fan ? [fan.occ,...linkedCandidates(data.offerings,fan.occ).map(x=>x.occ)]
     .filter((item,index,list)=>list.findIndex(x=>x.key===item.key)===index) : []
-  const fanSelected=fanPicked ? occurrenceAtOrigin(fanPicked.offering,fanPicked.origin,false)!==null : false
+  const fanSelected=fanPicked ? !fanPicked.cancelled&&occurrenceAtOrigin(fanPicked.offering,fanPicked.origin,false)!==null : false
+  const fanCancelled=!!fanPicked?.cancelled
   const fanMain=fanPicked ? findMainForInactive(data.offerings,fanPicked) : null
   const fanConflict=fanPicked ? occurrencesOn(data.offerings,fanPicked.date)
     .some(other=>other.key!==fanPicked.key && intersects(other,fanPicked)) : false
@@ -975,8 +992,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const rated=rateable&&(data.learningCheckins||[]).some(checkin=>checkin.key===lessonKeyForOccurrence(occ))
           const style:CSSProperties={top:start+2,height:Math.max(32,end-start-4),background:inactive?'#29292b':module?.color||'#A5A5A5',left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`}
           return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
-            className={'course '+(inactive?'course-inactive ':'')+(numberOfAlternatives?'course-stacked ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
-            style={style} onPointerDown={e=>{e.stopPropagation();if(!inactive)onDown(e,occ)}} onPointerMove={onMove}
+            className={'course '+(inactive?'course-inactive ':'')+(occ.cancelled?'course-cancelled ':'')+(numberOfAlternatives?'course-stacked ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
+            style={style} onPointerDown={e=>{e.stopPropagation();if(!inactive&&!occ.cancelled)onDown(e,occ)}} onPointerMove={onMove}
             onPointerUp={e=>{e.stopPropagation();onUp(e)}} onPointerCancel={cancelGesture}
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ,e.currentTarget as HTMLElement)}}
             onContextMenu={e=>{e.preventDefault();e.stopPropagation();setFan(null);setWalletContext({occ,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
@@ -1013,14 +1030,14 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         <button className={!monthOpen&&mode==='day'?'active':''} onClick={()=>changeMode('day')} title="Tag" aria-label="Tagesansicht"><CalendarDays size={17}/></button>
         <button className={!monthOpen&&mode==='two'?'active':''} onClick={()=>changeMode('two')} title="2 Tage" aria-label="Zwei-Tage-Ansicht"><CalendarRange size={17}/></button>
         <button className={!monthOpen&&mode==='week'?'active':''} onClick={()=>changeMode('week')} title="Woche" aria-label="Wochenansicht"><CalendarCheck2 size={17}/></button>
-        <button className={monthOpen?'active':''} onClick={()=>setMonthOpen(v=>!v)} title="Monat" aria-label="Monatsansicht für Klausuren und Hausaufgaben"><LayoutGrid size={17}/></button>
+        <button className={monthOpen?'active':''} onClick={()=>setMonthOpen(v=>!v)} title="Monat" aria-label="Monatsansicht für Prüfungen und Hausaufgaben"><LayoutGrid size={17}/></button>
       </div>
       <div className="calendar-tools">
         <button className="calendar-today" onClick={e=>{e.currentTarget.blur();if(monthOpen)setAnchor(today());else chooseStripDate(today())}} title="Zum heutigen Tag">Heute</button>
         <button aria-label="Vorheriger Zeitraum" title="Zurück" onClick={e=>{e.currentTarget.blur();jump(-1)}}><ChevronLeft size={19}/></button>
         <button aria-label="Nächster Zeitraum" title="Weiter" onClick={e=>{e.currentTarget.blur();jump(1)}}><ChevronRight size={19}/></button>
-        <div className="quick-task-wrap" ref={taskWrap}><button className="calendar-quick-add" title="Termin, Klausur oder Abgabe hinzufügen" aria-label="Termin, Klausur oder Abgabe hinzufügen" aria-expanded={taskMenu} aria-haspopup="menu" onClick={()=>{setFocusOpen(false);setTaskMenu(v=>!v)}}><Plus size={18}/></button>
-          {taskMenu&&<div className="mini-popover" role="menu" aria-label="Neuen Kalendereintrag hinzufügen"><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',recurrence:'once'})}}><CalendarDays size={16}/> Einmaliger Termin</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',category:'Klausur'})}}><GraduationCap size={16}/> Klausur</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'18:00',to:'18:30',category:'Hausaufgabe'})}}><ClipboardList size={16}/> Hausaufgabe</button></div>}
+        <div className="quick-task-wrap" ref={taskWrap}><button className="calendar-quick-add" title="Termin, Prüfung oder Abgabe hinzufügen" aria-label="Termin, Prüfung oder Abgabe hinzufügen" aria-expanded={taskMenu} aria-haspopup="menu" onClick={()=>{setFocusOpen(false);setTaskMenu(v=>!v)}}><Plus size={18}/></button>
+          {taskMenu&&<div className="mini-popover" role="menu" aria-label="Neuen Kalendereintrag hinzufügen"><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',recurrence:'once'})}}><CalendarDays size={16}/> Einmaliger Termin</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',category:'Prüfung'})}}><GraduationCap size={16}/> Prüfung</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'18:00',to:'18:30',category:'Hausaufgabe'})}}><ClipboardList size={16}/> Hausaufgabe</button></div>}
         </div>
         <div className="focus-select-wrap" ref={focusWrap}><button className={'calendar-focus '+(focusModuleId?'chosen':'')} onClick={()=>{setTaskMenu(false);setFocusOpen(v=>!v)}} aria-label="Modulfokus auswählen" aria-expanded={focusOpen} aria-haspopup="menu" title="Fokusmodus"><Focus size={18}/></button>
           {focusOpen&&<div className="mini-popover focus-popover" role="menu" aria-label="Nach Modul filtern"><button onClick={()=>{onFocusChange('');setFocusOpen(false)}}>Alle Module {focusModuleId===''&&<Check size={15}/>}</button>{focusChoices.map(m=><button key={m.id} onClick={()=>{onFocusChange(m.id);setFocusOpen(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}{focusModuleId===m.id&&<Check size={15}/>}</button>)}</div>}
@@ -1029,7 +1046,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     </div>
     {!monthOpen&&<div className={'uf-week-strip'+(mode==='week'?' uf-week-strip--week':'')} aria-label="Wochenauswahl" style={{'--uf-days':stripDates.length} as CSSProperties}>
       <button type="button" className="uf-week-strip-month" onClick={()=>setMonthOpen(true)}
-        title="Monatsübersicht öffnen" aria-label="Monatsübersicht für Klausuren und Hausaufgaben öffnen">
+        title="Monatsübersicht öffnen" aria-label="Monatsübersicht für Prüfungen und Hausaufgaben öffnen">
         <strong>{fromDate(displayCalendarStart).toLocaleDateString('de-DE',{month:'short'}).split('.').join('')}</strong>
         <span>{fromDate(displayCalendarStart).toLocaleDateString('de-DE',{year:'2-digit'})}</span>
       </button>
@@ -1053,7 +1070,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           {stripDates.map(date=>{
             const selected=mode!=='week'&&date===displayCalendarStart
             const second=mode==='two'&&date===addDays(displayCalendarStart,1)
-            const dayItems=data.assessments.filter(a=>a.semesterId===semester.id&&a.date===date&&(!focusModuleId||a.moduleId===focusModuleId))
+            const dayItems=data.assessments.filter(a=>a.semesterId===semester.id&&a.date===date&&selectedAssessment(a,data.assessments)&&(!focusModuleId||a.moduleId===focusModuleId))
             return <div className="uf-week-strip-day" key={date}>
               <button type="button" className={'uf-week-strip-button'+(selected?' uf-week-first':'')+(second?' uf-week-second':'')+(date===today()?' uf-week-today':'')}
                 aria-label={formatDate(date,{weekday:'long',day:'numeric',month:'long'})+' anzeigen'}
@@ -1062,7 +1079,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
               </button>
               {dayItems.length>0&&<div className="uf-week-strip-assessments">
                 {dayItems.slice(0,2).map(item=><button type="button" key={item.id}
-                  title={item.title} aria-label={(item.type==='exam'?'Klausur: ':'Hausaufgabe: ')+item.title}
+                  title={item.title} aria-label={(item.type==='exam'?'Prüfung: ':'Hausaufgabe: ')+item.title}
                   className={item.completed?'uf-week-assessment done':'uf-week-assessment'} onClick={e=>{e.stopPropagation();onPreviewAssessment(item)}}>
                   {item.type==='exam'?<GraduationCap size={11}/>:<ClipboardList size={11}/>}
                 </button>)}
@@ -1125,7 +1142,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const module=modules.find(m=>m.id===item.offering.moduleId)
           const equivalent=sameContent(item.offering,fan.occ.offering)
           return <div role="button" tabIndex={0} key={item.key}
-            className={'wallet-card '+(selected?'wallet-card-active':'wallet-card-inactive')+(fanPicked?.key===item.key?' wallet-card-picked':'')}
+            className={'wallet-card '+(selected?'wallet-card-active':'wallet-card-inactive')+(item.cancelled?' wallet-card-cancelled':'')+(fanPicked?.key===item.key?' wallet-card-picked':'')}
             style={{background:selected?(module?.color||'#5c5964'):undefined,animationDelay:`${i*38}ms`,zIndex:fanItems.length-i}}
             onPointerDown={e=>{if(i===0&&selected){e.stopPropagation();onDown(e,item)}}}
             onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancelGesture}
@@ -1133,23 +1150,23 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             onContextMenu={e=>{e.preventDefault();e.stopPropagation();setWalletContext({occ:item,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
             onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(item)}}
             onKeyDown={e=>{if(e.key==='Enter')onFanTap(item)}}>
-            <div className="wallet-card-top"><strong>{module?.shortName||module?.name||item.offering.name} · {item.offering.contentLabel||item.offering.category}</strong><span>{selected?'✓':'○'}</span></div>
+            <div className="wallet-card-top"><strong>{module?.shortName||module?.name||item.offering.name} · {item.offering.contentLabel||item.offering.category}</strong><span>{item.cancelled?'×':selected?'✓':'○'}</span></div>
             <small>{item.offering.organizer||'Ohne Dozent'} · {placeLabel(item.offering)||'Raum offen'}</small>
             <small>{formatDate(item.date,{weekday:'short',day:'numeric',month:'short'})} · {item.from}–{item.to}</small>
-            <span className="wallet-card-caption">{selected?'Aktuell ausgewählt':equivalent?'Gleicher Inhalt':'Andere Veranstaltung · gleiche Zeit'}</span>
+            <span className="wallet-card-caption">{item.cancelled?'Fällt ohne Ersatz aus':selected?'Aktuell ausgewählt':equivalent?'Gleicher Inhalt':'Andere Veranstaltung · gleiche Zeit'}</span>
           </div>
         })}
         </div>
         {fanPicked&&<div className="wallet-actions" key={fanPicked.key}>
-          <div className="wallet-action-title">{fanSelected?'Besuch aussetzen':'Gruppe auswählen'}{fanConflict&&!fanSelected&&<small>Überschneidung im Stundenplan</small>}</div>
-          {!fanSelected&&fanMain&&<div className="wallet-attendance"><button className={!fanBoth?'chosen':''} onClick={()=>setFanBoth(false)}>Wechseln</button><button className={fanBoth?'chosen':''} onClick={()=>setFanBoth(true)}>Beide besuchen</button></div>}
-          <div className="wallet-scope"><button onClick={()=>applyFanChoice('single')}>{fanSelected?'Einmalig aussetzen':fanBoth?'Einmalig beide besuchen':fanMain?'Einmalig wechseln':'Einmalig besuchen'}</button>
-          {fanPicked.offering.recurrence!=='once'&&<button onClick={()=>applyFanChoice('future')}>{fanSelected?'Ab jetzt aussetzen':fanBoth?'Ab jetzt beide besuchen':fanMain?'Ab jetzt wechseln':'Immer besuchen'}</button>}</div>
+          <div className="wallet-action-title">{fanCancelled?'Ausnahme':fanSelected?'Termin ändern':'Gruppe auswählen'}{fanConflict&&!fanSelected&&!fanCancelled&&<small>Überschneidung im Stundenplan</small>}</div>
+          {!fanSelected&&!fanCancelled&&fanMain&&<div className="wallet-attendance"><button className={!fanBoth?'chosen':''} onClick={()=>setFanBoth(false)}>Wechseln</button><button className={fanBoth?'chosen':''} onClick={()=>setFanBoth(true)}>Beide besuchen</button></div>}
+          {fanSelected?<div className="wallet-scope"><button onClick={()=>{setWalletMove(fanPicked);setFan(null)}}>Verschieben</button><button className="wallet-cancel-visit" onClick={()=>{onCancelVisit(fanPicked);setFan(null)}}>Fällt ohne Ersatz aus</button></div>:!fanCancelled?<div className="wallet-scope"><button onClick={()=>applyFanChoice('single')}>{fanBoth?'Einmalig beide besuchen':fanMain?'Einmalig wechseln':'Einmalig besuchen'}</button>{fanPicked.offering.recurrence!=='once'&&<button onClick={()=>applyFanChoice('future')}>{fanBoth?'Ab jetzt beide besuchen':fanMain?'Ab jetzt wechseln':'Immer besuchen'}</button>}</div>:null}
           {fanPicked.offering.overrides?.[fanPicked.origin]?.scope==='single'&&<button className="wallet-reset" onClick={()=>{onRestoreVisit(fanPicked);setFan(null)}}><RotateCcw size={14}/> Einmalige Wahl zurücknehmen</button>}
           <button className="wallet-edit" onClick={()=>{setFan(null);onEditOccurrence(fanPicked)}}><Settings2 size={14}/> Bearbeiten</button>
         </div>}
       </div>
     </div>,document.body)}
+    {walletMove&&<MoveVisitEditor occ={walletMove} onClose={()=>setWalletMove(null)} onConfirm={next=>{setWalletMove(null);setProposal(next)}}/>}
     {walletContext&&createPortal(<div className="wallet-context-menu" role="menu" aria-label="Terminaktionen" style={{left:walletContext.x,top:walletContext.y}}
       onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
       <button role="menuitem" onClick={()=>{onEditOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}><Settings2 size={15}/> Bearbeiten</button>
@@ -1163,7 +1180,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
 }
 export default function App() {
   const [choiceAttendance,setChoiceAttendance] = useState<'replace'|'both'>('replace')
-  const [data, setData] = useState<AppData>(() => supabase ? { ...emptyData } : loadData()), [onboarding, setOnboarding] = useState(() => supabase ? true : !loadData().activeDegreeId), [page, setPage] = useState<Page>(pageFromUrl), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework'}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
+  const [data, setData] = useState<AppData>(() => supabase ? { ...emptyData } : loadData()), [onboarding, setOnboarding] = useState(() => supabase ? true : !loadData().activeDegreeId), [page, setPage] = useState<Page>(pageFromUrl), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
   const [pageDirection,setPageDirection]=useState<'forward'|'backward'>('forward')
   const [mailUnread,setMailUnread]=useState(0)
   const [mailAccount,setMailAccount]=useState<MailAccount|null>(null)
@@ -1515,7 +1532,7 @@ export default function App() {
         onPlan={(task:LearningPlanTask)=>mutate(d=>({...d,learningPlans:[...(d.learningPlans||[]),task]}))}
         onRemovePlan={id=>mutate(d=>({...d,learningPlans:(d.learningPlans||[]).filter(p=>p.id!==id)}))}
       />}
-      {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={setRatingOccurrence} onPreviewAssessment={item=>setPreviewAssessmentId(item.id)} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
+      {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={setRatingOccurrence} onPreviewAssessment={item=>setPreviewAssessmentId(item.id)} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onCancelVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:d.offerings.map(item=>item.id===occ.offering.id?{...item,overrides:{...(item.overrides||{}),[occ.origin]:{date:occ.origin,from:occ.from,to:occ.to,cancelled:true,scope:'single',reason:'removal'}}}:item)}));note('Termin fällt ohne Ersatz aus.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
       {page === 'mail' && <MailPrototype key={user.id} userId={user.id} onUnreadChange={setMailUnread} onAccountChange={setMailAccount} onNotice={note}/>}
       {page === 'modules' && !selectedModuleId && <ModuleHub degree={degree} modules={degreeModules} goals={(data.creditGoals||[]).filter(goal=>goal.degreeId===degree?.id)} assessments={data.assessments} journeys={journeysByModule} currentSemesterId={semester?.id||''} creditsPassed={creditsPassed} average={average} onAdd={()=>setNewModule(true)} onSaveGoal={goal=>mutate(d=>{const exists=(d.creditGoals||[]).some(item=>item.id===goal.id);return {...d,creditGoals:exists?(d.creditGoals||[]).map(item=>item.id===goal.id?goal:item):[...(d.creditGoals||[]),goal]}})} onDeleteGoal={id=>mutate(d=>({...d,creditGoals:(d.creditGoals||[]).filter(goal=>goal.id!==id)}))} onReorderModules={ids=>mutate(d=>{const queue=ids.map(id=>d.modules.find(module=>module.id===id)).filter((module):module is StudyModule=>!!module);return {...d,modules:d.modules.map(module=>module.degreeId===degree?.id?queue.shift()!:module)}})} onReorderGoals={ids=>mutate(d=>{const selected=new Set(ids),queue=ids.map(id=>(d.creditGoals||[]).find(goal=>goal.id===id)).filter((goal):goal is CreditGoal=>!!goal);return {...d,creditGoals:(d.creditGoals||[]).map(goal=>selected.has(goal.id)?queue.shift()!:goal)}})} editing={newModule} onEdit={m=>setSelectedModuleId(m.id)} newName={newName} setNewName={setNewName} newCredits={newCredits} setNewCredits={setNewCredits} saveNewModule={saveNewModule} cancelNew={()=>setNewModule(false)} />}
       {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleScheduleEditor
@@ -1523,6 +1540,7 @@ export default function App() {
         module={data.modules.find(m=>m.id===selectedModuleId)!}
         semester={semester}
         offerings={data.offerings}
+        assessments={data.assessments}
         journey={journeysByModule[selectedModuleId]}
         premium={premium}
         onBack={()=>setSelectedModuleId(null)}
@@ -1545,6 +1563,9 @@ export default function App() {
           return {...d,offerings:merged,
             alternatives:(d.alternatives||[]).filter(a=>!removedIds.has(a.parentOfferingId))}
         })}
+        onChangeAssessments={assessments=>mutate(d=>({...d,assessments}))}
+        onEditAssessment={setEditingAssessment}
+        onAddAssessment={type=>{const base=today()<semester!.start?semester!.start:today()>semester!.end?semester!.end:today();setAssessmentDraft({date:base,from:'10:00',to:'12:00',type,moduleId:selectedModuleId})}}
         onOpenOccurrence={setDetail}
         onClearException={(id,origin)=>mutate(d=>({...d,offerings:d.offerings.map(o=>o.id===id
           ?{...o,overrides:Object.fromEntries(Object.entries(o.overrides||{}).filter(([day])=>day!==origin))}
@@ -1581,15 +1602,15 @@ export default function App() {
       </div>
     </div>
     <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Heute', icon: Layers2 }, { id: 'calendar', name: 'Plan', icon: CalendarDays }, { id: 'modules', name: 'Module', icon: BookOpen }, { id: 'mail', name: 'Postfach', icon: Mail }, { id: 'settings', name: 'Einstellungen', icon: Settings2 }] as const).map(item => <button key={item.id} className={page === item.id || (page === 'admin' && item.id === 'settings') ? 'active' : ''} onClick={() => navigatePage(item.id)}><span className="nav-icon-wrap"><item.icon size={21} />{item.id==='mail'&&mailUnread>0&&<em className="mail-nav-badge">{mailUnread>99?'99+':mailUnread}</em>}</span><span>{item.name}</span></button>)}</nav>
-    {assessmentDraft&&semester&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={semester} modules={semesterModules} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:[...d.assessments,assessment]}));setAssessmentDraft(null);note(assessment.type==='exam'?'Klausur hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
+    {assessmentDraft&&semester&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={semester} modules={semesterModules} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setAssessmentDraft(null);note(assessment.type==='exam'?'Prüfung hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
     {previewAssessment&&<AssessmentPreview item={previewAssessment}
       module={semesterModules.find(m=>m.id===previewAssessment.moduleId)}
       onClose={()=>setPreviewAssessmentId(null)}
       onToggle={()=>mutate(d=>({...d,assessments:d.assessments.map(item=>
         item.id===previewAssessment.id?{...item,completed:!item.completed}:item)}))}
       onEdit={()=>{setEditingAssessment(previewAssessment);setPreviewAssessmentId(null)}}/>}
-    {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={semester} modules={semesterModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:d.assessments.map(x=>x.id===assessment.id?assessment:x)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
-    {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Klausur löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“ am {formDate(deletingAssessment.date)} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>({...d,assessments:d.assessments.filter(x=>x.id!==deletingAssessment.id)}));setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
+    {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={semester} modules={semesterModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
+    {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Prüfung löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“ am {formDate(deletingAssessment.date)} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>{const remaining=d.assessments.filter(x=>x.id!==deletingAssessment.id);return {...d,assessments:rebalanceAssessmentWeights(remaining,deletingAssessment.moduleId)}});setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
     {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }] })); note('Modul hinzugefügt.') } return id }} />}
     {ratingLesson&&ratingOccurrence&&<BottomSheet title="Bewertung" onClose={()=>setRatingOccurrence(null)} compactHeader>
       <div className="learn-checkin-heading" aria-label="Bewertung der Veranstaltung">
