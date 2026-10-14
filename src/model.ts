@@ -18,10 +18,16 @@ export type Assessment = {
   from?: string
   to?: string
   completed?: boolean
+  /** Exam attempts with the same componentId are alternatives of one assessment. */
+  componentId?: string
+  /** Weight belongs to the whole component and is mirrored to its alternatives. */
+  weight?: number
+  /** Only one exam attempt per component is shown as the currently chosen date. */
+  selected?: boolean
 }
 export type Alternative = { recurrence?: Repeat; endDate?: string; id: string; parentOfferingId: string; parentOrigin?: string; kind: 'slot' | 'group'; moduleId: string; category: string; name: string; date: string; from: string; to: string; room: string }
 export type AppData = { alternatives?: Alternative[]; creditGoals?: CreditGoal[]; weekEndDay?: 4 | 5 | 6; theme?: 'dark' | 'light'; notificationPreferences?: { mail: boolean; lessonFeedback: boolean }; version: 2; profile: string; degrees: Degree[]; activeDegreeId: string; semesters: Semester[]; activeSemesterId: string; modules: StudyModule[]; offerings: Offering[]; assessments: Assessment[]; learningCheckins?: LearningCheckin[]; lessonTopics?: LessonTopic[]; learningSessions?: LearningSession[]; learningPlans?: LearningPlanTask[]; firstHour: number; lastHour: number; lastUpdate: number }
-export type Occurrence = { key: string; offering: Offering; origin: string; date: string; from: string; to: string; isOverride: boolean }
+export type Occurrence = { key: string; offering: Offering; origin: string; date: string; from: string; to: string; isOverride: boolean; cancelled?: boolean }
 export const STORE = 'uniflow-v2-local'
 export const LEGACY_STORE = 'uniflow-v1-local'
 export const moduleEmojis: string[] = []
@@ -51,38 +57,93 @@ function scheduleAt(o: Offering, origin: string) {
     .sort((a,b) => a.fromOrigin.localeCompare(b.fromOrigin))
   return changes[changes.length - 1]
 }
-export function occurrenceAtOrigin(o: Offering, origin: string, includeUnselected = false): Occurrence | null {
+export function occurrenceAtOrigin(o: Offering, origin: string, includeUnselected = false, includeCancelled = false): Occurrence | null {
   if (!occursOn(o, origin)) return null
   const override = o.overrides?.[origin]
-  if (override?.cancelled) return null
+  if (override?.cancelled && !includeCancelled) return null
   const schedule = scheduleAt(o,origin)
-  if (!includeUnselected && !(override?.selected ?? o.selected)) return null
+  if (!includeUnselected && !override?.cancelled && !(override?.selected ?? o.selected)) return null
   return {
     key: `${o.id}:${origin}`, offering:o, origin,
     date:override?.date || addDays(origin,schedule?.shiftDays || 0),
     from:override?.from || schedule?.from || o.from,
     to:override?.to || schedule?.to || o.to,
-    isOverride:!!override || !!schedule
+    isOverride:!!override || !!schedule,
+    cancelled:!!override?.cancelled
   }
 }
 export function occurrenceInWeek(o: Offering, week: string, includeUnselected = false): Occurrence | null {
   const origin = addDays(weekStart(week),weekday(o.date))
   return occurrenceAtOrigin(o,origin,includeUnselected)
 }
-export function candidateOccurrencesOn(offers: Offering[], date: string, includeUnselected = false): Occurrence[] {
+export function candidateOccurrencesOn(offers: Offering[], date: string, includeUnselected = false, includeCancelled = false): Occurrence[] {
   const all: Occurrence[] = []
   for (const o of offers) {
     const origins = new Set<string>([date])
     for (const change of o.scheduleChanges || []) origins.add(addDays(date,-change.shiftDays))
     for (const [origin, override] of Object.entries(o.overrides || {})) if (override.date === date) origins.add(origin)
     for (const origin of origins) {
-      const item = occurrenceAtOrigin(o,origin,includeUnselected)
+      const item = occurrenceAtOrigin(o,origin,includeUnselected,includeCancelled)
       if (item?.date === date) all.push(item)
     }
   }
   return all.sort((a,b)=>minutes(a.from)-minutes(b.from)||a.key.localeCompare(b.key))
 }
 export const occurrencesOn = (offers: Offering[], date: string) => candidateOccurrencesOn(offers,date,false)
+
+const assessmentAttemptWords = /(?:[-–—,:]?\s*)(?:erst(?:er|e|es)?\s*termin|zweit(?:er|e|es)?\s*termin|[12]\.?\s*termin|[12]\.\s*versuch|versuch\s*[12])\s*$/i
+export const assessmentBaseTitle = (title:string) => title.replace(assessmentAttemptWords,'').trim().toLocaleLowerCase('de-DE')
+export const assessmentComponentKey = (item:Assessment) => item.type==='exam'
+  ? item.componentId || `${item.moduleId}:${assessmentBaseTitle(item.title)}`
+  : item.componentId || item.id
+export const selectedAssessment = (item:Assessment,all:Assessment[]) => {
+  if(item.type!=='exam')return true
+  const group=all.filter(other=>assessmentComponentKey(other)===assessmentComponentKey(item))
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))
+  return group.some(other=>other.selected===true)?item.selected===true:group[0]?.id===item.id
+}
+
+/** Keep component weights at 100%. Editing one value redistributes the remainder;
+ * adding a new component starts with an even split. Exam alternatives count once. */
+export function rebalanceAssessmentWeights(items:Assessment[],moduleId:string,changedKey?:string,requested?:number):Assessment[]{
+  const moduleItems=items.filter(item=>item.moduleId===moduleId)
+  const keys=[...new Set(moduleItems.map(assessmentComponentKey))]
+  if(!keys.length)return items
+  const current=new Map(keys.map(key=>[key,moduleItems.find(item=>assessmentComponentKey(item)===key)?.weight]))
+  const target=new Map<string,number>()
+  if(changedKey&&keys.includes(changedKey)&&Number.isFinite(requested)){
+    const chosen=Math.max(0,Math.min(100,requested||0)),others=keys.filter(key=>key!==changedKey)
+    target.set(changedKey,chosen)
+    const remainder=100-chosen
+    const oldTotal=others.reduce((sum,key)=>sum+(current.get(key)||0),0)
+    others.forEach(key=>target.set(key,oldTotal>0?remainder*(current.get(key)||0)/oldTotal:remainder/Math.max(1,others.length)))
+  }else{
+    const equal=100/keys.length
+    keys.forEach(key=>target.set(key,equal))
+  }
+  return items.map(item=>item.moduleId===moduleId?{...item,weight:Number((target.get(assessmentComponentKey(item))||0).toFixed(1))}:item)
+}
+
+export function upsertAssessment(items:Assessment[],next:Assessment):Assessment[]{
+  const existing=items.find(item=>item.id===next.id)
+  let componentId=existing?.componentId||next.componentId
+  if(next.type==='exam'&&!componentId){
+    const match=items.find(item=>item.id!==next.id&&item.type==='exam'&&item.moduleId===next.moduleId&&assessmentBaseTitle(item.title)===assessmentBaseTitle(next.title))
+    componentId=match?.componentId||match?.id||next.id
+  }
+  if(next.type==='homework')componentId=next.id
+  const inserted={...next,componentId}
+  let result=existing?items.map(item=>item.id===next.id?inserted:item):[...items,inserted]
+  if(next.type==='exam'){
+    const key=assessmentComponentKey(inserted)
+    result=result.map(item=>item.type==='exam'&&assessmentComponentKey(item)===key?{...item,componentId}:item)
+    const group=result.filter(item=>item.type==='exam'&&assessmentComponentKey(item)===key).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))
+    if(!group.some(item=>item.selected))result=result.map(item=>assessmentComponentKey(item)===key?{...item,selected:item.id===group[0]?.id}:item)
+  }
+  const key=assessmentComponentKey(inserted)
+  result=rebalanceAssessmentWeights(result,next.moduleId,key,next.weight)
+  return existing&&existing.moduleId!==next.moduleId?rebalanceAssessmentWeights(result,existing.moduleId):result
+}
 /** A content group is unique *within* one module, semester and teaching topic. */
 export const sameContent = (a: Offering,b:Offering) => a.semesterId === b.semesterId && a.moduleId === b.moduleId &&
   (a.contentId || a.familyId || a.id) === (b.contentId || b.familyId || b.id)
