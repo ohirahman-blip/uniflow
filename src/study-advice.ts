@@ -1,5 +1,5 @@
 import {
-  addDays, formatDate, fromDate, isAssessment, minutes, occurrencesOn,
+  addDays, formatDate, fromDate, isAssessment, minutes, occurrencesOn, selectedAssessment,
   type AppData, type Occurrence, type Semester, type StudyModule
 } from './model'
 import { lessonForOccurrence, pastLessons, type LearningRating } from './learning'
@@ -119,7 +119,7 @@ export function adviceContext(data:AppData,semester:Semester|undefined,modules:S
   const previousRating=previousLesson?latestRating(previousLesson.key):undefined
   const previousWeak=previousLesson&&previousRating&&previousRating!=='understood'?
     weak.find(w=>w.lessonKey===previousLesson.key)||null:null
-  const exams=data.assessments.filter(a=>a.type==='exam'&&!a.completed&&a.date>=day&&moduleMap.has(a.moduleId))
+  const exams=data.assessments.filter(a=>a.type==='exam'&&!a.completed&&a.date>=day&&moduleMap.has(a.moduleId)&&selectedAssessment(a,data.assessments))
     .map(a=>({moduleId:a.moduleId,moduleName:moduleMap.get(a.moduleId)!.name,date:a.date,daysUntil:diffDays(a.date,day)}))
     .sort((a,b)=>a.daysUntil-b.daysUntil).slice(0,4)
   // Only describe a gap before another class TODAY. Tomorrow's lecture is not
@@ -135,7 +135,7 @@ export function localAdvice(context:AdviceContext):StudyAdvice {
   const exam=exams[0]
   const criticalExam=exam&&exam.daysUntil<=3
   if(criticalExam){
-    return {title:'Deine Klausur hat Vorrang',message:`Die Klausur in ${exam.moduleName} ist in ${exam.daysUntil} ${exam.daysUntil===1?'Tag':'Tagen'}. Nutze die nächste freie Lernphase für eine gezielte Übungsaufgabe.`,
+    return {title:'Deine Prüfung hat Vorrang',message:`Die Prüfung in ${exam.moduleName} ist in ${exam.daysUntil} ${exam.daysUntil===1?'Tag':'Tagen'}. Nutze die nächste freie Lernphase für eine gezielte Übungsaufgabe.`,
       moduleId:exam.moduleId,minutes:30,kind:'exam',source:'local'}
   }
   if(nextLecture&&nextLecture.minutesUntil<=180&&previousWeak){
@@ -144,7 +144,7 @@ export function localAdvice(context:AdviceContext):StudyAdvice {
       moduleId:nextLecture.moduleId,lessonKey:previousWeak.lessonKey,minutes:15,kind:'review',source:'local'}
   }
   if(exam&&exam.daysUntil<=7){
-    return {title:'Zeit für Klausurtraining',message:`In ${exam.moduleName} steht in ${exam.daysUntil} Tagen eine Klausur an. Ein paar gezielte Aufgaben sind heute wichtiger als neue Themen.`,
+    return {title:'Zeit für Prüfungstraining',message:`In ${exam.moduleName} steht in ${exam.daysUntil} Tagen eine Prüfung an. Ein paar gezielte Aufgaben sind heute wichtiger als neue Themen.`,
       moduleId:exam.moduleId,minutes:30,kind:'exam',source:'local'}
   }
   if(freeMinutes>=30&&otherWeak.length){
@@ -161,7 +161,7 @@ export function localAdvice(context:AdviceContext):StudyAdvice {
       moduleId:nextLecture.moduleId,lessonKey:nextLecture.lessonKey,minutes:10,kind:'prepare',source:'local'}
   }
   if(exam&&exam.daysUntil<=14){
-    return {title:'Die Klausur im Blick',message:`In ${exam.moduleName} steht am ${formatDate(exam.date,{day:'numeric',month:'long'})} eine Klausur an. Plane eine Wiederholung für diese Woche ein.`,
+    return {title:'Die Prüfung im Blick',message:`In ${exam.moduleName} steht am ${formatDate(exam.date,{day:'numeric',month:'long'})} eine Prüfung an. Plane eine Wiederholung für diese Woche ein.`,
       moduleId:exam.moduleId,minutes:30,kind:'exam',source:'local'}
   }
   if(otherWeak.length){
