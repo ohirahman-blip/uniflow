@@ -1176,13 +1176,13 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         <div className="wallet-fan-head"><span>Veranstaltungen · {fanItems.length}</span><button aria-label="Stapel schließen" onClick={()=>setFan(null)}><X size={17}/></button></div>
         <div className="wallet-cards">
         {fanItems.map((item,i)=>{
-          const selected=!!occurrenceAtOrigin(item.offering,item.origin,false)
+          const scheduled=!!occurrenceAtOrigin(item.offering,item.origin,false)
           const module=modules.find(m=>m.id===item.offering.moduleId)
           const equivalent=sameContent(item.offering,fan.occ.offering)
           return <div role="button" tabIndex={0} key={item.key}
-            className={'wallet-card '+(selected?'wallet-card-active':'wallet-card-inactive')+(item.cancelled?' wallet-card-cancelled':'')+(fanPicked?.key===item.key?' wallet-card-picked':'')}
-            style={{background:selected?(module?.color||'#5c5964'):undefined,animationDelay:`${i*38}ms`,zIndex:fanItems.length-i}}
-            onPointerDown={e=>{if(i===0&&selected){e.stopPropagation();onDown(e,item)}}}
+            className={'wallet-card '+(scheduled?'wallet-card-planned':'wallet-card-inactive')+(item.cancelled?' wallet-card-cancelled':'')+(fanPicked?.key===item.key?' wallet-card-picked':'')}
+            style={{animationDelay:`${i*38}ms`,zIndex:fanItems.length-i}}
+            onPointerDown={e=>{if(i===0&&scheduled){e.stopPropagation();onDown(e,item)}}}
             onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancelGesture}
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;onFanTap(item)}}
             onContextMenu={e=>{e.preventDefault();e.stopPropagation();setWalletContext({occ:item,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
@@ -1191,7 +1191,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             <div className="wallet-card-top"><strong>{module?.shortName||module?.name||item.offering.name} · {item.offering.contentLabel||item.offering.category}</strong>{item.cancelled&&<span aria-label="Fällt aus">×</span>}</div>
             <small>{item.offering.organizer||'Ohne Dozent'} · {placeLabel(item.offering)||'Raum offen'}</small>
             <small>{formatDate(item.date,{weekday:'short',day:'numeric',month:'short'})} · {item.from}–{item.to}</small>
-            <span className="wallet-card-caption">{item.cancelled?'Fällt ohne Ersatz aus':selected?'Aktuell ausgewählt':equivalent?'Gleicher Inhalt':'Andere Veranstaltung · gleiche Zeit'}</span>
+            <span className="wallet-card-caption">{item.cancelled?'Fällt ohne Ersatz aus':scheduled?'Im Plan':equivalent?'Alternative · gleicher Inhalt':'Alternative · gleiche Zeit'}</span>
           </div>
         })}
         </div>
