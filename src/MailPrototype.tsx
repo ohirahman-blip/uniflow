@@ -264,7 +264,12 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
           {filtered.map(item => <div className={'mail-thread-swipe' + (revealed === item.id ? ' is-revealed' : '')} key={item.id}>
             <div className="mail-thread-actions"><button type="button" onClick={() => void act(item, item.muted ? 'unmute' : 'mute')}><BellOff size={16}/><span>{item.muted ? 'Laut' : 'Stumm'}</span></button><button type="button" className="danger" onClick={() => void act(item, 'delete')}><Trash2 size={16}/><span>Löschen</span></button></div>
             <button type="button" className={'mail-thread' + (active === item.id ? ' active' : '') + (selected.has(item.id) ? ' selected' : '')}
-              onClick={() => void selectThread(item.id)} onPointerDown={event => pointerDown(event, item.id)} onPointerMove={pointerMove} onPointerUp={event => pointerUp(event, item.id)} onPointerCancel={() => { swipeStart.current = null }}
+              onClick={event => {
+                if(ignoreClick.current){ignoreClick.current=false;return}
+                const avatarClicked=event.target instanceof Element&&!!event.target.closest('.mail-avatar')
+                if(selected.size>0&&(avatarClicked||event.detail===0))toggleSelected(item.id)
+                else void selectThread(item.id)
+              }} onPointerDown={event => pointerDown(event, item.id)} onPointerMove={pointerMove} onPointerUp={event => pointerUp(event, item.id)} onPointerCancel={() => { swipeStart.current = null }}
               aria-pressed={selected.has(item.id)} onContextMenu={event => { event.preventDefault(); setContext({ id: item.id, x: Math.min(event.clientX, window.innerWidth - 226), y: Math.min(event.clientY, window.innerHeight - 230) }) }}>
               <span className="mail-avatar">{selected.has(item.id) ? <Check size={17}/> : item.initials}</span>
               <span className="mail-thread-main"><strong>{item.name}{item.muted && <BellOff size={11}/>}</strong><small>{item.preview}</small></span>
