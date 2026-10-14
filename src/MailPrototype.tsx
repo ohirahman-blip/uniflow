@@ -75,13 +75,13 @@ function MailOnboarding({ onConnected }: { onConnected: (account: MailAccount) =
   </div>
 }
 
-type MailSnapshot = { account: MailAccount | null; threads: MailThread[]; active: string | null; drafts: Record<string,string> }
+type MailSnapshot = { account: MailAccount | null; threads: MailThread[]; active: string | null; drafts: Record<string,string>; nextCursor: string | null }
 function readSnapshot(userId: string): MailSnapshot {
   try {
     const value=JSON.parse(sessionStorage.getItem('uniflow-mail:'+userId)||'null')
-    if(value&&Array.isArray(value.threads))return {account:value.account||null,threads:value.threads,active:typeof value.active==='string'?value.active:null,drafts:value.drafts||{}}
+    if(value&&Array.isArray(value.threads))return {account:value.account||null,threads:value.threads,active:typeof value.active==='string'?value.active:null,drafts:value.drafts||{},nextCursor:typeof value.nextCursor==='string'?value.nextCursor:null}
   } catch { /* A missing or invalid cache must not prevent opening mail. */ }
-  return {account:null,threads:[],active:null,drafts:{}}
+  return {account:null,threads:[],active:null,drafts:{},nextCursor:null}
 }
 
 export default function MailPrototype({ userId, onUnreadChange, onAccountChange, onNotice }: Props) {
@@ -92,6 +92,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [syncBusy, setSyncBusy] = useState(false)
+  const [nextCursor, setNextCursor] = useState<string | null>(snapshot.nextCursor)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [revealed, setRevealed] = useState<string | null>(null)
@@ -104,6 +105,8 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
   const [context, setContext] = useState<{ id: string; x: number; y: number } | null>(null)
   const composer = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  const threadList = useRef<HTMLDivElement>(null)
+  const loadMoreMarker = useRef<HTMLDivElement>(null)
   const swipeStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null)
   const ignoreClick = useRef(false)
   const syncing = useRef(false)
@@ -119,31 +122,43 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
     setSyncBusy(true)
     if (!quiet) setLoading(true)
     try {
-      let cursor:string|undefined
-      let collected:MailThread[]=[]
-      const visited=new Set<string>()
-      do {
-        const result = await getMailThreads(cursor)
-        const incoming=result.threads.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0)
-        collected=mergeMailPages(collected.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0),incoming)
-        const visible=collected
-        // Show each completed page, preserving the cache until sync completes.
-        setThreads(current=>mergeMailPages(current.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0||item.id.startsWith('new:')),visible))
-        onUnreadChange?.(visible.reduce((sum,item)=>sum+item.unread,0));setError('')
-        cursor=result.nextCursor||undefined
-        if(cursor&&visited.has(cursor))throw new Error('[MAIL_CURSOR_LOOP] Synchronisierung lieferte dieselbe Seite erneut.')
-        if(cursor)visited.add(cursor)
-      }while(cursor)
-      setThreads(current=>[...collected.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0),...current.filter(item=>item.id.startsWith('new:')&&!collected.some(incoming=>incoming.address===item.address))])
-      setActive(current=>current?.startsWith('new:')?(collected.find(item=>item.address===current.slice(4))?.id||current):current)
+      const result = await getMailThreads()
+      const incoming=result.threads.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0)
+      setThreads(current=>mergeMailPages(current.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0||item.id.startsWith('new:')),incoming))
+      setActive(current=>current?.startsWith('new:')?(incoming.find(item=>item.address===current.slice(4))?.id||current):current)
+      setNextCursor(result.nextCursor||null)
+      setError('')
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Mails konnten nicht geladen werden.') }
     finally { syncing.current=false; setSyncBusy(false); if (!quiet) setLoading(false) }
-  }, [onUnreadChange])
+  }, [])
+
+  const loadOlderThreads = useCallback(async () => {
+    if(syncing.current||!nextCursor)return
+    const cursor=nextCursor
+    syncing.current=true;setSyncBusy(true)
+    try{
+      const result=await getMailThreads(cursor)
+      const incoming=result.threads.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0)
+      setThreads(current=>mergeMailPages(current,incoming))
+      setNextCursor(result.nextCursor||null)
+      setError('')
+    }catch(reason){setError(reason instanceof Error?reason.message:'Ältere Mails konnten nicht geladen werden.')}
+    finally{syncing.current=false;setSyncBusy(false)}
+  },[nextCursor])
 
   useEffect(()=>{
-    try { sessionStorage.setItem('uniflow-mail:'+userId,JSON.stringify({account,threads,active,drafts})) }
+    try { sessionStorage.setItem('uniflow-mail:'+userId,JSON.stringify({account,threads,active,drafts,nextCursor})) }
     catch { /* Storage quota must not interrupt sending or synchronization. */ }
-  },[userId,account,threads,active,drafts])
+  },[userId,account,threads,active,drafts,nextCursor])
+
+  useEffect(()=>{onUnreadChange?.(threads.reduce((sum,item)=>sum+item.unread,0))},[threads,onUnreadChange])
+  useEffect(()=>{
+    const marker=loadMoreMarker.current,root=threadList.current
+    if(!marker||!root||!nextCursor||query)return
+    const observer=new IntersectionObserver(entries=>{if(entries[0]?.isIntersecting)void loadOlderThreads()},{root,rootMargin:'180px 0px'})
+    observer.observe(marker)
+    return()=>observer.disconnect()
+  },[nextCursor,query,loadOlderThreads])
 
   useEffect(() => {
     let alive = true
@@ -291,7 +306,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
         <div className="mail-inbox-heading"><strong>{selected.size ? `${selected.size} ausgewählt` : 'Postfach'}</strong>{selected.size ? <span className="mail-selection-actions"><button type="button" onClick={() => void actSelected('mute')} aria-label="Auswahl stummschalten"><BellOff size={16}/></button><button type="button" onClick={() => void actSelected('delete')} aria-label="Auswahl löschen"><Trash2 size={16}/></button><button type="button" title="Alle auswählen" aria-label="Alle Unterhaltungen auswählen" onClick={() => setSelected(new Set(threads.map(item=>item.id)))}><CheckCheck size={16}/></button><button type="button" onClick={() => setSelected(new Set())} aria-label="Auswahl aufheben"><X size={16}/></button></span> : syncBusy ? <span className="mail-loading-spinner small" role="status" aria-label="Postfach wird synchronisiert"/> : null}</div>
         <label className="mail-search"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Name oder E-Mail suchen" aria-label="Unterhaltungen suchen"/></label>
         {error && <button className="mail-sync-error" onClick={() => void loadThreads()}>{error} · erneut versuchen</button>}
-        <div className="mail-thread-list">
+        <div className="mail-thread-list" ref={threadList}>
           {filtered.map(item => <div className={'mail-thread-swipe' + (revealed === item.id ? ' is-revealed' : '')} key={item.id}>
             <div className="mail-thread-actions"><button type="button" onClick={() => void act(item, item.muted ? 'unmute' : 'mute')}><BellOff size={16}/><span>{item.muted ? 'Laut' : 'Stumm'}</span></button><button type="button" className="danger" onClick={() => void act(item, 'delete')}><Trash2 size={16}/><span>Löschen</span></button></div>
             <button type="button" className={'mail-thread' + (active === item.id ? ' active' : '') + (selected.has(item.id) ? ' selected' : '')}
@@ -309,6 +324,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
           </div>)}
           {offerNew && <button className="mail-create-thread" type="button" onClick={newConversation}><Plus size={17}/><span>Neue Unterhaltung mit<strong>{query.trim()}</strong></span></button>}
           {!filtered.length && !offerNew && <div className="mail-empty-search">{query ? 'Keine Unterhaltung gefunden.' : 'Dein Postfach ist leer.'}</div>}
+          {!query&&nextCursor&&<div className="mail-load-more" ref={loadMoreMarker}>{syncBusy?<><span className="mail-loading-spinner small" aria-hidden="true"/> Ältere Mails werden geladen …</>:<button type="button" onClick={()=>void loadOlderThreads()}>Ältere Mails laden</button>}</div>}
         </div>
         <div className="mail-inbox-bottom"><Inbox size={14}/><span>{account?.email} · synchronisiert</span></div>
       </aside>
