@@ -1257,8 +1257,8 @@ button {
   flex-shrink: 0;
   border: 0;
   border-radius: 50%;
-  background: white;
-  color: #080808;
+  background: transparent;
+  color: var(--uniflow-accent, #f94f72);
   display: grid;
   place-items: center;
 }
