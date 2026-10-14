@@ -1,11 +1,12 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, Mail, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, weekStart, type Alternative, type Assessment, type AppData, type CalendarView, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
 import MailPrototype from './MailPrototype'
+import StartupSplash from './StartupSplash'
 import { disconnectMailAccount, getMailAccount, getMailThreads, type MailAccount } from './mail-client'
 import { configurePushPreferences } from './push-notifications'
 import CalendarMonthOverview from './CalendarMonthOverview'
@@ -1143,6 +1144,9 @@ export default function App() {
   const [cloudError, setCloudError] = useState('')
   const [admin, setAdmin] = useState(false)
   const [premium, setPremium] = useState(false)
+  const [premiumOwner,setPremiumOwner]=useState<string|null>(null)
+  const [startupFinished,setStartupFinished]=useState(false)
+  const finishStartup=useCallback(()=>setStartupFinished(true),[])
   const [catalog, setCatalog] = useState<Catalog>(emptyCatalog)
   const [confirmDeleteSemester, setConfirmDeleteSemester] = useState<Semester | null>(null)
   const [cloudBusy, setCloudBusy] = useState(false)
@@ -1200,6 +1204,7 @@ export default function App() {
       activeUserRef.current = id
       const epoch = ++authEpoch.current
       setUser(next)
+      if(next)setStartupFinished(false)
       setData({ ...emptyData }) // never show the last account's private data after sign-out
       setOnboarding(true)
       setPage(pageFromUrl(next?.id))
@@ -1232,7 +1237,8 @@ export default function App() {
   useEffect(()=>{
     let valid=true
     setPremium(false)
-    if(user)void fetchOwnPremium().then(p=>{if(valid)setPremium(p)}).catch(()=>{if(valid)setPremium(false)})
+    setPremiumOwner(null)
+    if(user)void fetchOwnPremium().then(p=>{if(valid){setPremium(p);setPremiumOwner(user.id)}}).catch(()=>{if(valid){setPremium(false);setPremiumOwner(user.id)}})
     return()=>{valid=false}
   },[user?.id])
   useEffect(()=>{
@@ -1446,7 +1452,10 @@ export default function App() {
   const readBackup = async (file?: File) => { if (!file) return; try { const raw = JSON.parse(await file.text()); if (!Array.isArray(raw.degrees) || !Array.isArray(raw.modules) || !Array.isArray(raw.offerings) || !Array.isArray(raw.semesters)) throw Error('Ungültiges Backup'); const converted = raw.version === 2 ? normalizeWorkspace(raw as AppData) : migrateLegacy(raw); if (!converted) throw Error('Ungültiges Backup'); setPendingBackup(converted) } catch { note('Diese Datei ist kein gültiges uniflow-Backup.') } }
   const previewAssessment=data.assessments.find(item=>item.id===previewAssessmentId)
   if (!supabase) return <main className="auth-loading auth-config-missing"><div><h1>Verbindung einrichten.</h1><p>uniflow benötigt ein Supabase-Konto. Trage VITE_SUPABASE_URL und VITE_SUPABASE_PUBLISHABLE_KEY in der Datei .env.local ein und starte Vite neu.</p></div></main>
-  if (!authReady) return <div className="auth-loading">uniflow wird geladen …</div>
+  if (!startupFinished) return <StartupSplash
+    ready={authReady&&(!user||(cloudReady&&premiumOwner===user.id)||cloudStatus==='error')}
+    premium={!!user&&premiumOwner===user.id&&premium}
+    onFinish={finishStartup}/>
   if (!user) return <><AuthScreen/>{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(null)}/>}</>
   if (!cloudReady) return <main className="auth-loading auth-cloud-loading"><div><div className="wordmark">uniflow<span className="wordmark-dot">.</span></div><p>{cloudStatus === 'error' ? cloudError : 'Deine Daten werden sicher geladen …'}</p>{cloudStatus === 'error' && <><button className="primary-action" onClick={() => void loadUserWorkspace(user, authEpoch.current)}>Erneut versuchen</button><button className="auth-secondary" onClick={() => void logOut()}>Abmelden</button></>}</div></main>
   if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); setPage('calendar') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
