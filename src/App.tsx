@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, Mail, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpDown, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, Mail, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, rebalanceAssessmentWeights, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
@@ -42,6 +42,10 @@ function BrandMark({premium,page,compact=false}:{premium:boolean;page:Page;compa
 type NewEntry = { date: string; from: string; to: string; category?: string; recurrence?: Repeat }
 type MoveProposal = { occ: Occurrence; date: string; from: string; to: string }
 type ToastState = { id: string; text: string; action?: () => void; actionLabel?: string }
+type ModuleSort = { key:'manual'|'exam'|'learning'|'name'; direction:'asc'|'desc' }
+const defaultModuleSort:ModuleSort={key:'manual',direction:'asc'}
+const moduleSortStorageKey=(degreeId?:string)=>`uniflow-module-sort-${degreeId||'default'}`
+const loadModuleSort=(degreeId?:string):ModuleSort=>{try{const value=JSON.parse(localStorage.getItem(moduleSortStorageKey(degreeId))||'null');return value&&['manual','exam','learning','name'].includes(value.key)&&['asc','desc'].includes(value.direction)?value:defaultModuleSort}catch{return defaultModuleSort}}
 const programs = ['Informatik', 'Wirtschaftsinformatik', 'Betriebswirtschaftslehre', 'Maschinenbau', 'Elektrotechnik', 'Mathematik', 'Psychologie', 'Medizin', 'Rechtswissenschaften', 'Architektur', 'Biologie', 'Lehramt', 'Wirtschaftsingenieurwesen', 'Geographie', 'Design']
 const universities = ['Technische Universität Berlin', 'Humboldt-Universität zu Berlin', 'Freie Universität Berlin', 'Berliner Hochschule für Technik', 'HTW Berlin', 'Universität der Künste Berlin', 'Universität Potsdam', 'Technische Universität München', 'Ludwig-Maximilians-Universität München', 'Universität Hamburg', 'Universität zu Köln', 'RWTH Aachen', 'Technische Universität Dresden', 'Universität Leipzig']
 const weekNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
@@ -561,12 +565,46 @@ function ModuleHub({ degree, modules, goals, assessments, journeys, currentSemes
 }) {
   const [openPassed,setOpenPassed]=useState(false), [openPlanned,setOpenPlanned]=useState(false)
   const [goalMode,setGoalMode]=useState<'view'|'edit'|'new'|null>(null),[activeGoalId,setActiveGoalId]=useState<string|null>(null)
+  const [sortOpen,setSortOpen]=useState(false)
+  const [moduleSort,setModuleSort]=useState<ModuleSort>(()=>loadModuleSort(degree?.id))
+  const sortWrap=useOutsideDismiss(sortOpen,()=>setSortOpen(false))
   const [dragging,setDragging]=useState<{kind:string;id:string}|null>(null)
   const lastDragTarget=useRef<string|null>(null)
+  useEffect(()=>setModuleSort(loadModuleSort(degree?.id)),[degree?.id])
   const passed=modules.filter(m=>m.status==='passed'||m.status==='recognized')
   const planned=modules.filter(m=>m.status==='planned'||m.status==='open')
   const current=modules.filter(m=>!['passed','recognized','planned','open'].includes(m.status))
-  const nextExam=(m:StudyModule)=>assessments.filter(x=>x.moduleId===m.id&&x.type==='exam'&&x.date>=today()&&selectedAssessment(x,assessments)).map(x=>x.date).sort()[0]
+  const nextExamByModule=useMemo(()=>{
+    const result=new Map<string,string>()
+    for(const item of assessments){
+      if(item.type!=='exam'||item.date<today()||!selectedAssessment(item,assessments))continue
+      const previous=result.get(item.moduleId)
+      if(!previous||item.date<previous)result.set(item.moduleId,item.date)
+    }
+    return result
+  },[assessments])
+  const nextExam=(m:StudyModule)=>nextExamByModule.get(m.id)
+  const chooseSort=(next:ModuleSort)=>{setModuleSort(next);try{localStorage.setItem(moduleSortStorageKey(degree?.id),JSON.stringify(next))}catch{/* Storage may be unavailable. */}}
+  const sortModules=(items:StudyModule[])=>{
+    if(moduleSort.key==='manual')return items
+    const direction=moduleSort.direction==='asc'?1:-1
+    return [...items].sort((a,b)=>{
+      if(moduleSort.key==='name')return a.name.localeCompare(b.name,'de-DE')*direction
+      if(moduleSort.key==='learning'){
+        const aValue=journeys[a.id]?.priority,bValue=journeys[b.id]?.priority
+        if(aValue===undefined&&bValue===undefined)return a.name.localeCompare(b.name,'de-DE')
+        if(aValue===undefined)return 1
+        if(bValue===undefined)return -1
+        return (aValue-bValue)*direction||a.name.localeCompare(b.name,'de-DE')
+      }
+      const aDate=nextExamByModule.get(a.id),bDate=nextExamByModule.get(b.id)
+      if(!aDate&&!bDate)return a.name.localeCompare(b.name,'de-DE')
+      if(!aDate)return 1
+      if(!bDate)return -1
+      return aDate.localeCompare(bDate)*direction||a.name.localeCompare(b.name,'de-DE')
+    })
+  }
+  const shownCurrent=sortModules(current),shownPassed=sortModules(passed),shownPlanned=sortModules(planned)
   const activeGoal=goals.find(goal=>goal.id===activeGoalId)||null
   const goalProgress=(goal:CreditGoal)=>{
     const assigned=goal.moduleIds.map(id=>modules.find(module=>module.id===id)).filter((module):module is StudyModule=>!!module)
@@ -587,17 +625,17 @@ function ModuleHub({ degree, modules, goals, assessments, journeys, currentSemes
   const endReorder=()=>{lastDragTarget.current=null;setDragging(null)}
   const keyboardReorder=(kind:string,id:string,direction:-1|1)=>{const items=kind==='goal'?goals:modules.filter(module=>moduleKind(module)===kind),index=items.findIndex(item=>item.id===id),target=items[index+direction];if(target)reorder(kind,id,target.id)}
   const handle=(kind:string,id:string,label:string)=><button type="button" className="module-reorder-handle" aria-label={`${label} verschieben`} onPointerDown={event=>beginReorder(event,kind,id)} onPointerMove={moveReorder} onPointerUp={endReorder} onPointerCancel={endReorder} onKeyDown={event=>{if(event.key==='ArrowUp'||event.key==='ArrowLeft'){event.preventDefault();keyboardReorder(kind,id,-1)}else if(event.key==='ArrowDown'||event.key==='ArrowRight'){event.preventDefault();keyboardReorder(kind,id,1)}}}><Grip size={17}/></button>
-  const row=(m:StudyModule,isFuture=false)=>{const kind=moduleKind(m);return <div key={m.id} data-reorder-kind={kind} data-reorder-id={m.id} className={'module-list-row-wrap'+(dragging?.id===m.id?' is-reordering':'')}>{handle(kind,m.id,m.name)}<button className={'module-list-row '+(isFuture?'module-future':'')} onClick={()=>onEdit(m)}>
+  const row=(m:StudyModule,isFuture=false)=>{const kind=moduleKind(m),examDate=nextExam(m);return <div key={m.id} data-reorder-kind={moduleSort.key==='manual'?kind:undefined} data-reorder-id={moduleSort.key==='manual'?m.id:undefined} className={'module-list-row-wrap'+(moduleSort.key!=='manual'?' module-auto-sorted':'')+(dragging?.id===m.id?' is-reordering':'')}>{moduleSort.key==='manual'?handle(kind,m.id,m.name):null}<button className={'module-list-row '+(isFuture?'module-future':'')} onClick={()=>onEdit(m)}>
     <span className="module-emoji" style={{background:isFuture?'#292929':m.color}}>{m.emoji||<BookOpen size={19}/>} </span>
-    <span className="module-main"><strong>{m.name}</strong><small>{m.credits} LP · {m.shortName}{m.semesterIds.includes(currentSemesterId)?'':' · Anderes Semester'}</small>{nextExam(m)&&<small className="module-exam-countdown"><CalendarCheck2 size={13}/>Prüfung in {Math.round((fromDate(nextExam(m)).getTime()-fromDate(today()).getTime())/86400000)} Tagen · {formDate(nextExam(m))}</small>}{m.status==='current'&&journeys[m.id]&&<small className="module-journey-inline">{journeys[m.id].status} · {journeys[m.id].rated}/{journeys[m.id].total} Check-ins</small>}</span><ArrowRight size={18}/>
+    <span className="module-main"><strong>{m.name}</strong><small>{m.credits} LP · {m.shortName}{m.semesterIds.includes(currentSemesterId)?'':' · Anderes Semester'}</small>{examDate&&<small className="module-exam-countdown"><CalendarCheck2 size={13}/>Prüfung in {Math.round((fromDate(examDate).getTime()-fromDate(today()).getTime())/86400000)} Tagen · {formDate(examDate)}</small>}{m.status==='current'&&journeys[m.id]&&<small className="module-journey-inline">{journeys[m.id].status} · {journeys[m.id].rated}/{journeys[m.id].total} Check-ins</small>}</span><ArrowRight size={18}/>
   </button></div>}
-  return <div className="screen secondary-screen module-hub"><div className="page-title-row"><div><h1>Module<span className="title-count">{modules.length}</span></h1><p>{degree?.name} · {degree?.level} · {degree?.university}</p></div><button className="round-add" aria-label="Modul hinzufügen" onClick={onAdd}><Plus size={22}/></button></div>
+  return <div className="screen secondary-screen module-hub"><div className="page-title-row"><div><h1>Module<span className="title-count">{modules.length}</span></h1><p>{degree?.name} · {degree?.level} · {degree?.university}</p></div><div className="module-header-actions"><div className="module-sort-wrap" ref={sortWrap}><button type="button" className={'module-sort-trigger '+(moduleSort.key!=='manual'?'active':'')} aria-label="Module sortieren" title="Module sortieren" aria-haspopup="menu" aria-expanded={sortOpen} onClick={()=>setSortOpen(value=>!value)}><ArrowUpDown size={19}/></button>{sortOpen&&<div className="module-sort-popover" role="menu" aria-label="Module sortieren"><strong>Sortieren nach</strong>{([{key:'manual',label:'Eigene Reihenfolge'},{key:'exam',label:'Nächste Prüfung'},{key:'learning',label:'Lernbedarf'},{key:'name',label:'Modulname'}] as const).map(option=><button type="button" role="menuitemradio" aria-checked={moduleSort.key===option.key} className={moduleSort.key===option.key?'selected':''} key={option.key} onClick={()=>chooseSort({key:option.key,direction:option.key==='learning'?'desc':'asc'})}><span>{option.label}</span>{moduleSort.key===option.key?<Check size={15}/>:null}</button>)}{moduleSort.key!=='manual'&&<><div className="module-sort-divider"/><strong>Reihenfolge</strong><div className="module-sort-direction"><button type="button" className={moduleSort.direction==='asc'?'selected':''} onClick={()=>chooseSort({...moduleSort,direction:'asc'})}>{moduleSort.key==='exam'?'Früheste zuerst':moduleSort.key==='learning'?'Wenig zuerst':'A–Z'}</button><button type="button" className={moduleSort.direction==='desc'?'selected':''} onClick={()=>chooseSort({...moduleSort,direction:'desc'})}>{moduleSort.key==='exam'?'Späteste zuerst':moduleSort.key==='learning'?'Meiste zuerst':'Z–A'}</button></div></>}</div>}</div><button className="round-add" aria-label="Modul hinzufügen" onClick={onAdd}><Plus size={22}/></button></div></div>
     <div className="module-degree-summary"><div><small>Leistungspunkte</small><strong>{creditsPassed} <em>/ {degree?.targetCredits || 180} LP</em></strong></div><div><small>Notendurchschnitt</small><strong>{average}</strong></div></div>
     {editing&&<form className="module-inline-create" onSubmit={e=>{e.preventDefault();saveNewModule()}}><input autoFocus placeholder="Modulname" value={newName} onChange={e=>setNewName(e.target.value)}/><input type="number" min="0" step="0.5" aria-label="Leistungspunkte" value={newCredits} onChange={e=>setNewCredits(e.target.value)}/><span>LP</span><button type="submit"><Check size={22}/></button><IconButton label="Abbrechen" onClick={cancelNew}><X size={19}/></IconButton></form>}
-    <section className="module-group"><div className="module-group-title static"><span>Aktuell <small>{current.length}</small></span></div><div className="module-group-list">{current.map(m=>row(m))}{current.length===0&&<div className="empty-message"><h2>Hier ist noch Platz.</h2><p>Füge dein erstes Modul hinzu.</p></div>}</div></section>
+    <section className="module-group"><div className="module-group-title static"><span>Aktuell <small>{current.length}</small></span></div><div className="module-group-list">{shownCurrent.map(m=>row(m))}{current.length===0&&<div className="empty-message"><h2>Hier ist noch Platz.</h2><p>Füge dein erstes Modul hinzu.</p></div>}</div></section>
     <section className="module-group module-goals"><div className="module-group-title"><span>Ziele <small>{goals.length}</small></span><button type="button" aria-label="Ziel erstellen" onClick={()=>{setActiveGoalId(null);setGoalMode('new')}}><Plus size={18}/></button></div><div className="module-goal-grid">{goals.map(goal=>{const {earned,current}=goalProgress(goal),completedProgress=Math.min(1,earned/goal.targetCredits),activeProgress=Math.min(1,(earned+current)/goal.targetCredits);return <div key={goal.id} data-reorder-kind="goal" data-reorder-id={goal.id} className={'module-goal-card-wrap'+(dragging?.id===goal.id?' is-reordering':'')}>{handle('goal',goal.id,goal.name)}<button type="button" className="module-goal-card" onClick={()=>{setActiveGoalId(goal.id);setGoalMode('view')}}><span className="module-goal-ring"><svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18"/><circle className="current" cx="22" cy="22" r="18" style={{strokeDashoffset:113.1*(1-activeProgress)}}/><circle className="progress" cx="22" cy="22" r="18" style={{strokeDashoffset:113.1*(1-completedProgress)}}/></svg><strong>{earned}<small>/{goal.targetCredits}</small></strong></span><span><strong>{goal.name}</strong><small>{goal.moduleIds.length} Module</small><span className="uf-visually-hidden">{current} LP aktuell in Bearbeitung</span></span></button></div>})}{!goals.length&&<button type="button" className="module-goal-empty" onClick={()=>setGoalMode('new')}><Plus size={17}/> Erstes LP-Ziel erstellen</button>}</div></section>
-    <section className="module-group"><button className="module-group-title" aria-expanded={openPassed} onClick={()=>setOpenPassed(v=>!v)}><span>Bestanden <small>{passed.length}</small></span><ChevronDown className={openPassed?'is-open':''}/></button>{openPassed&&<div className="module-group-list">{passed.map(m=>row(m))}{passed.length===0&&<p className="module-group-empty">Noch keine bestandenen Module.</p>}</div>}</section>
-    <section className="module-group"><button className="module-group-title" aria-expanded={openPlanned} onClick={()=>setOpenPlanned(v=>!v)}><span>In Zukunft geplant <small>{planned.length}</small></span><ChevronDown className={openPlanned?'is-open':''}/></button>{openPlanned&&<div className="module-group-list">{planned.map(m=>row(m,true))}{planned.length===0&&<p className="module-group-empty">Noch keine geplanten Module.</p>}</div>}</section>
+    <section className="module-group"><button className="module-group-title" aria-expanded={openPassed} onClick={()=>setOpenPassed(v=>!v)}><span>Bestanden <small>{passed.length}</small></span><ChevronDown className={openPassed?'is-open':''}/></button>{openPassed&&<div className="module-group-list">{shownPassed.map(m=>row(m))}{passed.length===0&&<p className="module-group-empty">Noch keine bestandenen Module.</p>}</div>}</section>
+    <section className="module-group"><button className="module-group-title" aria-expanded={openPlanned} onClick={()=>setOpenPlanned(v=>!v)}><span>In Zukunft geplant <small>{planned.length}</small></span><ChevronDown className={openPlanned?'is-open':''}/></button>{openPlanned&&<div className="module-group-list">{shownPlanned.map(m=>row(m,true))}{planned.length===0&&<p className="module-group-empty">Noch keine geplanten Module.</p>}</div>}</section>
     {goalMode==='view'&&activeGoal?<ModuleGoalDetail goal={activeGoal} modules={modules} onClose={()=>setGoalMode(null)} onEdit={()=>setGoalMode('edit')}/>:null}
     {goalMode==='new'?<ModuleGoalSheet goal={null} modules={modules} onClose={()=>setGoalMode(null)} onSave={goal=>{onSaveGoal({...goal,degreeId:degree?.id||goal.degreeId});setGoalMode(null)}}/>:goalMode==='edit'&&activeGoal?<ModuleGoalSheet goal={activeGoal} modules={modules} onClose={()=>setGoalMode(null)} onSave={goal=>{onSaveGoal({...goal,degreeId:degree?.id||goal.degreeId});setGoalMode(null)}} onDelete={id=>{onDeleteGoal(id);setGoalMode(null)}}/>:null}
   </div>
