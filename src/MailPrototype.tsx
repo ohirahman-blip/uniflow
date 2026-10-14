@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type TouchEvent as ReactTouchEvent } from 'react'
 import { ArrowLeft, ArrowRight, BellOff, Check, CheckCheck, FileText, Inbox, Mail, Paperclip, Plus, Reply, Search, Send, Trash2, X } from 'lucide-react'
 import './mail-prototype.css'
 import { replySubject, validDemoRecipient } from './mail-prototype-logic'
@@ -93,6 +93,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
   const [loading, setLoading] = useState(true)
   const [syncBusy, setSyncBusy] = useState(false)
   const [nextCursor, setNextCursor] = useState<string | null>(snapshot.nextCursor)
+  const [pullDistance, setPullDistance] = useState(0)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [revealed, setRevealed] = useState<string | null>(null)
@@ -107,6 +108,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
   const fileInput = useRef<HTMLInputElement>(null)
   const threadList = useRef<HTMLDivElement>(null)
   const loadMoreMarker = useRef<HTMLDivElement>(null)
+  const pullStart = useRef<number | null>(null)
   const swipeStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null)
   const ignoreClick = useRef(false)
   const syncing = useRef(false)
@@ -297,6 +299,20 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
     setThreads(current => [{ id, name: address, address, initials: address[0].toUpperCase(), preview: 'Neue Unterhaltung', date: new Date().toISOString(), unread: 0, muted: false, messages: [] }, ...current])
     setActive(id); setQuery('')
   }
+  const beginPullRefresh = (event: ReactTouchEvent<HTMLDivElement>) => {
+    if((threadList.current?.scrollTop||0)<=0&&!syncing.current)pullStart.current=event.touches[0]?.clientY??null
+  }
+  const movePullRefresh = (event: ReactTouchEvent<HTMLDivElement>) => {
+    if(pullStart.current===null)return
+    if((threadList.current?.scrollTop||0)>0){pullStart.current=null;setPullDistance(0);return}
+    const distance=(event.touches[0]?.clientY??pullStart.current)-pullStart.current
+    setPullDistance(distance>0?Math.min(64,distance*.36):0)
+  }
+  const finishPullRefresh = () => {
+    const shouldRefresh=pullDistance>=48
+    pullStart.current=null;setPullDistance(0)
+    if(shouldRefresh)void loadThreads(true)
+  }
 
   if (loading && !account) return <section className="mail-prototype mail-loading" aria-live="polite"><span className="mail-loading-spinner" aria-hidden="true"/><span>Postfach wird geladen …</span></section>
   if (account && !account.connected) return <section className="mail-prototype screen secondary-screen"><MailOnboarding onConnected={connected}/></section>
@@ -306,7 +322,8 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
         <div className="mail-inbox-heading"><strong>{selected.size ? `${selected.size} ausgewählt` : 'Postfach'}</strong>{selected.size ? <span className="mail-selection-actions"><button type="button" onClick={() => void actSelected('mute')} aria-label="Auswahl stummschalten"><BellOff size={16}/></button><button type="button" onClick={() => void actSelected('delete')} aria-label="Auswahl löschen"><Trash2 size={16}/></button><button type="button" title="Alle auswählen" aria-label="Alle Unterhaltungen auswählen" onClick={() => setSelected(new Set(threads.map(item=>item.id)))}><CheckCheck size={16}/></button><button type="button" onClick={() => setSelected(new Set())} aria-label="Auswahl aufheben"><X size={16}/></button></span> : syncBusy ? <span className="mail-loading-spinner small" role="status" aria-label="Postfach wird synchronisiert"/> : null}</div>
         <label className="mail-search"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Name oder E-Mail suchen" aria-label="Unterhaltungen suchen"/></label>
         {error && <button className="mail-sync-error" onClick={() => void loadThreads()}>{error} · erneut versuchen</button>}
-        <div className="mail-thread-list" ref={threadList}>
+        <div className="mail-thread-list" ref={threadList} onTouchStart={beginPullRefresh} onTouchMove={movePullRefresh} onTouchEnd={finishPullRefresh} onTouchCancel={()=>{pullStart.current=null;setPullDistance(0)}}>
+          <div className={'mail-pull-refresh'+(pullDistance>=48?' is-ready':'')} style={{height:pullDistance}} aria-hidden="true"><span>↓</span>{pullDistance>=48?'Loslassen zum Aktualisieren':'Zum Aktualisieren ziehen'}</div>
           {filtered.map(item => <div className={'mail-thread-swipe' + (revealed === item.id ? ' is-revealed' : '')} key={item.id}>
             <div className="mail-thread-actions"><button type="button" onClick={() => void act(item, item.muted ? 'unmute' : 'mute')}><BellOff size={16}/><span>{item.muted ? 'Laut' : 'Stumm'}</span></button><button type="button" className="danger" onClick={() => void act(item, 'delete')}><Trash2 size={16}/><span>Löschen</span></button></div>
             <button type="button" className={'mail-thread' + (active === item.id ? ' active' : '') + (selected.has(item.id) ? ' selected' : '')}
