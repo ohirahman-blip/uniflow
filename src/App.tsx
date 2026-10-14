@@ -25,8 +25,10 @@ import './premium-ai.css'
 import './brand-theme.css'
 
 type Page = 'dashboard' | 'calendar' | 'modules' | 'mail' | 'settings' | 'admin'
-const pageFromUrl = (): Page => {
-  const requested = new URLSearchParams(window.location.search).get('page')
+const pageFromUrl = (userId?: string): Page => {
+  let saved: string | null = null
+  try { if(userId)saved=localStorage.getItem('uniflow-last-page:'+userId) } catch { /* Storage may be unavailable. */ }
+  const requested = new URLSearchParams(window.location.search).get('page') || saved
   return requested === 'mail' || requested === 'calendar' || requested === 'modules' || requested === 'settings' ? requested : 'dashboard'
 }
 /** Entitlements are checked elsewhere; this component is only a visual mark. */
@@ -1200,7 +1202,7 @@ export default function App() {
       setUser(next)
       setData({ ...emptyData }) // never show the last account's private data after sign-out
       setOnboarding(true)
-      setPage(pageFromUrl())
+      setPage(pageFromUrl(next?.id))
       setMailUnread(0)
       setMailAccount(null)
       setAdmin(false)
@@ -1220,6 +1222,13 @@ export default function App() {
     return () => { alive = false; ++authEpoch.current; activeUserRef.current = null; subscription.unsubscribe() }
   }, [])
   useEffect(() => { if (supabase) void fetchCatalog().then(setCatalog).catch(() => {}) }, [])
+  useEffect(()=>{
+    if(!user||!cloudReady||onboarding)return
+    try { localStorage.setItem('uniflow-last-page:'+user.id,page==='admin'?'settings':page) } catch { /* Keep navigation working without storage. */ }
+    const location=new URL(window.location.href)
+    location.searchParams.set('page',page)
+    window.history.replaceState(null,'',location)
+  },[page,user?.id,cloudReady,onboarding])
   useEffect(()=>{
     let valid=true
     setPremium(false)
@@ -1454,7 +1463,7 @@ export default function App() {
         onRemovePlan={id=>mutate(d=>({...d,learningPlans:(d.learningPlans||[]).filter(p=>p.id!==id)}))}
       />}
       {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={setRatingOccurrence} onPreviewAssessment={item=>setPreviewAssessmentId(item.id)} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
-      {page === 'mail' && <MailPrototype onUnreadChange={setMailUnread} onAccountChange={setMailAccount} onNotice={note}/>}
+      {page === 'mail' && <MailPrototype key={user.id} userId={user.id} onUnreadChange={setMailUnread} onAccountChange={setMailAccount} onNotice={note}/>}
       {page === 'modules' && !selectedModuleId && <ModuleHub degree={degree} modules={degreeModules} assessments={data.assessments} journeys={journeysByModule} currentSemesterId={semester?.id||''} creditsPassed={creditsPassed} average={average} onAdd={()=>setNewModule(true)} editing={newModule} onEdit={m=>setSelectedModuleId(m.id)} newName={newName} setNewName={setNewName} newCredits={newCredits} setNewCredits={setNewCredits} saveNewModule={saveNewModule} cancelNew={()=>setNewModule(false)} />}
       {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleScheduleEditor
         key={selectedModuleId+'-'+(semester?.id||'')}
