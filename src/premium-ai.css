@@ -28,9 +28,9 @@
   justify-content:center;
   padding:3px 7px;
   border-radius:6px;
-  border:1px solid #4b391c;
-  background:#2d2618;
-  color:#d6ab5d;
+  border:1px solid var(--uf-premium-border,#392f38);
+  background:var(--uf-premium-surface,rgba(115,79,124,.36));
+  color:var(--uf-premium-text,#e6c4d5);
   font-size:10px;
   line-height:1.25;
   font-weight:650;
