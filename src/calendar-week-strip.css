@@ -252,6 +252,7 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
   .uf-week-range{top:2px;height:39px;}
   .uf-week-liquid{top:1px;height:41px;}
   .uf-week-liquid-core{height:34px;width:min(34px,calc(100% - 10px));}
+  .uf-week-today-marker::after{height:34px;width:min(34px,calc(100% - 10px));}
   .uf-week-strip-assessments{top:42px;}
   .uf-week-strip-days{min-height:55px;}
 }
@@ -302,8 +303,8 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
 .uf-week-today-marker::after {
   content:"";
   display:block;
-  width:min(42px,calc(100% - 6px));
-  height:42px;
+  width:min(36px,calc(100% - 10px));
+  height:36px;
   border-radius:50%;
   background:var(--uniflow-accent,#f94f72);
 }
