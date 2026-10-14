@@ -1454,6 +1454,7 @@ export default function App() {
   if (!supabase) return <main className="auth-loading auth-config-missing"><div><h1>Verbindung einrichten.</h1><p>uniflow benötigt ein Supabase-Konto. Trage VITE_SUPABASE_URL und VITE_SUPABASE_PUBLISHABLE_KEY in der Datei .env.local ein und starte Vite neu.</p></div></main>
   if (!startupFinished) return <StartupSplash
     ready={authReady&&(!user||(cloudReady&&premiumOwner===user.id)||cloudStatus==='error')}
+    premiumKnown={authReady&&(!user||premiumOwner===user.id)}
     premium={!!user&&premiumOwner===user.id&&premium}
     onFinish={finishStartup}/>
   if (!user) return <><AuthScreen/>{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(null)}/>}</>
