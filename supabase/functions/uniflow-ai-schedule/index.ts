@@ -49,8 +49,10 @@ const correctLink=(text:string)=>{
   catch{return false}
 }
 function safePreview(raw:unknown){
-  const data=object(raw),input=data?.topics
-  if(!Array.isArray(input)||input.length<1||input.length>25)return null
+  const data=object(raw),input=Array.isArray(data?.topics)?data.topics:[]
+  const assessmentInput=Array.isArray(data?.assessments)?data.assessments:[]
+  const exceptionInput=Array.isArray(data?.exceptions)?data.exceptions:[]
+  if(input.length>25||assessmentInput.length>30||exceptionInput.length>30||!input.length&&!assessmentInput.length&&!exceptionInput.length)return null
   const topics=[]
   for(const value of input){
     const obj=object(value)
@@ -86,9 +88,25 @@ function safePreview(raw:unknown){
     }
     topics.push({label,category,slots})
   }
+  const assessments=[]
+  for(const value of assessmentInput){
+    const item=object(value),type=item?.type,title=clip(item?.title,120),date=clip(item?.date,10)
+    const from=clip(item?.from,5),to=clip(item?.to,5),weight=item?.weight,completed=item?.completed===true
+    if((type!=='exam'&&type!=='homework')||!title||!correctDate(date)||(from&&!correctTime(from))||(to&&!correctTime(to))||
+      (from&&to&&timeMinutes(to)<=timeMinutes(from))||(weight!==undefined&&(typeof weight!=='number'||!Number.isFinite(weight)||weight<0||weight>100)))return null
+    assessments.push({type,title,date,from,to,weight,completed})
+  }
+  const exceptions=[]
+  for(const value of exceptionInput){
+    const item=object(value),topicLabel=clip(item?.topicLabel,90),date=clip(item?.date,10),action=item?.action
+    const targetDate=clip(item?.targetDate,10),from=clip(item?.from,5),to=clip(item?.to,5)
+    if(!topicLabel||!correctDate(date)||(action!=='move'&&action!=='cancel')||
+      (action==='move'&&(!correctDate(targetDate)||!correctTime(from)||!correctTime(to)||timeMinutes(to)<=timeMinutes(from))))return null
+    exceptions.push({topicLabel,date,action,targetDate,from,to})
+  }
   const errors=Array.isArray(data?.errors)?data.errors.slice(0,8)
     .map(x=>clip(x,200)).filter(Boolean):[]
-  return {topics,errors}
+  return {topics,assessments,exceptions,errors}
 }
 const upstreamErrorCode=(status:number,description:string)=>{
   if(status===400)return /model|nicht gefunden|not found/i.test(description)?'MODEL_INVALID':'MODEL_REQUEST_INVALID'
@@ -150,20 +168,23 @@ Deno.serve(async(req)=>{
           messages:[
             {role:'system',content:`Du extrahierst aus deutschen oder englischen Uni-Terminerklärungen einen strukturierten Stundenplan.
 Antworte NUR mit einem gültigen JSON-Objekt nach diesem Schema:
-{"topics":[{"label":"VL 01","category":"Vorlesung","slots":[{"day":0,"from":"08:00","duration":120,"room":"MA 041","recurrence":"weekly","date":"","endDate":"","organizer":"","onlineLink":""}]}],"errors":[]}
+{"topics":[{"label":"VL 01","category":"Vorlesung","slots":[{"day":0,"from":"08:00","duration":120,"room":"MA 041","recurrence":"weekly","date":"","endDate":"","organizer":"","onlineLink":""}]}],"assessments":[{"type":"exam","title":"Prüfung","date":"2026-02-10","from":"10:00","to":"12:00","weight":60,"completed":false}],"exceptions":[{"topicLabel":"VL 01","date":"2026-01-12","action":"move","targetDate":"2026-01-13","from":"10:00","to":"12:00"}],"errors":[]}
 "day": Montag=0 ... Sonntag=6. "from": HH:mm 24h. "duration": Minutenzahl, Standard 120 falls nicht genannt.
 "category" ist GENAU eine von: Vorlesung, Übung, Tutorium, Seminar, Freies Lernen.
 "label": kurze Veranstaltungsbezeichnung, z.B. "VL 01", "VL 02", "Ü 01", "TUT 01" oder "SE 01".
 "Teil 1" und "Teil 2" sind UNTERSCHIEDLICHE Veranstaltungen.
 Nur ausdrücklich alternativ genannte Termine ("oder", "alternativ", "Gruppe A/B") gehören als mehrere slots in dasselbe topic. Unabhängige Termine zu unterschiedlichen Veranstaltungen dürfen nicht fälschlich Alternativen sein.
 Wenn kein Raum genannt wird, room="". Wenn keine Dauer genannt ist, duration=120.
-Erkenne AUCH die Felder aus "Weitere Angaben" pro Termin/Alternative:
+Erkenne auch diese Angaben pro Termin/Alternative:
 - "recurrence": "weekly" (wöchentlich, Standard), "biweekly" (alle 2 Wochen/14-täglich) oder "once" (einmalig/nur einmal).
 - "date": echtes ISO-Datum YYYY-MM-DD bei explizitem Startdatum oder zwingend bei "once".
 - "endDate": ISO-Datum YYYY-MM-DD nach "bis" oder "endet am" bei wiederkehrenden Veranstaltungen.
 - "organizer": Lehrperson/Dozent/Professorin namentlich, sonst "".
 - "onlineLink": vollständiger http(s)-Link, sonst "".
 Verwende leere Strings für unbekannte optionale Felder. Erfinde niemals Lehrpersonen, Links, Daten oder Wiederholungen.
+Erkenne zusätzlich Prüfungen und Hausaufgaben in "assessments": type ist "exam" oder "homework", date ist Pflicht, Uhrzeiten und weight (0–100) sind optional. Der erste und zweite Prüfungstermin erhalten denselben klaren Basistitel; die App ordnet sie anhand der Daten automatisch als Alternativen.
+Erkenne einmalige Ausnahmen in "exceptions". topicLabel muss exakt zu einer erkannten oder beschriebenen Veranstaltung passen. action ist "move" für verschoben (mit targetDate/from/to) oder "cancel" für fällt ohne Ersatz aus. date ist immer der ursprüngliche Veranstaltungstag.
+Wenn eine Kategorie nicht vorkommt, gib dafür ein leeres Array zurück. Prüfungen, Hausaufgaben oder Ausnahmen dürfen auch ohne neue regelmäßige Veranstaltung erkannt werden.
 Wenn "einmalig" und kein konkretes Datum vorliegt, melde in "errors" dass ein Datum fehlt,
 statt einen wöchentlichen Termin daraus zu machen.
 Wenn ein Datum genannt ist, berechne "day" passend dazu (Montag=0 ... Sonntag=6).
