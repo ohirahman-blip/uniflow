@@ -20,23 +20,34 @@ type ApiMessage = {
   attachments: { filename: string; contentType: string; size: number }[]
 }
 
-const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || ''
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-const credentialSecret = process.env.MAIL_CREDENTIAL_SECRET || ''
-const database = url && serviceKey ? createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } }) : null
+const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim()
+const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim()
+const credentialSecret = (process.env.MAIL_CREDENTIAL_SECRET || '').trim()
+const validUrl = /^https?:\/\/[^\s/]+(?:\/[^\s]*)?$/.test(url)
+const database = validUrl && serviceKey ? createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } }) : null
 
-function fail(res: VercelResponse, status: number, error: string) { return res.status(status).json({ error }) }
+class MailError extends Error {
+  constructor(public code: string, message: string, public status = 500) { super(message) }
+}
+
+function fail(res: VercelResponse, status: number, error: string, code = 'MAIL_REQUEST_FAILED') { return res.status(status).json({ error, code }) }
 function bearer(req: VercelRequest) { return String(req.headers.authorization || '').replace(/^Bearer\s+/i, '') }
 async function currentUser(req: VercelRequest): Promise<User> {
-  if (!database) throw new Error('Das Mail-Backend ist noch nicht konfiguriert.')
+  if (!url) throw new MailError('MAIL_CONFIG_URL_MISSING', 'SUPABASE_URL fehlt im Serverprozess. In .env.local eintragen und vercel dev neu starten.')
+  if (!validUrl) throw new MailError('MAIL_CONFIG_URL_INVALID', 'SUPABASE_URL ist keine gültige HTTP-/HTTPS-Projektadresse.')
+  if (!serviceKey) throw new MailError('MAIL_CONFIG_KEY_MISSING', 'SUPABASE_SERVICE_ROLE_KEY fehlt im Serverprozess. In .env.local eintragen und vercel dev neu starten.')
+  if (!database) throw new MailError('MAIL_CONFIG_INVALID', 'Die Serverkonfiguration konnte nicht geladen werden.')
   const token = bearer(req)
-  if (!token) throw new Error('Bitte melde dich erneut an.')
+  if (!token) throw new MailError('MAIL_AUTH_TOKEN_MISSING', 'Bitte melde dich erneut bei uniflow an.', 401)
   const { data, error } = await database.auth.getUser(token)
-  if (error || !data.user) throw new Error('Deine Anmeldung ist abgelaufen.')
+  if (error || !data.user) {
+    if (error?.status === 401 && /api.?key/i.test(error.message)) throw new MailError('MAIL_CONFIG_KEY_REJECTED', 'Supabase lehnt den Server-Schlüssel ab. Projektadresse und Server-Schlüssel müssen zum selben Projekt gehören.')
+    throw new MailError('MAIL_AUTH_REJECTED', 'Supabase hat deine Anmeldung abgelehnt. Erneut anmelden und prüfen, ob Frontend und Backend dasselbe Supabase-Projekt verwenden.', 401)
+  }
   return data.user
 }
 function encryptionKey() {
-  if (credentialSecret.length < 32) throw new Error('MAIL_CREDENTIAL_SECRET muss mindestens 32 Zeichen lang sein.')
+  if (credentialSecret.length < 32) throw new MailError('MAIL_CONFIG_ENCRYPTION_KEY', 'MAIL_CREDENTIAL_SECRET fehlt oder hat weniger als 32 Zeichen. Verwende denselben Wert wie beim Verbinden des Postfachs.')
   return createHash('sha256').update(credentialSecret).digest()
 }
 function encrypt(value: string) {
@@ -164,7 +175,8 @@ async function connect(req: VercelRequest, res: VercelResponse) {
   } catch (reason) {
     await imap.logout().catch(() => undefined)
     const message = reason instanceof Error ? reason.message : 'Anmeldung fehlgeschlagen.'
-    return fail(res, 400, `Mailserver-Anmeldung fehlgeschlagen: ${message}`)
+    const rejected = /auth|password|credentials|login/i.test(message)
+    return fail(res, 400, rejected ? 'Mailserver lehnt die Anmeldung ab. Benutzername und Postfach-/App-Passwort prüfen.' : 'Mailserver-Verbindung fehlgeschlagen. IMAP-/SMTP-Host, Port und TLS prüfen.', rejected ? 'MAIL_SERVER_AUTH' : 'MAIL_SERVER_CONNECTION')
   }
   const { data, error } = await database!.from('mail_accounts').upsert(draft, { onConflict: 'user_id' }).select('*').single()
   if (error) throw error
@@ -306,7 +318,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST' && action === 'push') return await push(req, res)
     return fail(res, 404, 'Unbekannte Mail-Aktion.')
   } catch (reason) {
-    const message = reason instanceof Error ? reason.message : 'Interner Mailfehler.'
-    return fail(res, /Anmeldung|melde dich/i.test(message) ? 401 : 500, message)
+    if (reason instanceof MailError) return fail(res, reason.status, reason.message, reason.code)
+    const details = reason as { code?: string; message?: string }
+    if (['42P01','PGRST205'].includes(details?.code || '')) return fail(res, 500, 'Eine Mail-Tabelle fehlt. Die Mail-Migration im richtigen Supabase-Projekt ausführen.', 'MAIL_DATABASE_MIGRATION_MISSING')
+    if (details?.code === '42501') return fail(res, 500, 'Der Server hat keinen Tabellenzugriff. SUPABASE_SERVICE_ROLE_KEY muss ein Server-/Secret-Key sein, kein Publishable-Key.', 'MAIL_DATABASE_PERMISSION')
+    if (['ENOTFOUND','EAI_AGAIN'].includes(details?.code || '')) return fail(res, 502, 'Die Serveradresse konnte nicht aufgelöst werden. Hostnamen und Internetverbindung prüfen.', 'MAIL_SERVER_DNS')
+    if (['ETIMEDOUT','ECONNREFUSED','ESOCKET'].includes(details?.code || '')) return fail(res, 502, 'Der Mailserver ist nicht erreichbar. Hostname, Port und TLS-Einstellungen prüfen.', 'MAIL_SERVER_CONNECTION')
+    return fail(res, 500, 'Die Mail-Anfrage ist fehlgeschlagen. Aktion erneut versuchen; bei erneutem Fehler den Fehlercode und die Aktion melden.', 'MAIL_INTERNAL_ERROR')
   }
 }
