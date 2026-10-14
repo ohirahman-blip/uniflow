@@ -68,16 +68,18 @@ async function mailRequest<T>(action: string, init?: RequestInit): Promise<T> {
   if (!supabase) throw new Error('Supabase ist nicht verbunden.')
   const { data: { session } } = await supabase.auth.getSession()
   if (!session?.access_token) throw new Error('Bitte melde dich erneut an.')
-  const response = await fetch(`/api/mail?action=${encodeURIComponent(action)}`, {
+  let response: Response
+  try { response = await fetch(`/api/mail?action=${encodeURIComponent(action)}`, {
     ...init,
     headers: {
       'content-type': 'application/json',
       authorization: `Bearer ${session.access_token}`,
       ...(init?.headers || {})
     }
-  })
-  const body = await response.json().catch(() => ({})) as { error?: string } & T
-  if (!response.ok) throw new Error(body.error || 'Das Postfach konnte nicht erreicht werden.')
+  }) } catch { throw new Error('[MAIL_NETWORK] Backend nicht erreichbar. Internetverbindung prüfen und lokal mit npx vercel dev starten.') }
+  const body = await response.json().catch(() => null) as ({ error?: string; code?: string } & T) | null
+  if (!body) throw new Error(`[MAIL_API_RESPONSE] Keine gültige API-Antwort (HTTP ${response.status}). Lokal die Adresse von npx vercel dev öffnen, nicht den separaten Vite-Port.`)
+  if (!response.ok) throw new Error(`[${body.code || 'MAIL_HTTP_' + response.status}] ${body.error || 'Das Postfach konnte nicht erreicht werden.'}`)
   return body
 }
 
