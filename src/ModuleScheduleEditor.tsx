@@ -230,7 +230,10 @@ export default function ModuleScheduleEditor({
   const openExceptionEditor=()=>{
     const first=own.find(item=>item.selected)||own[0]
     if(!first){setWarning('Lege zuerst eine Veranstaltung an.');return}
-    const origin=first.date>=today()?first.date:initialDate(semester,weekday(first.date))
+    let origin=first.date
+    const step=first.recurrence==='biweekly'?14:first.recurrence==='weekly'?7:0
+    while(step&&origin<today()&&origin<=first.endDate)origin=addDays(origin,step)
+    if(origin<today()||origin>first.endDate){setWarning('Für diese Veranstaltung gibt es keinen zukünftigen Termin.');return}
     setExceptionOfferingId(first.id);setExceptionOrigin(origin);setExceptionDate(origin)
     setExceptionFrom(first.from);setExceptionTo(first.to);setExceptionKind('move');setExceptionEditor(true);setExceptionsOpen(true)
   }
