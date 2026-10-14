@@ -480,3 +480,10 @@ html[data-theme='light'] .calendar-sticky-header > .calendar-compact-toolbar {
   animation-duration:180ms;
 }
 .calendar-sticky-header>.calendar-compact-toolbar{border-bottom:0}
+
+/* The first hour sits on the top grid line. Keep its full label below the
+   sticky header instead of translating part of it above the clipped grid. */
+.calendar-lanes .ruler-track > span:first-child{
+  transform:translateY(3px);
+  line-height:1.2;
+}
