@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { ArrowLeft, ArrowRight, BellOff, Check, FileText, Inbox, Mail, MoreHorizontal, Paperclip, Plus, Reply, Search, Send, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BellOff, Check, FileText, Inbox, Mail, Paperclip, Plus, Reply, Search, Send, Trash2, X } from 'lucide-react'
 import './mail-prototype.css'
 import { replySubject, validDemoRecipient } from './mail-prototype-logic'
 import {
@@ -51,7 +51,7 @@ function MailOnboarding({ onConnected }: { onConnected: (account: MailAccount) =
     finally { setBusy(false) }
   }
   return <div className="mail-onboarding">
-    <div className="mail-onboarding-brand"><span><Mail size={22}/></span><strong>Postfach verbinden</strong></div>
+    <div className="mail-onboarding-brand"><strong>Postfach</strong></div>
     <span className="mail-onboarding-step">SCHRITT {step} VON 2</span>
     <h1>{step === 1 ? <>Deine Mails.<br/>Wie ein Chat.</> : <>Fast<br/>verbunden.</>}</h1>
     <p>{step === 1
@@ -221,7 +221,7 @@ export default function MailPrototype({ onUnreadChange, onAccountChange, onNotic
   return <section className="mail-prototype screen secondary-screen" aria-label="Postfach">
     <div className={'mail-layout' + (thread ? ' has-thread' : '')}>
       <aside className="mail-inbox" aria-label="Unterhaltungen">
-        <div className="mail-inbox-heading"><strong>{selected.size ? `${selected.size} ausgewählt` : 'Postfach'}</strong>{selected.size ? <span className="mail-selection-actions"><button type="button" onClick={() => void actSelected('mute')} aria-label="Auswahl stummschalten"><BellOff size={16}/></button><button type="button" onClick={() => void actSelected('delete')} aria-label="Auswahl löschen"><Trash2 size={16}/></button><button type="button" onClick={() => setSelected(new Set())} aria-label="Auswahl aufheben"><X size={16}/></button></span> : <button type="button" onClick={() => void loadThreads()} aria-label="Postfach aktualisieren"><MoreHorizontal size={18}/></button>}</div>
+        <div className="mail-inbox-heading"><strong>{selected.size ? `${selected.size} ausgewählt` : 'Postfach'}</strong>{selected.size ? <span className="mail-selection-actions"><button type="button" onClick={() => void actSelected('mute')} aria-label="Auswahl stummschalten"><BellOff size={16}/></button><button type="button" onClick={() => void actSelected('delete')} aria-label="Auswahl löschen"><Trash2 size={16}/></button><button type="button" onClick={() => setSelected(new Set())} aria-label="Auswahl aufheben"><X size={16}/></button></span> : null}</div>
         <label className="mail-search"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Name oder E-Mail suchen" aria-label="Unterhaltungen suchen"/></label>
         {error && <button className="mail-sync-error" onClick={() => void loadThreads()}>{error} · erneut versuchen</button>}
         <div className="mail-thread-list">
