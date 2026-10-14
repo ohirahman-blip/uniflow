@@ -98,8 +98,8 @@
 }
 .uf-week-liquid-core {
   display:block;
-  height:42px;
-  width:min(42px,calc(100% - 6px));
+  height:36px;
+  width:min(36px,calc(100% - 10px));
   background:#f1f1f2;
   border-radius:51% 49% 49% 51% / 50% 50% 50% 50%;
   box-shadow:0 1px 0 rgba(255,255,255,.18);
@@ -251,7 +251,7 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
   .uf-week-strip-button{font-size:15px;height:41px;}
   .uf-week-range{top:2px;height:39px;}
   .uf-week-liquid{top:1px;height:41px;}
-  .uf-week-liquid-core{height:38px;width:min(38px,calc(100% - 6px));}
+  .uf-week-liquid-core{height:34px;width:min(34px,calc(100% - 10px));}
   .uf-week-strip-assessments{top:42px;}
   .uf-week-strip-days{min-height:55px;}
 }
@@ -480,7 +480,6 @@ html[data-theme='light'] .calendar-sticky-header > .calendar-compact-toolbar {
   animation-duration:180ms;
 }
 .calendar-sticky-header>.calendar-compact-toolbar{border-bottom:0}
-
 /* The first hour sits on the top grid line. Keep its full label below the
    sticky header instead of translating part of it above the clipped grid. */
 .calendar-lanes .ruler-track > span:first-child{
