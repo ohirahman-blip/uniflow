@@ -19,15 +19,15 @@
   background:var(--uf-premium-surface,rgba(115,79,124,.36));
   clip-path:polygon(39% 10%,61% 10%,61% 39%,90% 39%,90% 61%,61% 61%,61% 90%,39% 90%,39% 61%,10% 61%,10% 39%,39% 39%);
 }
-.uf-startup.is-finishing.is-premium .uf-startup-dot{animation:uf-startup-dot-drop 320ms cubic-bezier(.4,0,.8,.5) forwards}
-.uf-startup.is-finishing.is-premium .uf-startup-plus{animation:uf-startup-plus-reveal 650ms 180ms cubic-bezier(.2,.75,.25,1) both}
+.uf-startup.is-finishing.is-premium .uf-startup-dot{animation:uf-startup-dot-drop 240ms linear forwards}
+.uf-startup.is-finishing.is-premium .uf-startup-plus{animation:uf-startup-plus-reveal 650ms 100ms cubic-bezier(.2,.75,.25,1) both}
 .uf-startup.is-finishing:not(.is-premium) .uf-startup-dot{animation:none;transform:none}
 .uf-startup.is-finishing{animation:uf-startup-exit 250ms 950ms ease forwards}
 .uf-startup.is-finishing:not(.is-premium){animation-delay:170ms}
 @keyframes uf-startup-bounce{
-  0%,100%{transform:translateY(0) scale(1.12,.86);animation-timing-function:cubic-bezier(.2,.65,.35,1)}
-  48%{transform:translateY(-.7em) scale(.94,1.05);animation-timing-function:cubic-bezier(.65,0,.85,.4)}
-  90%{transform:translateY(0) scale(1,1)}
+  0%{transform:translateY(0);animation-timing-function:cubic-bezier(.2,.65,.35,1)}
+  50%{transform:translateY(-.7em);animation-timing-function:cubic-bezier(.65,0,.85,.4)}
+  100%{transform:translateY(0)}
 }
 @keyframes uf-startup-dot-drop{
   from{transform:translateY(0);opacity:1}
