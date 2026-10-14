@@ -1188,7 +1188,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             onContextMenu={e=>{e.preventDefault();e.stopPropagation();setWalletContext({occ:item,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
             onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(item)}}
             onKeyDown={e=>{if(e.key==='Enter')onFanTap(item)}}>
-            <div className="wallet-card-top"><strong>{module?.shortName||module?.name||item.offering.name} · {item.offering.contentLabel||item.offering.category}</strong><span>{item.cancelled?'×':selected?'✓':'○'}</span></div>
+            <div className="wallet-card-top"><strong>{module?.shortName||module?.name||item.offering.name} · {item.offering.contentLabel||item.offering.category}</strong>{item.cancelled&&<span aria-label="Fällt aus">×</span>}</div>
             <small>{item.offering.organizer||'Ohne Dozent'} · {placeLabel(item.offering)||'Raum offen'}</small>
             <small>{formatDate(item.date,{weekday:'short',day:'numeric',month:'short'})} · {item.from}–{item.to}</small>
             <span className="wallet-card-caption">{item.cancelled?'Fällt ohne Ersatz aus':selected?'Aktuell ausgewählt':equivalent?'Gleicher Inhalt':'Andere Veranstaltung · gleiche Zeit'}</span>
