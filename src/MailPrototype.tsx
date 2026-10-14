@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { ArrowLeft, ArrowRight, BellOff, Check, FileText, Inbox, Mail, Paperclip, Plus, Reply, Search, Send, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BellOff, Check, CheckCheck, FileText, Inbox, Mail, Paperclip, Plus, Reply, Search, Send, Trash2, X } from 'lucide-react'
 import './mail-prototype.css'
 import { replySubject, validDemoRecipient } from './mail-prototype-logic'
 import {
@@ -12,7 +12,7 @@ type Props = {
   userId: string
   onUnreadChange?: (count: number) => void
   onAccountChange?: (account: MailAccount) => void
-  onNotice?: (text: string) => void
+  onNotice?: (text: string,action?:()=>void) => void
 }
 
 const emptyConnection: MailConnectionInput = {
@@ -106,6 +106,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
   const swipeStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null)
   const ignoreClick = useRef(false)
   const syncing = useRef(false)
+  const deletedMessageIds=useRef(new Set<string>())
   const thread = threads.find(item => item.id === active) || null
   const currentText = thread ? drafts[thread.id] || '' : ''
   const currentFiles = thread ? files[thread.id] || [] : []
@@ -121,16 +122,17 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
       const visited=new Set<string>()
       do {
         const result = await getMailThreads(cursor)
-        collected=mergeMailPages(collected,result.threads)
+        const incoming=result.threads.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0)
+        collected=mergeMailPages(collected.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0),incoming)
         const visible=collected
         // Show each completed page, preserving the cache until sync completes.
-        setThreads(current=>mergeMailPages(current,visible))
+        setThreads(current=>mergeMailPages(current.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0||item.id.startsWith('new:')),visible))
         onUnreadChange?.(visible.reduce((sum,item)=>sum+item.unread,0));setError('')
         cursor=result.nextCursor||undefined
         if(cursor&&visited.has(cursor))throw new Error('[MAIL_CURSOR_LOOP] Synchronisierung lieferte dieselbe Seite erneut.')
         if(cursor)visited.add(cursor)
       }while(cursor)
-      setThreads(current=>[...collected,...current.filter(item=>item.id.startsWith('new:')&&!collected.some(incoming=>incoming.address===item.address))])
+      setThreads(current=>[...collected.map(item=>({...item,messages:item.messages.filter(message=>!deletedMessageIds.current.has(message.id))})).filter(item=>item.messages.length>0),...current.filter(item=>item.id.startsWith('new:')&&!collected.some(incoming=>incoming.address===item.address))])
       setActive(current=>current?.startsWith('new:')?(collected.find(item=>item.address===current.slice(4))?.id||current):current)
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Mails konnten nicht geladen werden.') }
     finally { syncing.current=false; if (!quiet) setLoading(false) }
@@ -190,24 +192,51 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
     const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next
   })
   const act = async (item: MailThread, operation: 'mute' | 'unmute' | 'delete' | 'read' | 'unread') => {
+    if(operation==='delete'){await deleteItems([item]);return}
     try {
       await updateMailThread({ address: item.address, operation, messageIds: item.messages.map(message => message.id) })
-      if (operation === 'delete') { setThreads(current => current.filter(candidate => candidate.id !== item.id)); if (active === item.id) setActive(null) }
-      else setThreads(current => current.map(candidate => candidate.id === item.id ? { ...candidate, muted: operation === 'mute' ? true : operation === 'unmute' ? false : candidate.muted, unread: operation === 'read' ? 0 : operation === 'unread' ? Math.max(1, candidate.unread) : candidate.unread } : candidate))
-      setRevealed(null); setContext(null); onNotice?.(operation === 'delete' ? 'Unterhaltung gelöscht.' : operation === 'mute' ? 'Unterhaltung stummgeschaltet.' : operation === 'unmute' ? 'Stummschaltung aufgehoben.' : 'Postfach aktualisiert.')
+      setThreads(current => current.map(candidate => candidate.id === item.id ? { ...candidate, muted: operation === 'mute' ? true : operation === 'unmute' ? false : candidate.muted, unread: operation === 'read' ? 0 : operation === 'unread' ? Math.max(1, candidate.unread) : candidate.unread } : candidate))
+      setRevealed(null); setContext(null); onNotice?.(operation === 'mute' ? 'Unterhaltung stummgeschaltet.' : operation === 'unmute' ? 'Stummschaltung aufgehoben.' : 'Postfach aktualisiert.')
       void loadThreads(true)
     } catch (reason) { onNotice?.(reason instanceof Error ? reason.message : 'Aktion fehlgeschlagen.') }
   }
   const actSelected = async (operation: 'mute' | 'delete') => {
     const items = threads.filter(item => selected.has(item.id))
     if (!items.length) return
+    if(operation==='delete'){await deleteItems(items);return}
     try {
       await Promise.all(items.map(item => updateMailThread({ address: item.address, operation, messageIds: item.messages.map(message => message.id) })))
       const ids = new Set(items.map(item => item.id))
-      if (operation === 'delete') { setThreads(current => current.filter(item => !ids.has(item.id))); if (active && ids.has(active)) setActive(null) }
-      else setThreads(current => current.map(item => ids.has(item.id) ? { ...item, muted: true } : item))
-      setSelected(new Set()); onNotice?.(operation === 'delete' ? 'Unterhaltungen gelöscht.' : 'Unterhaltungen stummgeschaltet.'); void loadThreads(true)
+      setThreads(current => current.map(item => ids.has(item.id) ? { ...item, muted: true } : item))
+      setSelected(new Set()); onNotice?.('Unterhaltungen stummgeschaltet.'); void loadThreads(true)
     } catch (reason) { onNotice?.(reason instanceof Error ? reason.message : 'Aktion fehlgeschlagen.') }
+  }
+  const deleteItems=async(items:MailThread[])=>{
+    const deleted:{item:MailThread;token:string}[]=[]
+    let failure=''
+    for(const item of items){
+      try{
+        const result=await updateMailThread({address:item.address,operation:'delete',messageIds:item.messages.map(message=>message.id)})
+        if(!result.undoToken)throw new Error('Der Server hat keine Wiederherstellung angeboten. Postfach erneut laden.')
+        deleted.push({item,token:result.undoToken})
+        for(const message of item.messages)deletedMessageIds.current.add(message.id)
+        setThreads(current=>current.filter(thread=>thread.id!==item.id))
+        if(active===item.id)setActive(null)
+      }catch(reason){failure=reason instanceof Error?reason.message:'Löschen fehlgeschlagen.';break}
+    }
+    setSelected(new Set());setContext(null);setRevealed(null)
+    if(!deleted.length){onNotice?.(failure);return}
+    onNotice?.((deleted.length===1?'Unterhaltung gelöscht.':`${deleted.length} Unterhaltungen gelöscht.`)+(failure?' Weitere konnten nicht gelöscht werden.':''),()=>{
+      void(async()=>{
+        try{
+          for(const entry of deleted){
+            await updateMailThread({address:entry.item.address,operation:'restore',undoToken:entry.token})
+            for(const message of entry.item.messages)deletedMessageIds.current.delete(message.id)
+          }
+          onNotice?.('Löschen rückgängig gemacht.');void loadThreads(true)
+        }catch(reason){onNotice?.(reason instanceof Error?reason.message:'Wiederherstellung fehlgeschlagen.')}
+      })()
+    })
   }
   const pointerDown = (event: ReactPointerEvent, id: string) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return
@@ -257,7 +286,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
   return <section className="mail-prototype screen secondary-screen" aria-label="Postfach">
     <div className={'mail-layout' + (thread ? ' has-thread' : '')}>
       <aside className="mail-inbox" aria-label="Unterhaltungen">
-        <div className="mail-inbox-heading"><strong>{selected.size ? `${selected.size} ausgewählt` : 'Postfach'}</strong>{selected.size ? <span className="mail-selection-actions"><button type="button" onClick={() => void actSelected('mute')} aria-label="Auswahl stummschalten"><BellOff size={16}/></button><button type="button" onClick={() => void actSelected('delete')} aria-label="Auswahl löschen"><Trash2 size={16}/></button><button type="button" onClick={() => setSelected(new Set())} aria-label="Auswahl aufheben"><X size={16}/></button></span> : null}</div>
+        <div className="mail-inbox-heading"><strong>{selected.size ? `${selected.size} ausgewählt` : 'Postfach'}</strong>{selected.size ? <span className="mail-selection-actions"><button type="button" onClick={() => void actSelected('mute')} aria-label="Auswahl stummschalten"><BellOff size={16}/></button><button type="button" onClick={() => void actSelected('delete')} aria-label="Auswahl löschen"><Trash2 size={16}/></button><button type="button" title="Alle auswählen" aria-label="Alle Unterhaltungen auswählen" onClick={() => setSelected(new Set(threads.map(item=>item.id)))}><CheckCheck size={16}/></button><button type="button" onClick={() => setSelected(new Set())} aria-label="Auswahl aufheben"><X size={16}/></button></span> : null}</div>
         <label className="mail-search"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Name oder E-Mail suchen" aria-label="Unterhaltungen suchen"/></label>
         {error && <button className="mail-sync-error" onClick={() => void loadThreads()}>{error} · erneut versuchen</button>}
         <div className="mail-thread-list">
