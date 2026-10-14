@@ -1,7 +1,7 @@
 /** Validate AI-generated timetables before they can modify a user's workspace. */
 export type AiScheduleSlot = {
   day:number;from:string;duration:number;room:string
-  /** Optional fields from "Weitere Angaben" in the existing module editor. */
+  /** Optional fields of a module appointment. */
   recurrence?:'weekly'|'biweekly'|'once'
   date?:string
   endDate?:string
@@ -9,7 +9,9 @@ export type AiScheduleSlot = {
   onlineLink?:string
 }
 export type AiScheduleTopic = {label:string;category:string;slots:AiScheduleSlot[]}
-export type AiSchedulePreview = {topics:AiScheduleTopic[];errors:string[]}
+export type AiScheduleAssessment = {type:'exam'|'homework';title:string;date:string;from?:string;to?:string;weight?:number;completed?:boolean}
+export type AiScheduleException = {topicLabel:string;date:string;action:'move'|'cancel';targetDate?:string;from?:string;to?:string}
+export type AiSchedulePreview = {topics:AiScheduleTopic[];assessments:AiScheduleAssessment[];exceptions:AiScheduleException[];errors:string[]}
 
 export const aiScheduleCategories=['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'] as const
 const record=(value:unknown):Record<string,unknown>|null=>
@@ -30,11 +32,15 @@ const validLink=(value:string)=>{
 export function parseAiSchedulePreview(value:unknown):AiSchedulePreview {
   const data=record(value)
   const preview=record(data?.preview)||data
-  if(!preview||!Array.isArray(preview.topics)||preview.topics.length<1||preview.topics.length>25)
-    throw new Error('Die KI hat keine gültigen Veranstaltungen erkannt. Bitte beschreibe die Termine genauer.')
+  if(!preview)throw new Error('Die KI hat keine gültigen Angaben erkannt. Bitte beschreibe sie genauer.')
+  const topicInput=Array.isArray(preview.topics)?preview.topics:[]
+  const assessmentInput=Array.isArray(preview.assessments)?preview.assessments:[]
+  const exceptionInput=Array.isArray(preview.exceptions)?preview.exceptions:[]
+  if(topicInput.length>25||assessmentInput.length>30||exceptionInput.length>30||!topicInput.length&&!assessmentInput.length&&!exceptionInput.length)
+    throw new Error('Die KI hat keine gültigen Angaben erkannt. Bitte beschreibe sie genauer.')
   const errors=Array.isArray(preview.errors)?preview.errors.slice(0,8)
     .filter((x):x is string=>typeof x==='string').map(x=>x.trim().slice(0,200)).filter(Boolean):[]
-  const topics:AiScheduleTopic[]=preview.topics.map((value,index)=>{
+  const topics:AiScheduleTopic[]=topicInput.map((value,index)=>{
     const topic=record(value),label=typeof topic?.label==='string'?topic.label.trim().slice(0,90):''
     const category=typeof topic?.category==='string'?topic.category.trim():''
     if(!label||!aiScheduleCategories.some(x=>x===category))
@@ -72,5 +78,22 @@ export function parseAiSchedulePreview(value:unknown):AiSchedulePreview {
     })
     return {label,category,slots}
   })
-  return {topics,errors}
+  const assessments:AiScheduleAssessment[]=assessmentInput.map((value,index)=>{
+    const item=record(value),type=item?.type,title=typeof item?.title==='string'?item.title.trim().slice(0,120):'',date=item?.date
+    const from=item?.from===undefined?'':item.from,to=item?.to===undefined?'':item.to,weight=item?.weight,completed=item?.completed===true
+    if((type!=='exam'&&type!=='homework')||!title||typeof date!=='string'||!validDate(date)||typeof from!=='string'||typeof to!=='string'||
+      (from!==''&&!validTime(from))||(to!==''&&!validTime(to))||(from&&to&&timeMinutes(to)<=timeMinutes(from))||
+      (weight!==undefined&&(typeof weight!=='number'||!Number.isFinite(weight)||weight<0||weight>100)))
+      throw new Error('Ungültige Prüfung oder Hausaufgabe (Eintrag '+(index+1)+').')
+    return {type,title,date,from:from||undefined,to:to||undefined,weight:weight as number|undefined,completed}
+  })
+  const exceptions:AiScheduleException[]=exceptionInput.map((value,index)=>{
+    const item=record(value),topicLabel=typeof item?.topicLabel==='string'?item.topicLabel.trim().slice(0,90):'',date=item?.date,action=item?.action
+    const targetDate=item?.targetDate===undefined?'':item.targetDate,from=item?.from===undefined?'':item.from,to=item?.to===undefined?'':item.to
+    if(!topicLabel||typeof date!=='string'||!validDate(date)||(action!=='move'&&action!=='cancel')||typeof targetDate!=='string'||typeof from!=='string'||typeof to!=='string'||
+      (action==='move'&&(!targetDate||!validDate(targetDate)||!validTime(from)||!validTime(to)||timeMinutes(to)<=timeMinutes(from))))
+      throw new Error('Ungültige Ausnahme (Eintrag '+(index+1)+').')
+    return {topicLabel,date,action,targetDate:targetDate||undefined,from:from||undefined,to:to||undefined}
+  })
+  return {topics,assessments,exceptions,errors}
 }
