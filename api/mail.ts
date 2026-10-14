@@ -96,6 +96,7 @@ function transport(account: AccountRow, password = decrypt(account.encrypted_pas
   return nodemailer.createTransport({
     host: account.smtp_host, port: account.smtp_port, secure: account.smtp_port === 587 ? false : account.smtp_secure,
     requireTLS: account.smtp_port === 587 || !account.smtp_secure, auth: { user: account.username, pass: password },
+    connectionTimeout: 15000, greetingTimeout: 15000, socketTimeout: 30000,
     tls: { rejectUnauthorized: true, servername: account.smtp_host }
   })
 }
@@ -187,6 +188,20 @@ async function connect(req: VercelRequest, res: VercelResponse) {
   } catch (reason) {
     await imap.logout().catch(() => undefined)
     const message = reason instanceof Error ? reason.message : 'Anmeldung fehlgeschlagen.'
+    const details = reason as { code?: string; responseCode?: number; command?: string }
+    const nativeCode = String(details.code || '')
+    const responseCode = Number(details.responseCode) || 0
+    const smtpFailure = (code: string, hint: string) => fail(res, 400, hint, `MAIL_SMTP_${code}`)
+    if (stage === 'SMTP') {
+      if (nativeCode === 'EAUTH' || [530,534,535].includes(responseCode)) return smtpFailure('AUTH', 'SMTP-Anmeldung abgelehnt. TUB-Accountname statt E-Mail-Alias verwenden; gegebenenfalls ist SMTP für das Konto eingeschränkt.')
+      if (nativeCode === 'ETIMEDOUT') return smtpFailure('TIMEOUT', 'SMTP antwortet nicht rechtzeitig. Port 587 könnte im Netzwerk oder beim Anbieter blockiert sein. Test über einen Handy-Hotspot versuchen.')
+      if (nativeCode === 'ECONNREFUSED') return smtpFailure('REFUSED', 'SMTP-Verbindung wurde abgewiesen. Serveradresse und Port 587 prüfen.')
+      if (['ENOTFOUND','EAI_AGAIN','EDNS'].includes(nativeCode)) return smtpFailure('DNS', 'SMTP-Hostname konnte nicht aufgelöst werden.')
+      if (/certificate|ssl|tls|self.signed/i.test(message) || ['ETLS','CERT_HAS_EXPIRED','UNABLE_TO_VERIFY_LEAF_SIGNATURE'].includes(nativeCode)) return smtpFailure('TLS', 'TLS-Verbindungsaufbau fehlgeschlagen. Port 587 nutzt STARTTLS. Systemdatum und mögliche VPN-/Antivirus-TLS-Filter prüfen.')
+      const safeCode = /^[A-Z0-9_]{1,48}$/.test(nativeCode) ? nativeCode : 'CONNECTION'
+      const safeCommand = ['CONN','EHLO','HELO','STARTTLS','AUTH'].includes(String(details.command)) ? String(details.command) : 'unbekannt'
+      return smtpFailure(safeCode, `SMTP-Prüfung fehlgeschlagen (Schritt: ${safeCommand}, Antwortcode: ${responseCode || 'keiner'}). Diesen Fehlercode zur Diagnose melden.`)
+    }
     const rejected = /auth|password|credentials|login/i.test(message)
     return fail(res, 400, rejected ? `${stage}-Server lehnt die Anmeldung ab. Benutzername und Postfach-/App-Passwort prüfen.` : `${stage}-Verbindung fehlgeschlagen. Host, Port und TLS prüfen.`, rejected ? `MAIL_${stage}_AUTH` : `MAIL_${stage}_CONNECTION`)
   }
