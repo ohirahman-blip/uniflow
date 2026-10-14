@@ -11,21 +11,19 @@
 .uf-startup-dot{
   position:absolute;left:.05em;bottom:0;width:.15em;height:.15em;border-radius:50%;
   background:var(--uf-primary-gradient,linear-gradient(120deg,#ff8c37,#ff5270 63%,#ec4085));
-  transform-origin:center;animation:uf-startup-float 1800ms cubic-bezier(.45,0,.55,1) infinite;
+}
+.uf-startup-loading-line{
+  position:absolute;left:50%;bottom:-24px;transform:translateX(-50%);
+  width:80px;height:2px;border-radius:2px;background:rgba(255,255,255,.35);
 }
 .uf-startup-plus{
   position:absolute;inset:0;z-index:1;opacity:1;transform-origin:center;
-  animation:uf-startup-plus-spin 5000ms cubic-bezier(.25,.65,.3,1) both;
+  animation:uf-startup-plus-spin 900ms cubic-bezier(.25,.65,.3,1) both;
   /* Draw the cross as one layer so transparency stays even at its center. */
   background:var(--uf-premium-surface,rgba(115,79,124,.36));
   clip-path:polygon(39% 10%,61% 10%,61% 39%,90% 39%,90% 61%,61% 61%,61% 90%,39% 90%,39% 61%,10% 61%,10% 39%,39% 39%);
 }
-.uf-startup.is-finishing:not(.is-premium) .uf-startup-dot{animation:none;transform:none}
 .uf-startup.is-finishing{animation:uf-startup-exit 250ms ease forwards}
-@keyframes uf-startup-float{
-  0%,100%{transform:translateY(0)}
-  50%{transform:translateY(-.45em)}
-}
 @keyframes uf-startup-plus-spin{
   from{transform:rotate(-360deg)}
   to{transform:rotate(0)}
