@@ -90,6 +90,7 @@ function imapClient(account: AccountRow, password = decrypt(account.encrypted_pa
   const client = new ImapFlow({
     host: account.imap_host, port: account.imap_port, secure: account.imap_secure,
     auth: { user: account.username, pass: password }, logger: false,
+    connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 12000,
     tls: { rejectUnauthorized: true, servername: account.imap_host }
   })
   // Socket errors are also EventEmitter events, not just rejected commands.
@@ -99,8 +100,10 @@ function imapClient(account: AccountRow, password = decrypt(account.encrypted_pa
 }
 async function closeImap(client: ImapFlow) {
   if (!client.usable) { client.close(); return }
+  const timeout=setTimeout(()=>client.close(),2000)
   try { await client.logout() }
   catch { client.close() }
+  finally {clearTimeout(timeout)}
 }
 function transport(account: AccountRow, password = decrypt(account.encrypted_password)) {
   return nodemailer.createTransport({
@@ -137,12 +140,14 @@ function decodeMessageId(id: string) {
   return { mailbox: decoded.slice(0, divider), uid: Number(decoded.slice(divider + 1)) }
 }
 function cleanAddress(value?: string | null) { return String(value || '').trim().toLowerCase() }
-async function readMailbox(client: ImapFlow, path: string, outgoing: boolean, since?: Date): Promise<ApiMessage[]> {
+async function readMailbox(client: ImapFlow, path: string, outgoing: boolean, since?: Date, before?: number): Promise<{messages:ApiMessage[];before:number}> {
+  if(before===0)return {messages:[],before:0}
   const lock = await client.getMailboxLock(path)
   try {
     const found = await client.search(since ? { since } : { all: true }, { uid: true })
-    const uids = found || []
-    if (!uids.length) return []
+    const matching=(found||[]).filter(uid=>before===undefined||uid<before).sort((a,b)=>b-a)
+    const uids = matching.slice(0,10)
+    if (!uids.length) return {messages:[],before:0}
     const messages: ApiMessage[] = []
     // Keep IMAP FETCH commands bounded while still reading every matching UID.
     for (let offset = 0; offset < uids.length; offset += 25) {
@@ -159,13 +164,22 @@ async function readMailbox(client: ImapFlow, path: string, outgoing: boolean, si
       })
     }
     }
-    return messages
+    return {messages,before:matching.length>uids.length?Math.min(...uids):0}
   } finally { lock.release() }
 }
-async function loadMessages(account: AccountRow) {
+type MailCursor={inbox?:number;sent?:number}
+async function loadMessages(account: AccountRow, cursor:MailCursor={}) {
   const client = imapClient(account)
   let step = 'CONNECT'
+  let deadline:ReturnType<typeof setTimeout>|undefined
+  const expired=new Promise<never>((_,reject)=>{
+    deadline=setTimeout(()=>{
+      const error=Object.assign(new Error('IMAP request deadline'),{code:'ETIMEDOUT'})
+      imapSocketErrors.set(client,error);client.close();reject(error)
+    },22000)
+  })
   try {
+    return await Promise.race([(async()=>{
     await client.connect()
     step = 'LIST'
     const boxes = await client.list()
@@ -173,17 +187,23 @@ async function loadMessages(account: AccountRow) {
     const sent = boxes.find(box => box.specialUse === '\\Sent')?.path
     const since = account.history_mode === 'new' ? new Date(account.connected_at) : undefined
     step = 'INBOX_FETCH'
-    const incoming = await readMailbox(client, inbox, false, since)
+    const incoming = await readMailbox(client, inbox, false, since,cursor.inbox)
     step = 'SENT_FETCH'
-    const outgoing = sent && sent !== inbox ? await readMailbox(client, sent, true, since) : []
-    return [...incoming, ...outgoing]
+    const hasSent=!!sent&&sent!==inbox
+    // Return inbox pages immediately; sent-mail loading gets separate requests.
+    const outgoing = hasSent&&cursor.inbox===0
+      ? await readMailbox(client,sent!,true,since,cursor.sent)
+      : {messages:[],before:hasSent?(cursor.sent??Number.MAX_SAFE_INTEGER):0}
+    const nextCursor=incoming.before||outgoing.before?Buffer.from(JSON.stringify({inbox:incoming.before,sent:outgoing.before})).toString('base64url'):null
+    return {messages:[...incoming.messages,...outgoing.messages],nextCursor}
+    })(),expired])
   } catch (reason) {
     if (reason instanceof MailError) throw reason
     const error = (imapSocketErrors.get(client) || reason) as { code?: string; authenticationFailed?: boolean; responseStatus?: string; message?: string }
     const code = error?.code && /^[A-Z0-9_]{1,48}$/.test(error.code) ? error.code : 'FAILED'
     const status = ['NO','BAD'].includes(error?.responseStatus || '') ? error.responseStatus : 'keine'
     throw new MailError(`MAIL_IMAP_${step}_${code}`, `IMAP fehlgeschlagen bei ${step} (Serverstatus: ${status}). ${error?.authenticationFailed ? 'Mail-Anmeldung wurde abgelehnt.' : 'Diesen Fehlercode zur Diagnose melden.'}`, 502)
-  } finally { await closeImap(client) }
+  } finally { clearTimeout(deadline);await closeImap(client) }
 }
 
 async function getAccount(req: VercelRequest, res: VercelResponse) {
@@ -253,7 +273,16 @@ async function threads(req: VercelRequest, res: VercelResponse) {
   const user = await currentUser(req), account = await accountFor(user.id)
   if (!account) return fail(res, 409, 'Verbinde zuerst dein Postfach.')
   let messages: ApiMessage[]
-  try { messages = await loadMessages(account) }
+  let nextCursor:string|null=null
+  let cursor:MailCursor={}
+  if(req.query.cursor){
+    try {
+      const value=JSON.parse(Buffer.from(String(req.query.cursor),'base64url').toString('utf8'))
+      if(!value||!['inbox','sent'].every(key=>Number.isSafeInteger(value[key])&&value[key]>=0))throw new Error('invalid')
+      cursor=value
+    }catch{return fail(res,400,'Ungültige Postfach-Seite. Synchronisierung neu starten.','MAIL_CURSOR_INVALID')}
+  }
+  try { const result=await loadMessages(account,cursor);messages=result.messages;nextCursor=result.nextCursor }
   catch (reason) {
     const message = reason instanceof Error ? reason.message : 'Synchronisierung fehlgeschlagen.'
     await database!.from('mail_accounts').update({ status: 'error', last_error: message, updated_at: new Date().toISOString() }).eq('user_id', user.id)
@@ -294,7 +323,7 @@ async function threads(req: VercelRequest, res: VercelResponse) {
   }).sort((a, b) => b.date.localeCompare(a.date))
   const syncedAt = new Date().toISOString()
   await database!.from('mail_accounts').update({ last_sync_at: syncedAt, status: 'connected', last_error: null, updated_at: syncedAt }).eq('user_id', user.id)
-  return res.json({ threads: result, unread: result.reduce((sum, item) => sum + item.unread, 0), syncedAt })
+  return res.json({ threads: result, unread: result.reduce((sum, item) => sum + item.unread, 0), syncedAt,nextCursor })
 }
 async function send(req: VercelRequest, res: VercelResponse) {
   const user = await currentUser(req), account = await accountFor(user.id)
