@@ -4,7 +4,7 @@ import './mail-prototype.css'
 import { replySubject, validDemoRecipient } from './mail-prototype-logic'
 import {
   connectMailAccount, encodeMailAttachments, getMailAccount, getMailThreads, sendMailMessage,
-  suggestedMailServers, updateMailThread, type MailAccount, type MailConnectionInput,
+  suggestedMailServers, updateMailThread, mergeMailPages, type MailAccount, type MailConnectionInput,
   type MailMessage, type MailThread
 } from './mail-client'
 
@@ -116,9 +116,22 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
     syncing.current=true
     if (!quiet) setLoading(true)
     try {
-      const result = await getMailThreads()
-      setThreads(current=>[...result.threads,...current.filter(item=>item.id.startsWith('new:')&&!result.threads.some(incoming=>incoming.address===item.address))]); onUnreadChange?.(result.unread); setError('')
-      setActive(current=>current?.startsWith('new:')?(result.threads.find(item=>item.address===current.slice(4))?.id||current):current)
+      let cursor:string|undefined
+      let collected:MailThread[]=[]
+      const visited=new Set<string>()
+      do {
+        const result = await getMailThreads(cursor)
+        collected=mergeMailPages(collected,result.threads)
+        const visible=collected
+        // Show each completed page, preserving the cache until sync completes.
+        setThreads(current=>mergeMailPages(current,visible))
+        onUnreadChange?.(visible.reduce((sum,item)=>sum+item.unread,0));setError('')
+        cursor=result.nextCursor||undefined
+        if(cursor&&visited.has(cursor))throw new Error('[MAIL_CURSOR_LOOP] Synchronisierung lieferte dieselbe Seite erneut.')
+        if(cursor)visited.add(cursor)
+      }while(cursor)
+      setThreads(current=>[...collected,...current.filter(item=>item.id.startsWith('new:')&&!collected.some(incoming=>incoming.address===item.address))])
+      setActive(current=>current?.startsWith('new:')?(collected.find(item=>item.address===current.slice(4))?.id||current):current)
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Mails konnten nicht geladen werden.') }
     finally { syncing.current=false; if (!quiet) setLoading(false) }
   }, [onUnreadChange])
