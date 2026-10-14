@@ -86,11 +86,20 @@ async function assertPublicHost(host: string) {
   if (!addresses.length || addresses.some(item => isPrivateAddress(item.address))) throw new Error('Private oder lokale Mailserver sind nicht erlaubt.')
 }
 function imapClient(account: AccountRow, password = decrypt(account.encrypted_password)) {
-  return new ImapFlow({
+  const client = new ImapFlow({
     host: account.imap_host, port: account.imap_port, secure: account.imap_secure,
     auth: { user: account.username, pass: password }, logger: false,
     tls: { rejectUnauthorized: true, servername: account.imap_host }
   })
+  // Socket errors are also EventEmitter events, not just rejected commands.
+  // Keep this listener attached through teardown to handle late TLS errors.
+  client.on('error', () => { client.close() })
+  return client
+}
+async function closeImap(client: ImapFlow) {
+  if (!client.usable) { client.close(); return }
+  try { await client.logout() }
+  catch { client.close() }
 }
 function transport(account: AccountRow, password = decrypt(account.encrypted_password)) {
   return nodemailer.createTransport({
@@ -151,8 +160,8 @@ async function readMailbox(client: ImapFlow, path: string, outgoing: boolean, si
 }
 async function loadMessages(account: AccountRow) {
   const client = imapClient(account)
-  await client.connect()
   try {
+    await client.connect()
     const boxes = await client.list()
     const inbox = boxes.find(box => box.specialUse === '\\Inbox')?.path || 'INBOX'
     const sent = boxes.find(box => box.specialUse === '\\Sent')?.path
@@ -160,7 +169,7 @@ async function loadMessages(account: AccountRow) {
     const incoming = await readMailbox(client, inbox, false, since)
     const outgoing = sent && sent !== inbox ? await readMailbox(client, sent, true, since) : []
     return [...incoming, ...outgoing]
-  } finally { await client.logout().catch(() => undefined) }
+  } finally { await closeImap(client) }
 }
 
 async function getAccount(req: VercelRequest, res: VercelResponse) {
@@ -189,11 +198,11 @@ async function connect(req: VercelRequest, res: VercelResponse) {
     await imap.connect()
     await imap.mailboxOpen('INBOX', { readOnly: true })
     draft.last_notified_uid = imap.mailbox ? Math.max(0, Number(imap.mailbox.uidNext || 1) - 1) : 0
-    await imap.logout()
+    await closeImap(imap)
     stage = 'SMTP'
     await transport(testAccount, password).verify()
   } catch (reason) {
-    await imap.logout().catch(() => undefined)
+    imap.close()
     const message = reason instanceof Error ? reason.message : 'Anmeldung fehlgeschlagen.'
     const details = reason as { code?: string; responseCode?: number; command?: string }
     const nativeCode = String(details.code || '')
@@ -234,7 +243,7 @@ async function threads(req: VercelRequest, res: VercelResponse) {
   catch (reason) {
     const message = reason instanceof Error ? reason.message : 'Synchronisierung fehlgeschlagen.'
     await database!.from('mail_accounts').update({ status: 'error', last_error: message, updated_at: new Date().toISOString() }).eq('user_id', user.id)
-    throw new Error(`Postfach konnte nicht synchronisiert werden: ${message}`)
+    throw new MailError('MAIL_IMAP_SYNC_FAILED', 'Die IMAP-Synchronisierung wurde unterbrochen. Postfach erneut laden; bei Wiederholung die Verbindung zum Mailserver prüfen.', 502)
   }
   const [{ data: preferences }, { data: sentCache }] = await Promise.all([
     database!.from('mail_thread_preferences').select('correspondent,muted').eq('user_id', user.id),
@@ -303,8 +312,9 @@ async function threadAction(req: VercelRequest, res: VercelResponse) {
   if (operation === 'delete' && cacheIds.length) await database!.from('mail_sent_messages').delete().eq('user_id', user.id).in('id', cacheIds)
   const imapIds = ids.filter((id: string) => !id.startsWith('cache:')).map(decodeMessageId)
   if (imapIds.length) {
-    const client = imapClient(account); await client.connect()
+    const client = imapClient(account)
     try {
+      await client.connect()
       const boxes = await client.list(), trash = boxes.find(box => box.specialUse === '\\Trash')?.path
       const grouped = new Map<string, number[]>()
       for (const item of imapIds) grouped.set(item.mailbox, [...(grouped.get(item.mailbox) || []), item.uid])
@@ -318,7 +328,7 @@ async function threadAction(req: VercelRequest, res: VercelResponse) {
           else if (operation === 'unread') await client.messageFlagsRemove(uids, ['\\Seen'], { uid: true })
         } finally { lock.release() }
       }
-    } finally { await client.logout().catch(() => undefined) }
+    } finally { await closeImap(client) }
   }
   return res.json({ ok: true })
 }
