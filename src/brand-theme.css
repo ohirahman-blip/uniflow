@@ -24,11 +24,11 @@
 .uf-brandmark .uf-logo-plus::after{
   content:'';display:block;position:absolute;top:50%;left:50%;
   transform:translate(-50%,-50%);
-  width:80%;height:16%;min-height:2.5px;
+  width:80%;height:22%;min-height:3px;
   border-radius:1px;background:var(--uf-primary-gradient);
 }
 .uf-brandmark .uf-logo-plus::after{
-  width:16%;min-width:2.5px;height:80%;
+  width:22%;min-width:3px;height:80%;
 }
 /* Free stays orange-pink, even when the account tier changes. */
 .uf-brandmark--free .uf-logo-plus::before,
@@ -38,7 +38,7 @@
 /* Premium only changes the cross in the logo, never the app-wide accent. */
 .uf-brandmark--plus .uf-logo-plus::before,
 .uf-brandmark--plus .uf-logo-plus::after{
-  background:#996f00;
+  background:var(--uf-primary-gradient);
 }
 .uf-brandmark--plus .uf-logo-plus{
   animation:uf-brand-plus-turn 630ms cubic-bezier(.2,.85,.25,1) both;
