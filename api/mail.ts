@@ -94,8 +94,8 @@ function imapClient(account: AccountRow, password = decrypt(account.encrypted_pa
 }
 function transport(account: AccountRow, password = decrypt(account.encrypted_password)) {
   return nodemailer.createTransport({
-    host: account.smtp_host, port: account.smtp_port, secure: account.smtp_secure,
-    requireTLS: !account.smtp_secure, auth: { user: account.username, pass: password },
+    host: account.smtp_host, port: account.smtp_port, secure: account.smtp_port === 587 ? false : account.smtp_secure,
+    requireTLS: account.smtp_port === 587 || !account.smtp_secure, auth: { user: account.username, pass: password },
     tls: { rejectUnauthorized: true, servername: account.smtp_host }
   })
 }
@@ -168,7 +168,7 @@ async function connect(req: VercelRequest, res: VercelResponse) {
   const draft = {
     user_id: user.id, email, display_name: String(body.displayName || '').trim().slice(0, 120), username,
     imap_host: imapHost, imap_port: Number(body.imapPort), imap_secure: body.imapSecure !== false,
-    smtp_host: smtpHost, smtp_port: Number(body.smtpPort), smtp_secure: body.smtpSecure !== false,
+    smtp_host: smtpHost, smtp_port: Number(body.smtpPort), smtp_secure: Number(body.smtpPort) === 587 ? false : body.smtpSecure !== false,
     encrypted_password: encrypt(password), history_mode: body.historyMode === 'new' ? 'new' : 'all',
     connected_at: new Date().toISOString(), last_notified_uid: 0,
     status: 'connected', last_error: null, updated_at: new Date().toISOString()
@@ -176,17 +176,19 @@ async function connect(req: VercelRequest, res: VercelResponse) {
   if (![draft.imap_port, draft.smtp_port].every(port => Number.isInteger(port) && port > 0 && port < 65536)) return fail(res, 400, 'Die Mailserver-Ports sind ungültig.')
   const testAccount = { ...draft, last_sync_at: null } as AccountRow
   const imap = imapClient(testAccount, password)
+  let stage: 'IMAP' | 'SMTP' = 'IMAP'
   try {
     await imap.connect()
     await imap.mailboxOpen('INBOX', { readOnly: true })
     draft.last_notified_uid = imap.mailbox ? Math.max(0, Number(imap.mailbox.uidNext || 1) - 1) : 0
     await imap.logout()
+    stage = 'SMTP'
     await transport(testAccount, password).verify()
   } catch (reason) {
     await imap.logout().catch(() => undefined)
     const message = reason instanceof Error ? reason.message : 'Anmeldung fehlgeschlagen.'
     const rejected = /auth|password|credentials|login/i.test(message)
-    return fail(res, 400, rejected ? 'Mailserver lehnt die Anmeldung ab. Benutzername und Postfach-/App-Passwort prüfen.' : 'Mailserver-Verbindung fehlgeschlagen. IMAP-/SMTP-Host, Port und TLS prüfen.', rejected ? 'MAIL_SERVER_AUTH' : 'MAIL_SERVER_CONNECTION')
+    return fail(res, 400, rejected ? `${stage}-Server lehnt die Anmeldung ab. Benutzername und Postfach-/App-Passwort prüfen.` : `${stage}-Verbindung fehlgeschlagen. Host, Port und TLS prüfen.`, rejected ? `MAIL_${stage}_AUTH` : `MAIL_${stage}_CONNECTION`)
   }
   const { data, error } = await database!.from('mail_accounts').upsert(draft, { onConflict: 'user_id' }).select('*').single()
   if (error) throw error
