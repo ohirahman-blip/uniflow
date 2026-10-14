@@ -2,12 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import './startup-splash.css'
 
 export default function StartupSplash({ready,premium,premiumKnown=true,onFinish}:{ready:boolean;premium:boolean;premiumKnown?:boolean;onFinish:()=>void}){
-  const started=useRef(Date.now())
+  const spinStarted=useRef(Date.now())
   const [finishing,setFinishing]=useState(false)
+  useEffect(()=>{
+    if(premium)spinStarted.current=Date.now()
+  },[premium])
   useEffect(()=>{
     if(!ready)return
     const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const timer=window.setTimeout(()=>setFinishing(true),reduced?0:premium?5000:Math.max(0,5000-(Date.now()-started.current)))
+    const timer=window.setTimeout(()=>setFinishing(true),!reduced&&premium?Math.max(0,900-(Date.now()-spinStarted.current)):0)
     return()=>window.clearTimeout(timer)
   },[ready,premium])
   useEffect(()=>{
@@ -21,6 +24,7 @@ export default function StartupSplash({ready,premium,premiumKnown=true,onFinish}
       <span>uniflow</span><span className="uf-startup-symbol">
         {premiumKnown&&(premium?<span className="uf-startup-plus"/>:<span className="uf-startup-dot"/>)}
       </span>
+      {premiumKnown&&!premium&&<span className="uf-startup-loading-line"/>}
     </div>
     <span className="uf-visually-hidden">{finishing?'Dein Studium ist bereit.':'Dein Studium wird geladen …'}</span>
   </main>
