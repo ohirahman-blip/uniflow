@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { ArrowLeft, CalendarCheck2, ClipboardList, GraduationCap } from 'lucide-react'
-import { formatDate, today, type Assessment, type StudyModule } from './model'
+import { formatDate, selectedAssessment, today, type Assessment, type StudyModule } from './model'
 import { calendarMonthDates } from './calendar-month'
 import './calendar-month.css'
 type Props={anchor:string;semesterId:string;assessments:Assessment[];modules:StudyModule[];
@@ -11,12 +11,13 @@ export default function CalendarMonthOverview({anchor,semesterId,assessments,mod
   const byDate=new Map<string,Assessment[]>()
   for(const item of assessments){
     if(item.semesterId!==semesterId)continue
+    if(!selectedAssessment(item,assessments))continue
     const list=byDate.get(item.date)||[]
     list.push(item)
     byDate.set(item.date,list)
   }
   const colors=new Map(modules.map(m=>[m.id,m.color]))
-  return <section className="uf-month" aria-label="Monatsübersicht für Klausuren und Hausaufgaben">
+  return <section className="uf-month" aria-label="Monatsübersicht für Prüfungen und Hausaufgaben">
     <div className="uf-month-heading"><div><span>MONATSÜBERSICHT</span>
       <h2>{formatDate(month+'-01',{month:'long',year:'numeric'})}</h2></div>
       <button type="button" className="uf-month-back" onClick={onBack}><ArrowLeft size={16}/> Zum Stundenplan</button>
@@ -30,12 +31,12 @@ export default function CalendarMonthOverview({anchor,semesterId,assessments,mod
         <div className="uf-month-assessments">{entries.map(item=><button type="button" key={item.id}
           className={'uf-month-pill '+(item.type==='exam'?'exam':'homework')+(item.completed?' complete':'')}
           style={{'--month-accent':colors.get(item.moduleId)||'#aa9cbd'} as CSSProperties}
-          title={(item.type==='exam'?'Klausur: ':'Hausaufgabe: ')+item.title}
+          title={(item.type==='exam'?'Prüfung: ':'Hausaufgabe: ')+item.title}
           onClick={()=>onSelectAssessment(item)}>
           {item.type==='exam'?<GraduationCap size={11}/>:<ClipboardList size={11}/>}<span>{item.title}</span>
         </button>)}</div>
       </div>
     })}</div>
-    <div className="uf-month-legend"><span><CalendarCheck2 size={14}/> Nur Klausuren und Hausaufgaben</span></div>
+    <div className="uf-month-legend"><span><CalendarCheck2 size={14}/> Nur Prüfungen und Hausaufgaben</span></div>
   </section>
 }
