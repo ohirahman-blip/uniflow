@@ -2696,7 +2696,7 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
   padding:9px 10px;
   min-height:76px;
   margin-bottom:-5px;
-  color:#1b1b1d;
+  color:#d8d8dc;
   cursor:pointer;
   display:flex;
   flex-direction:column;
@@ -2704,7 +2704,7 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
   touch-action:pan-y;
   animation:wallet-card-deal 320ms cubic-bezier(.22,.82,.2,1) both;
   transition:transform 160ms ease,background 160ms ease,box-shadow 160ms ease;
-  border:1px solid rgba(0,0,0,.12);
+  border:1px solid #343438;
   outline:0;
   user-select:none;
   -webkit-user-select:none;
@@ -2721,7 +2721,8 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .wallet-card-inactive:hover,.wallet-card-inactive:focus-visible,.wallet-card-inactive.wallet-card-picked{background:#252528;color:#85858a;opacity:1}
 .wallet-card-inactive .wallet-card-top,.wallet-card-inactive small,.wallet-card-inactive .wallet-card-caption{color:#59595d}
 .wallet-card-inactive:hover :is(.wallet-card-top,small,.wallet-card-caption),.wallet-card-inactive:focus-visible :is(.wallet-card-top,small,.wallet-card-caption),.wallet-card-inactive.wallet-card-picked :is(.wallet-card-top,small,.wallet-card-caption){color:#85858a}
-.wallet-card-active{border-color:rgba(0,0,0,.15)}
+.wallet-card-planned{background:#242427;color:#d8d8dc;border-color:#3d3d42}
+.wallet-card-planned .wallet-card-caption{color:#a7a7ad}
 .wallet-card-cancelled{background:#29292c!important;color:#aaa!important;opacity:.74}
 .wallet-card-cancelled :is(strong,small,.wallet-card-caption){color:#aaa!important;text-decoration:line-through}
 .wallet-card-inactive.wallet-card-cancelled{background:#1f1f21!important;color:#59595d!important;opacity:1}
@@ -2747,8 +2748,8 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
   .wallet-shade,.wallet-fan,.wallet-card,.wallet-actions{animation:none!important;transition:none!important}
 }
 
-/* Only the first selected card can be lifted out of the fan. */
-.wallet-card-active:first-child {touch-action:none}
+/* Only the first appointment already in the plan can be lifted out of the fan. */
+.wallet-card-planned:first-child {touch-action:none}
 
 .wallet-drag-badge{z-index:280;pointer-events:none;max-width:min(90vw,350px);overflow:hidden;text-overflow:ellipsis}
 
