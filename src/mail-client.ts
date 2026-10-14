@@ -64,6 +64,10 @@ export type MailDraftAttachment = {
   content: string
 }
 
+class MailRequestError extends Error {
+  constructor(public code:string,public status:number,message:string){super(`[${code}] ${message}`)}
+}
+
 async function mailRequest<T>(action: string, init?: RequestInit, cursor?: string): Promise<T> {
   if (!supabase) throw new Error('Supabase ist nicht verbunden.')
   const { data: { session } } = await supabase.auth.getSession()
@@ -79,13 +83,25 @@ async function mailRequest<T>(action: string, init?: RequestInit, cursor?: strin
   }) } catch { throw new Error('[MAIL_NETWORK] Backend nicht erreichbar. Internetverbindung prüfen und lokal mit npx vercel dev starten.') }
   const body = await response.json().catch(() => null) as ({ error?: string; code?: string } & T) | null
   if (!body) throw new Error(`[MAIL_API_RESPONSE] Keine gültige API-Antwort (HTTP ${response.status}). Lokal die Adresse von npx vercel dev öffnen, nicht den separaten Vite-Port.`)
-  if (!response.ok) throw new Error(`[${body.code || 'MAIL_HTTP_' + response.status}] ${body.error || 'Das Postfach konnte nicht erreicht werden.'}`)
+  if (!response.ok) throw new MailRequestError(body.code||'MAIL_HTTP_'+response.status,response.status,body.error||'Das Postfach konnte nicht erreicht werden.')
   return body
 }
 
 export const getMailAccount = () => mailRequest<MailAccount>('account')
 type MailThreadResult = { threads: MailThread[]; unread: number; syncedAt: string; nextCursor?:string|null }
 const threadRequests=new Map<string,Promise<MailThreadResult>>()
+async function readMailPage(cursor?:string):Promise<MailThreadResult>{
+  try {return await mailRequest<MailThreadResult>('threads',undefined,cursor)}
+  catch(error){
+    // Only retry read-only page requests, never sending or deleting mail.
+    const transient=error instanceof MailRequestError&&error.status===502&&
+      /^MAIL_IMAP_(?:CONNECT|LIST|INBOX_FETCH|SENT_FETCH)_(?:FAILED|ETIMEDOUT|ECONNRESET|EPIPE|ESOCKET|ECONNECTION|NOCONNECTION)$/.test(error.code)&&
+      !/Anmeldung|Serverstatus: (?:NO|BAD)/.test(error.message)
+    if(!transient)throw error
+    await new Promise(resolve=>setTimeout(resolve,750))
+    return mailRequest<MailThreadResult>('threads',undefined,cursor)
+  }
+}
 export async function getMailThreads(cursor?:string): Promise<MailThreadResult> {
   const session=await supabase?.auth.getSession()
   const userId=session?.data.session?.user.id
@@ -93,7 +109,7 @@ export async function getMailThreads(cursor?:string): Promise<MailThreadResult> 
   const key=userId+':'+(cursor||'first')
   const existing=threadRequests.get(key)
   if(existing)return existing
-  const request=mailRequest<MailThreadResult>('threads',undefined,cursor)
+  const request=readMailPage(cursor)
   threadRequests.set(key,request)
   try {return await request}
   finally {if(threadRequests.get(key)===request)threadRequests.delete(key)}
