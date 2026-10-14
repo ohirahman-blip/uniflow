@@ -114,6 +114,7 @@ export default function ModuleScheduleEditor({
   const [exceptionFrom,setExceptionFrom]=useState('10:00')
   const [exceptionTo,setExceptionTo]=useState('12:00')
   const [expandedTopics,setExpandedTopics]=useState<Record<string,boolean>>({})
+  const [expandedAlternatives,setExpandedAlternatives]=useState<Record<string,boolean>>({})
   const [deleted,setDeleted]=useState<Offering[]>([])
   const [warning,setWarning]=useState('')
   const [thinking,setThinking]=useState(false)
@@ -171,10 +172,12 @@ export default function ModuleScheduleEditor({
   const addAlternative=(parent:Offering)=>{
     const slot={day:(weekday(parent.date)+1)%7,from:parent.from,duration:120,room:''}
     const fresh=newOffering(parent.contentId||parent.familyId||parent.id,parent.contentLabel||parent.category,parent.category,slot,false)
+    setExpandedAlternatives(prev=>({...prev,[parent.contentId||parent.familyId||parent.id]:true}))
     commit([...own,fresh])
   }
   const cloneAlternative=(original:Offering)=>{
     const fresh={...original,id:uid(),overrides:{},scheduleChanges:[],selected:false}
+    setExpandedAlternatives(prev=>({...prev,[original.contentId||original.familyId||original.id]:true}))
     commit([...own,fresh])
   }
   const duplicateTopic=(topic:Offering[])=>{
@@ -478,6 +481,32 @@ export default function ModuleScheduleEditor({
     {groups.map((group,index)=>{
       const first=group.offerings[0]
       const expanded=expandedTopics[group.id]??false
+      const alternativesExpanded=expandedAlternatives[group.id]??false
+      const renderSlot=(o:Offering,i:number)=>{
+        const active=!!occurrenceAtOrigin(o,o.date,false)
+        return <div className="module-fast-slot" key={o.id}>
+          <div className="module-fast-slot-caption">
+            <span className={'module-fast-dot '+(active?'active':'')}/>
+            <strong>{i===0?'Gruppe 1':'Alternative '+i}</strong>
+            <span>{active?'Im Plan':'Alternative'}</span>
+            <div className="module-fast-icon-actions">
+              <button title="Alternative duplizieren" aria-label="Alternative duplizieren" onClick={()=>cloneAlternative(o)}><Copy size={16}/></button>
+              <button title="Alternative löschen" aria-label="Alternative löschen" onClick={()=>remove([o])}><Trash2 size={16}/></button>
+            </div>
+          </div>
+          <div className="module-slot-edit-form uf-entry-form">
+            <div className="editor-field"><span className="field-label">{o.recurrence==='once'?'Datum':'Wochentag'}</span>{o.recurrence==='once'
+              ?<UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={o.date} onChange={value=>{if(value>=semester.start&&value<=semester.end)update(o.id,{date:value,endDate:value})}}/>
+              :<UniflowPicker label="Wochentag" value={String(weekday(o.date))} onChange={value=>setDay(o,Number(value))} options={dayNames.map((label,n)=>({value:String(n),label:label+'s'}))}/>}</div>
+            <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={o.from} maxMinutes={1440-durationOf(o)} onChange={value=>setClock(o,value)}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={o.to} onChange={value=>setEnd(o,value)}/></div></div>
+            <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={o.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>update(o.id,{recurrence:value as Repeat,endDate:value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}/></div>{o.recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" min={semester.start} max={o.endDate} value={o.date} onChange={value=>setSeriesStart(o,value)}/></div>}</div>
+            {o.recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" min={o.date} max={semester.end} value={o.endDate} onChange={value=>{if(value>=o.date&&value<=semester.end)update(o.id,{endDate:value})}}/></div>}
+            <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={o.room} onChange={e=>update(o.id,{room:e.target.value})}/></div>
+            <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://…" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></div>
+            <div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></div>
+          </div>
+        </div>
+      }
       return <section className={'module-fast-topic '+(expanded?'topic-expanded':'topic-collapsed')} key={group.id}>
         <div className="module-fast-topic-bar">
           <button type="button" className="module-fast-topic-toggle" aria-expanded={expanded} onClick={()=>setExpandedTopics(prev=>({...prev,[group.id]:!expanded}))}>
@@ -498,31 +527,13 @@ export default function ModuleScheduleEditor({
           </div>
         </div>
         <div className="module-fast-slot-list">
-          {group.offerings.map((o,i)=>{
-            const active=!!occurrenceAtOrigin(o,o.date,false)
-            return <div className="module-fast-slot" key={o.id}>
-              <div className="module-fast-slot-caption">
-                <span className={'module-fast-dot '+(active?'active':'')}/>
-                <strong>{i===0?'Gruppe 1':'Alternative '+i}</strong>
-                <span>{active?'Im Plan':'Alternative'}</span>
-                <div className="module-fast-icon-actions">
-                  <button title="Alternative duplizieren" aria-label="Alternative duplizieren" onClick={()=>cloneAlternative(o)}><Copy size={16}/></button>
-                  <button title="Alternative löschen" aria-label="Alternative löschen" onClick={()=>remove([o])}><Trash2 size={16}/></button>
-                </div>
-              </div>
-              <div className="module-slot-edit-form uf-entry-form">
-                <div className="editor-field"><span className="field-label">{o.recurrence==='once'?'Datum':'Wochentag'}</span>{o.recurrence==='once'
-                  ?<UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={o.date} onChange={value=>{if(value>=semester.start&&value<=semester.end)update(o.id,{date:value,endDate:value})}}/>
-                  :<UniflowPicker label="Wochentag" value={String(weekday(o.date))} onChange={value=>setDay(o,Number(value))} options={dayNames.map((label,n)=>({value:String(n),label:label+'s'}))}/>}</div>
-                <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={o.from} maxMinutes={1440-durationOf(o)} onChange={value=>setClock(o,value)}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={o.to} onChange={value=>setEnd(o,value)}/></div></div>
-                <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={o.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>update(o.id,{recurrence:value as Repeat,endDate:value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}/></div>{o.recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" min={semester.start} max={o.endDate} value={o.date} onChange={value=>setSeriesStart(o,value)}/></div>}</div>
-                {o.recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" min={o.date} max={semester.end} value={o.endDate} onChange={value=>{if(value>=o.date&&value<=semester.end)update(o.id,{endDate:value})}}/></div>}
-                <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={o.room} onChange={e=>update(o.id,{room:e.target.value})}/></div>
-                <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://…" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></div>
-                <div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></div>
-              </div>
-            </div>
-          })}
+          {renderSlot(first,0)}
+          {group.offerings.length>1&&<div className="module-fast-alternatives">
+            <button type="button" className="module-fast-alternatives-toggle" aria-expanded={alternativesExpanded} onClick={()=>setExpandedAlternatives(prev=>({...prev,[group.id]:!alternativesExpanded}))}>
+              <span>Alternativen <small>{group.offerings.length-1}</small></span><ChevronDown size={17} className={alternativesExpanded?'expanded':''}/>
+            </button>
+            {alternativesExpanded&&<div className="module-fast-alternative-list">{group.offerings.slice(1).map((o,i)=>renderSlot(o,i+1))}</div>}
+          </div>}
         </div>
         <div className="module-fast-topic-foot">
           <button className="module-fast-add-alt" onClick={()=>addAlternative(first)}><Plus size={16}/> Alternative hinzufügen</button>
