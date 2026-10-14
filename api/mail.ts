@@ -85,6 +85,7 @@ async function assertPublicHost(host: string) {
   const addresses = await lookup(normalized, { all: true })
   if (!addresses.length || addresses.some(item => isPrivateAddress(item.address))) throw new Error('Private oder lokale Mailserver sind nicht erlaubt.')
 }
+const imapSocketErrors = new WeakMap<ImapFlow, Error>()
 function imapClient(account: AccountRow, password = decrypt(account.encrypted_password)) {
   const client = new ImapFlow({
     host: account.imap_host, port: account.imap_port, secure: account.imap_secure,
@@ -93,7 +94,7 @@ function imapClient(account: AccountRow, password = decrypt(account.encrypted_pa
   })
   // Socket errors are also EventEmitter events, not just rejected commands.
   // Keep this listener attached through teardown to handle late TLS errors.
-  client.on('error', () => { client.close() })
+  client.on('error', error => { imapSocketErrors.set(client, error); client.close() })
   return client
 }
 async function closeImap(client: ImapFlow) {
@@ -143,7 +144,9 @@ async function readMailbox(client: ImapFlow, path: string, outgoing: boolean, si
     const uids = found || []
     if (!uids.length) return []
     const messages: ApiMessage[] = []
-    for await (const item of client.fetch(uids, { uid: true, envelope: true, flags: true, source: true }, { uid: true })) {
+    // Keep IMAP FETCH commands bounded while still reading every matching UID.
+    for (let offset = 0; offset < uids.length; offset += 25) {
+    for await (const item of client.fetch(uids.slice(offset, offset + 25), { uid: true, envelope: true, flags: true, source: true }, { uid: true })) {
       const parsed = await simpleParser(item.source)
       const from = item.envelope?.from?.[0], to = item.envelope?.to?.[0]
       messages.push({
@@ -155,20 +158,31 @@ async function readMailbox(client: ImapFlow, path: string, outgoing: boolean, si
         attachments: parsed.attachments.map(file => ({ filename: file.filename || 'Anhang', contentType: file.contentType, size: file.size }))
       })
     }
+    }
     return messages
   } finally { lock.release() }
 }
 async function loadMessages(account: AccountRow) {
   const client = imapClient(account)
+  let step = 'CONNECT'
   try {
     await client.connect()
+    step = 'LIST'
     const boxes = await client.list()
     const inbox = boxes.find(box => box.specialUse === '\\Inbox')?.path || 'INBOX'
     const sent = boxes.find(box => box.specialUse === '\\Sent')?.path
     const since = account.history_mode === 'new' ? new Date(account.connected_at) : undefined
+    step = 'INBOX_FETCH'
     const incoming = await readMailbox(client, inbox, false, since)
+    step = 'SENT_FETCH'
     const outgoing = sent && sent !== inbox ? await readMailbox(client, sent, true, since) : []
     return [...incoming, ...outgoing]
+  } catch (reason) {
+    if (reason instanceof MailError) throw reason
+    const error = (imapSocketErrors.get(client) || reason) as { code?: string; authenticationFailed?: boolean; responseStatus?: string; message?: string }
+    const code = error?.code && /^[A-Z0-9_]{1,48}$/.test(error.code) ? error.code : 'FAILED'
+    const status = ['NO','BAD'].includes(error?.responseStatus || '') ? error.responseStatus : 'keine'
+    throw new MailError(`MAIL_IMAP_${step}_${code}`, `IMAP fehlgeschlagen bei ${step} (Serverstatus: ${status}). ${error?.authenticationFailed ? 'Mail-Anmeldung wurde abgelehnt.' : 'Diesen Fehlercode zur Diagnose melden.'}`, 502)
   } finally { await closeImap(client) }
 }
 
@@ -243,6 +257,7 @@ async function threads(req: VercelRequest, res: VercelResponse) {
   catch (reason) {
     const message = reason instanceof Error ? reason.message : 'Synchronisierung fehlgeschlagen.'
     await database!.from('mail_accounts').update({ status: 'error', last_error: message, updated_at: new Date().toISOString() }).eq('user_id', user.id)
+    if (reason instanceof MailError) throw reason
     throw new MailError('MAIL_IMAP_SYNC_FAILED', 'Die IMAP-Synchronisierung wurde unterbrochen. Postfach erneut laden; bei Wiederholung die Verbindung zum Mailserver prüfen.', 502)
   }
   const [{ data: preferences }, { data: sentCache }] = await Promise.all([
