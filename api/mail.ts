@@ -341,10 +341,33 @@ async function send(req: VercelRequest, res: VercelResponse) {
   if (error) throw error
   return res.json({ message: { id: `cache:${data.id}`, uid: 0, mailbox: 'Gesendet', from: account.email, fromName: account.display_name, to, subject, text, date: data.sent_at, outgoing: true, unread: false, attachments: metadata } })
 }
+type UndoMove={from:string;trash:string;uids:number[];validity:string}
+async function restoreMailMoves(account:AccountRow,moves:UndoMove[]){
+  if(!moves.length)return
+  const client=imapClient(account)
+  try{
+    await client.connect()
+    for(const move of moves){
+      const lock=await client.getMailboxLock(move.trash)
+      try{
+        if(!client.mailbox||String(client.mailbox.uidValidity)!==move.validity)throw new MailError('MAIL_UNDO_FOLDER_CHANGED','Der Papierkorb hat sich geändert; sichere Wiederherstellung nicht möglich.',409)
+        await client.messageMove(move.uids,move.from,{uid:true})
+      }finally{lock.release()}
+    }
+  }finally{await closeImap(client)}
+}
 async function threadAction(req: VercelRequest, res: VercelResponse) {
   const user = await currentUser(req), account = await accountFor(user.id)
   if (!account) return fail(res, 409, 'Verbinde zuerst dein Postfach.')
   const address = cleanAddress(req.body?.address), operation = String(req.body?.operation || '')
+  if(operation==='restore'){
+    let undo:{purpose:string;userId:string;email:string;expires:number;moves:UndoMove[];cached:Record<string,unknown>[]}
+    try {undo=JSON.parse(decrypt(String(req.body?.undoToken||'')))}catch{return fail(res,400,'Wiederherstellung ungültig.','MAIL_UNDO_INVALID')}
+    if(undo.purpose!=='mail-delete'||undo.userId!==user.id||undo.email!==account.email||undo.expires<Date.now())return fail(res,400,'Die Wiederherstellung ist abgelaufen oder gehört zu einem anderen Konto.','MAIL_UNDO_EXPIRED')
+    await restoreMailMoves(account,undo.moves)
+    if(undo.cached.length){const {error}=await database!.from('mail_sent_messages').upsert(undo.cached,{onConflict:'id'});if(error)throw error}
+    return res.json({ok:true})
+  }
   if (!address || !['mute', 'unmute', 'delete', 'read', 'unread'].includes(operation)) return fail(res, 400, 'Ungültige Postfachaktion.')
   if (operation === 'mute' || operation === 'unmute') {
     const { error } = await database!.from('mail_thread_preferences').upsert({ user_id: user.id, correspondent: address, muted: operation === 'mute', updated_at: new Date().toISOString() }, { onConflict: 'user_id,correspondent' })
@@ -353,26 +376,44 @@ async function threadAction(req: VercelRequest, res: VercelResponse) {
   }
   const ids = Array.isArray(req.body?.messageIds) ? req.body.messageIds.map(String) : []
   const cacheIds = ids.filter((id: string) => id.startsWith('cache:')).map((id: string) => id.slice(6))
-  if (operation === 'delete' && cacheIds.length) await database!.from('mail_sent_messages').delete().eq('user_id', user.id).in('id', cacheIds)
+  const moves:UndoMove[]=[]
+  let cached:Record<string,unknown>[]=[]
+  if(operation==='delete'&&cacheIds.length){
+    const {data,error}=await database!.from('mail_sent_messages').select('*').eq('user_id',user.id).in('id',cacheIds)
+    if(error)throw error
+    cached=data||[]
+  }
   const imapIds = ids.filter((id: string) => !id.startsWith('cache:')).map(decodeMessageId)
   if (imapIds.length) {
     const client = imapClient(account)
     try {
       await client.connect()
       const boxes = await client.list(), trash = boxes.find(box => box.specialUse === '\\Trash')?.path
+      if(operation==='delete'&&(!trash||!client.capabilities.has('UIDPLUS')))throw new MailError('MAIL_DELETE_UNDO_UNAVAILABLE','Der Mailserver bietet keinen Papierkorb mit sicherer Wiederherstellung. Es wurde nichts gelöscht.',409)
       const grouped = new Map<string, number[]>()
       for (const item of imapIds) grouped.set(item.mailbox, [...(grouped.get(item.mailbox) || []), item.uid])
       for (const [mailbox, uids] of grouped) {
         const lock = await client.getMailboxLock(mailbox)
         try {
           if (operation === 'delete') {
-            if (trash && trash !== mailbox) await client.messageMove(uids, trash, { uid: true })
-            else await client.messageDelete(uids, { uid: true })
+            if(trash===mailbox)throw new MailError('MAIL_DELETE_ALREADY_TRASH','Diese Nachrichten liegen bereits im Papierkorb.',409)
+            const result=await client.messageMove(uids,trash!,{uid:true})
+            if(!result)throw new MailError('MAIL_DELETE_FAILED','Der Mailserver hat das Verschieben nicht bestätigt. Postfach erneut laden.',502)
+            if(result.uidMap&&result.uidValidity)moves.push({from:mailbox,trash:trash!,uids:[...result.uidMap.values()],validity:String(result.uidValidity)})
           } else if (operation === 'read') await client.messageFlagsAdd(uids, ['\\Seen'], { uid: true })
           else if (operation === 'unread') await client.messageFlagsRemove(uids, ['\\Seen'], { uid: true })
         } finally { lock.release() }
       }
+    } catch(error){
+      // If a later folder fails, put already moved messages back.
+      if(operation==='delete')await restoreMailMoves(account,moves)
+      throw error
     } finally { await closeImap(client) }
+  }
+  if(operation==='delete'){
+    if(cacheIds.length){const {error}=await database!.from('mail_sent_messages').delete().eq('user_id',user.id).in('id',cacheIds);if(error){await restoreMailMoves(account,moves);throw error}}
+    const undoToken=encrypt(JSON.stringify({purpose:'mail-delete',userId:user.id,email:account.email,expires:Date.now()+600_000,moves,cached}))
+    return res.json({ok:true,undoToken})
   }
   return res.json({ ok: true })
 }
