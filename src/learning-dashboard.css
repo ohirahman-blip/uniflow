@@ -51,7 +51,7 @@
 .learn-meter>div{height:100%;border-radius:99px}
 .learn-foot{display:flex;align-items:start;justify-content:space-between;gap:8px;color:#85858b;font-size:10px;line-height:1.4}
 .learn-foot span:last-child{text-align:right}
-.learn-backdrop{position:fixed;inset:0;background:#000b;display:flex;align-items:flex-end;justify-content:center;z-index:3000;padding:12px}
+.learn-backdrop{position:fixed;inset:0;background:#000b;display:flex;align-items:flex-end;justify-content:center;z-index:5000;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
 .learn-sheet{width:min(100%,520px);max-height:min(90svh,760px);overflow-y:auto;background:#191919;border:1px solid #303030;border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:16px;color:#fff}
 .learn-sheet-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
 .learn-sheet-head h2{font-size:25px;letter-spacing:-.8px;margin-top:6px}
