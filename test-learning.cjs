@@ -22,6 +22,9 @@ assert.match(editorSource,/Thema speichern/,'Learning topic changes are committe
 assert.match(editorSource,/Thema entfernen/,'A custom learning topic can be removed')
 assert.match(campusSource,/MA 042/,'Campus room search explains TU room codes')
 assert.match(campusSource,/Offiziellen TU-Campusplan öffnen/,'Campus page links to the complete official directory')
+assert.match(campusSource,/campus-isometric-map/,'Campus page renders the interactive isometric model')
+assert.match(campusSource,/mapBuildings/,'Campus model has selectable buildings')
+assert.doesNotMatch(campusSource,/<h1>Deinen Raum finden/,'Campus page no longer uses the oversized headline')
 assert.match(appSource,/page === 'campus'/,'Campus map is wired as its own page')
 assert.match(appSource,/const campusEnabled=\/technische universität berlin\|tu berlin/i,'Campus entry is limited to TU Berlin students')
 const {pastLessons,pastFreeStudy,journeyFor}=learning.exports
