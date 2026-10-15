@@ -292,6 +292,17 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   text-align:right;
 }
 .settings-screen .number-setting input:focus-visible {border:0;outline:0;}
+.settings-screen .setting-input-plain input {
+  min-height:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+}
+.settings-screen .setting-input-plain input:focus-visible {
+  border:0;
+  outline:0;
+}
 .settings-screen input[type="number"],
 .module-hub input[type="number"],
 .module-fast input[type="number"],
