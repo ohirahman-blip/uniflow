@@ -68,16 +68,21 @@ class MailRequestError extends Error {
   constructor(public code:string,public status:number,message:string){super(`[${code}] ${message}`)}
 }
 
-async function mailRequest<T>(action: string, init?: RequestInit, cursor?: string): Promise<T> {
+async function mailAccessToken() {
   if (!supabase) throw new Error('Supabase ist nicht verbunden.')
   const { data: { session } } = await supabase.auth.getSession()
   if (!session?.access_token) throw new Error('Bitte melde dich erneut an.')
+  return session.access_token
+}
+
+async function mailRequest<T>(action: string, init?: RequestInit, cursor?: string): Promise<T> {
+  const accessToken = await mailAccessToken()
   let response: Response
   try { response = await fetch(`/api/mail?action=${encodeURIComponent(action)}${cursor?'&cursor='+encodeURIComponent(cursor):''}`, {
     ...init,
     headers: {
       'content-type': 'application/json',
-      authorization: `Bearer ${session.access_token}`,
+      authorization: `Bearer ${accessToken}`,
       ...(init?.headers || {})
     }
   }) } catch { throw new Error('[MAIL_NETWORK] Backend nicht erreichbar. Internetverbindung prüfen und lokal mit npx vercel dev starten.') }
@@ -133,6 +138,24 @@ export const sendMailMessage = (input: { to: string; subject: string; text: stri
   mailRequest<{ message: MailMessage }>('send', { method: 'POST', body: JSON.stringify(input) })
 export const updateMailThread = (input: { address: string; operation: 'mute' | 'unmute' | 'delete' | 'read' | 'unread' | 'restore'; messageIds?: string[];undoToken?:string }) =>
   mailRequest<{ ok: true;undoToken?:string }>('thread', { method: 'POST', body: JSON.stringify(input) })
+
+export async function downloadMailAttachment(messageId: string, attachmentIndex: number, filename: string) {
+  const accessToken = await mailAccessToken()
+  let response: Response
+  try {
+    const query = new URLSearchParams({ action: 'attachment', messageId, attachmentIndex: String(attachmentIndex) })
+    response = await fetch(`/api/mail?${query}`, { headers: { authorization: `Bearer ${accessToken}` } })
+  } catch { throw new Error('[MAIL_NETWORK] Der Anhang konnte nicht geladen werden.') }
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { error?: string; code?: string } | null
+    throw new MailRequestError(body?.code || `MAIL_HTTP_${response.status}`, response.status, body?.error || 'Der Anhang konnte nicht geladen werden.')
+  }
+  const url = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = url; link.download = filename || 'Anhang'; link.hidden = true
+  document.body.appendChild(link); link.click(); link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
 
 export function suggestedMailServers(address: string) {
   const domain = address.trim().toLowerCase().split('@')[1] || ''
