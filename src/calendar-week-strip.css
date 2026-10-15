@@ -469,7 +469,7 @@ html[data-theme='light'] .calendar-sticky-header > .calendar-compact-toolbar {
 
 /* The month marker doubles as an actual button; no extra toolbar required. */
 .uf-week-strip-month{pointer-events:auto;cursor:pointer;border:0;background:transparent;color:inherit;font-family:inherit;appearance:none}
-.uf-week-strip-month:focus-visible{outline:2px solid var(--uniflow-accent,#f94f72);outline-offset:2px;border-radius:7px}
+.uf-week-strip-month:focus-visible{outline:2px solid #8b8b91;outline-offset:2px;border-radius:7px}
 /* Gesture area handles touch swipes and horizontal trackpad scrolling. */
 .uf-week-strip-viewport{touch-action:pan-y;overscroll-behavior-x:contain}
 
