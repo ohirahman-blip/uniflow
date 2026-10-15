@@ -131,6 +131,8 @@ export default function ModuleScheduleEditor({
   const [expandedTopics,setExpandedTopics]=useState<Record<string,boolean>>({})
   const [editingSlotId,setEditingSlotId]=useState<string|null>(null)
   const [editingLearningId,setEditingLearningId]=useState<string|null>(null)
+  const [learningOpen,setLearningOpen]=useState(false)
+  const [learningFilter,setLearningFilter]=useState<'all'|'classes'|'free'|'exam'>('all')
   const [deleted,setDeleted]=useState<Offering[]>([])
   const [warning,setWarning]=useState('')
   const [thinking,setThinking]=useState(false)
@@ -178,6 +180,12 @@ export default function ModuleScheduleEditor({
     })
     return [...sessions,...checkins].sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id))
   },[journey?.lessons,learningCheckins,learningSessions,lessonTopics,module.id])
+  const filteredLearningHistory=useMemo(()=>learningHistory.filter(entry=>
+    learningFilter==='all'||
+    (learningFilter==='classes'&&entry.kind==='checkin')||
+    (learningFilter==='free'&&entry.kind==='session'&&entry.item.kind==='review')||
+    (learningFilter==='exam'&&entry.kind==='session'&&entry.item.kind==='exam')
+  ),[learningFilter,learningHistory])
   if(!semester)return <div className="screen secondary-screen"><button className="text-back" onClick={onBack}>← Module</button><p>Bitte zuerst ein Semester auswählen.</p></div>
 
   const commit=(next:Offering[])=>{setWarning('');onChangeOfferings(next)}
@@ -405,10 +413,15 @@ export default function ModuleScheduleEditor({
       <p>{journey.message}</p>
       <div className="module-fast-journey-stats"><span>Verständnis <b>{journey.understanding===null?'—':journey.understanding+' %'}</b></span><span>Wiederholung <b>{journey.repetition} %</b></span><span>Prüfungstraining <b>{journey.training} %</b></span></div>
     </div>}
-    <section className="module-learning-history">
-      <div className="module-fast-section-head"><div><span className="overline">DEINE LERNEINHEITEN</span><h2>Lernverlauf <small>{learningHistory.length}</small></h2></div></div>
+    <details className="module-learning-history" open={learningOpen} onToggle={event=>setLearningOpen(event.currentTarget.open)}>
+      <summary className="module-learning-summary"><div><span className="overline">DEINE LERNEINHEITEN</span><h2>Lernverlauf <small>{learningHistory.length}</small></h2></div><ChevronDown size={18}/></summary>
+      <div className="module-learning-body">
+      {learningHistory.length>0&&<div className="module-learning-filters" role="group" aria-label="Lernverlauf filtern">
+        {([['all','Alle'],['classes','Veranstaltungen'],['free','Freies Lernen'],['exam','Prüfung']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={learningFilter===value} className={learningFilter===value?'active':''} onClick={()=>{setLearningFilter(value);setEditingLearningId(null)}}>{label}</button>)}
+      </div>}
       {!learningHistory.length&&<p className="module-learning-empty">Noch keine bewerteten Veranstaltungen oder Lerneinheiten.</p>}
-      <div className="module-learning-list">{learningHistory.map(entry=>{
+      {learningHistory.length>0&&!filteredLearningHistory.length&&<p className="module-learning-empty">Für diesen Filter gibt es noch keine Einträge.</p>}
+      <div className="module-learning-list">{filteredLearningHistory.map(entry=>{
         const editing=editingLearningId===entry.id
         return <div className={'module-learning-row '+(editing?'is-editing':'')} key={entry.id}>
           <button type="button" className="module-learning-preview" aria-expanded={editing} onClick={()=>setEditingLearningId(editing?null:entry.id)}>
@@ -432,7 +445,8 @@ export default function ModuleScheduleEditor({
           </div>}
         </div>
       })}</div>
-    </section>
+      </div>
+    </details>
     <div className="module-fast-state" role="status">
       {cloudStatus==='error'?<><span>unicloud-Speicherung fehlgeschlagen · Eingaben bleiben lokal erhalten.</span><button onClick={onRetrySync}>Erneut synchronisieren</button><small>{cloudError}</small></>:
         <span>{cloudStatus==='saving'?'Synchronisiere …':cloudStatus==='synced'?'Automatisch gespeichert':'Speichere lokal …'}</span>}
