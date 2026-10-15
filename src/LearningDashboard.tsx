@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowRight, CalendarClock, Check, ChevronRight, Clock3, GraduationCap, Plus, Sparkles, X } from 'lucide-react'
+import { ArrowRight, CalendarClock, Check, ChevronRight, Clock3, GraduationCap, Pause, Play, Plus, Sparkles, Square, Timer, X } from 'lucide-react'
 import {
   formatDate, fromDate, isAssessment, minutes, occurrencesOn, selectedAssessment, today,
   type AppData, type Semester, type StudyModule
@@ -19,6 +19,7 @@ type Props = {
   data: AppData
   semester?: Semester
   modules: StudyModule[]
+  timerStorageKey:string
   aiAdvice:StudyAdvice|null
   context:AdviceContext
   onTopic: (lesson:LearningLesson,title:string)=>void
@@ -27,6 +28,14 @@ type Props = {
   onPlan: (task:LearningPlanTask)=>void
   onRemovePlan: (id:string)=>void
 }
+type ActiveStudyTimer={
+  planId:string
+  title:string
+  moduleName:string
+  totalSeconds:number
+  remainingSeconds:number
+  endsAt:number|null
+}
 const ratingLabels:{value:LearningRating;label:string}[]=[
   {value:'understood',label:'Verstanden'},
   {value:'partial',label:'Teilweise'},
@@ -34,8 +43,20 @@ const ratingLabels:{value:LearningRating;label:string}[]=[
   {value:'absent',label:'Nicht besucht'}
 ]
 const shortDate=(iso:string)=>formatDate(iso,{day:'numeric',month:'short'})
+const formatTimer=(seconds:number)=>`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`
+const readStudyTimer=(key:string):ActiveStudyTimer|null=>{
+  try{
+    const parsed=JSON.parse(localStorage.getItem(key)||'null') as Partial<ActiveStudyTimer>|null
+    if(!parsed||typeof parsed.planId!=='string'||typeof parsed.title!=='string'||typeof parsed.moduleName!=='string'||
+      typeof parsed.totalSeconds!=='number'||!Number.isFinite(parsed.totalSeconds)||parsed.totalSeconds<=0||
+      typeof parsed.remainingSeconds!=='number'||!Number.isFinite(parsed.remainingSeconds)||parsed.remainingSeconds<=0||
+      (parsed.endsAt!==null&&(typeof parsed.endsAt!=='number'||!Number.isFinite(parsed.endsAt))))return null
+    if((parsed.endsAt??0)>0&&(parsed.endsAt as number)<=Date.now())return null
+    return parsed as ActiveStudyTimer
+  }catch{return null}
+}
 
-export default function LearningDashboard({data,semester,modules,aiAdvice,context,onTopic,onCheckin,onSession,onPlan,onRemovePlan}:Props){
+export default function LearningDashboard({data,semester,modules,timerStorageKey,aiAdvice,context,onTopic,onCheckin,onSession,onPlan,onRemovePlan}:Props){
   const [studyOpen,setStudyOpen]=useState(false)
   const [moduleId,setModuleId]=useState('')
   const [lessonKey,setLessonKey]=useState('')
@@ -45,6 +66,15 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
   const [showAll,setShowAll]=useState(false)
   const [activePlan,setActivePlan]=useState<string|undefined>()
   const [clockTick,setClockTick]=useState(0)
+  const [studyTimer,setStudyTimer]=useState<ActiveStudyTimer|null>(()=>readStudyTimer(timerStorageKey))
+  const [timerNow,setTimerNow]=useState(Date.now)
+  const saveStudyTimer=useCallback((next:ActiveStudyTimer|null)=>{
+    setStudyTimer(next)
+    try{
+      if(next)localStorage.setItem(timerStorageKey,JSON.stringify(next))
+      else localStorage.removeItem(timerStorageKey)
+    }catch{/* Timer remains usable for this session when storage is unavailable. */}
+  },[timerStorageKey])
   useEffect(()=>{
     if(!studyOpen)return
     const onBack=(event:Event)=>{
@@ -62,6 +92,17 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
     document.addEventListener('visibilitychange',onVisible)
     return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisible)}
   },[])
+  useEffect(()=>{
+    if(!studyTimer?.endsAt)return
+    const tick=()=>{
+      const now=Date.now()
+      if(now>=studyTimer.endsAt!)saveStudyTimer(null)
+      else setTimerNow(now)
+    }
+    tick()
+    const timer=window.setInterval(tick,1000)
+    return()=>window.clearInterval(timer)
+  },[studyTimer?.endsAt,saveStudyTimer])
   const localTip=useMemo(()=>localAdvice(context),[context])
   const suggestion=aiAdvice||localTip
   const isAiRecommendation=aiAdvice?.source==='deepseek'
@@ -71,6 +112,8 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
   const checkins=new Map((data.learningCheckins||[]).map(c=>[c.key,c]))
   const pending=allLessons.filter(l=>!checkins.has(l.key))
   const planned=(data.learningPlans||[]).filter(t=>t.date===today())
+  const timerPlanExists=!studyTimer||planned.some(task=>task.id===studyTimer.planId)
+  useEffect(()=>{if(!timerPlanExists)saveStudyTimer(null)},[timerPlanExists,saveStudyTimer])
   const completedPlans=new Set((data.learningSessions||[]).map(s=>s.planId).filter(Boolean))
   const freePending=pastFreeStudy(data,semester).filter(l=>!(data.learningSessions||[]).some(s=>s.scheduledKey===l.key))
   const nextCheckin=pending[0]
@@ -79,6 +122,8 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
   const chosenModule=active.find(m=>m.id===(moduleId||focus?.module.id)) || active[0]
   const options=allLessons.filter(l=>l.moduleId===chosenModule?.id)
   const completed=(data.learningSessions||[]).filter(s=>s.date===today()).length
+  const timerRemaining=studyTimer?(studyTimer.endsAt?Math.max(0,Math.ceil((studyTimer.endsAt-timerNow)/1000)):studyTimer.remainingSeconds):0
+  const timerProgress=studyTimer?Math.max(0,Math.min(100,(1-timerRemaining/studyTimer.totalSeconds)*100)):0
   const firstName=data.profile.trim().split(/\s+/)[0]||''
   const next=useMemo<{date:string;from:string;to:string;name:string;room:string;moduleId:string}|null>(()=>{
     const now=new Date()
@@ -111,16 +156,47 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
     setDuration(45)
     setStudyOpen(true)
   }
+  const startStudyTimer=(task:LearningPlanTask)=>{
+    const seconds=Math.max(60,task.duration*60)
+    const moduleName=modules.find(module=>module.id===task.moduleId)?.name||'Freies Lernen'
+    saveStudyTimer({planId:task.id,title:task.title,moduleName,totalSeconds:seconds,remainingSeconds:seconds,endsAt:Date.now()+seconds*1000})
+    setTimerNow(Date.now())
+  }
+  const pauseStudyTimer=()=>{
+    if(!studyTimer?.endsAt)return
+    const remaining=Math.max(1,Math.ceil((studyTimer.endsAt-Date.now())/1000))
+    saveStudyTimer({...studyTimer,remainingSeconds:remaining,endsAt:null})
+  }
+  const resumeStudyTimer=()=>{
+    if(!studyTimer||studyTimer.endsAt)return
+    saveStudyTimer({...studyTimer,endsAt:Date.now()+studyTimer.remainingSeconds*1000})
+    setTimerNow(Date.now())
+  }
   const recentExam=data.assessments.filter(a=>a.type==='exam'&&!a.completed&&a.date>=today()&&active.some(m=>m.id===a.moduleId)&&selectedAssessment(a,data.assessments))
     .sort((a,b)=>a.date.localeCompare(b.date))[0]
   const nextModule=modules.find(m=>m.id===next?.moduleId)
   const examModule=modules.find(m=>m.id===recentExam?.moduleId)
   const accent=(color?:string)=>({'--module-accent':color||'#9f9fa5'} as CSSProperties)
   return <div className="screen secondary-screen learn-dashboard">
-    <div className="learn-heading">
+    {studyTimer?<section className="learn-active-timer">
+      <div className="learn-active-timer-copy">
+        <span className="learn-heading-date">{formatDate(today(),{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('de-DE')}</span>
+        <span className="learn-active-timer-label"><Timer size={15}/> LERN-TIMER</span>
+        <strong>{studyTimer.title}</strong>
+        <small>{studyTimer.moduleName}</small>
+      </div>
+      <div className="learn-active-timer-clock">
+        <strong aria-label={`${Math.ceil(timerRemaining/60)} Minuten verbleibend`}>{formatTimer(timerRemaining)}</strong>
+        <div>
+          <button onClick={studyTimer.endsAt?pauseStudyTimer:resumeStudyTimer}>{studyTimer.endsAt?<><Pause size={15}/> Pausieren</>:<><Play size={15}/> Weiter</>}</button>
+          <button className="learn-timer-stop" onClick={()=>saveStudyTimer(null)}><Square size={14}/> Beenden</button>
+        </div>
+      </div>
+      <i aria-hidden="true"><span style={{width:`${timerProgress}%`}}/></i>
+    </section>:<div className="learn-heading">
       <span className="learn-heading-date">{formatDate(today(),{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('de-DE')}</span>
       <h1>{greetingForHour(new Date().getHours())}{firstName?', '+firstName:''}<span className="learn-heading-dot">.</span></h1>
-    </div>
+    </div>}
     <div className="learn-hero-grid">
       <section className={'learn-hero '+(nextModule?'learn-hero-subject':'')} style={accent(nextModule?.color)}>
         <span className="learn-eyebrow"><CalendarClock size={15}/> ALS NÄCHSTES</span>
@@ -140,7 +216,6 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
         <h3>{suggestion.title}</h3>
         <p>{suggestion.message}</p>
         <div className="learn-recommendation-footer">
-          <span>Aktuell anhand deiner Termine und Check-ins</span>
           {suggestion.moduleId&&suggestion.kind!=='checkin'&&
             <button onClick={()=>beginStudy(suggestion.moduleId,suggestion.kind==='review'?suggestion.lessonKey:undefined,suggestion.kind==='exam')}>
               Lernen erfassen <ArrowRight size={15}/>
@@ -180,19 +255,22 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
       {freePending.length>3&&<button className="learn-text-action" onClick={()=>setShowAll(v=>!v)}>{showAll?'Weniger':'Weitere Lerneinheiten'} <ChevronRight size={15}/></button>}
     </section>}
     <section className="learn-section">
-      <div className="learn-title"><h2>Lernplan</h2><button className="learn-primary" onClick={()=>beginStudy()} disabled={!active.length}><Plus size={16}/> Freies Lernen</button></div>
+      <div className="learn-title"><h2>Lernplan</h2></div>
       {planned.length>0&&<div className="learn-planned">
         <div className="learn-planned-title">Für heute übernommen · {planned.filter(t=>completedPlans.has(t.id)).length} von {planned.length} erledigt</div>
         {planned.map(t=><div className="learn-planned-item" key={t.id} style={accent(modules.find(m=>m.id===t.moduleId)?.color)}>
           <span className="learn-planned-indicator">{completedPlans.has(t.id)?<Check size={17}/>:<Clock3 size={17}/>}</span>
           <div className="learn-planned-content"><strong>{t.title}</strong><small>{modules.find(m=>m.id===t.moduleId)?.name} · {t.duration} Minuten</small></div>
           {completedPlans.has(t.id)?<span className="learn-planned-done">Erledigt</span>:<>
-            <button className="learn-planned-finish" onClick={()=>{beginStudy(t.moduleId,t.lessonKey,t.kind==='exam',t.id);setDuration(t.duration)}}>Fertig?</button>
+            <div className="learn-planned-actions">
+              <button className="learn-planned-timer" onClick={()=>studyTimer?.planId===t.id?(studyTimer.endsAt?pauseStudyTimer():resumeStudyTimer()):startStudyTimer(t)}>{studyTimer?.planId===t.id?(studyTimer.endsAt?<><Pause size={14}/> Pausieren</>:<><Play size={14}/> Fortsetzen</>):<><Timer size={14}/> Timer starten</>}</button>
+              <button className="learn-planned-finish" onClick={()=>{if(studyTimer?.planId===t.id)saveStudyTimer(null);beginStudy(t.moduleId,t.lessonKey,t.kind==='exam',t.id);setDuration(t.duration)}}>Fertig?</button>
+            </div>
             <button className="learn-planned-delete" aria-label="Lernziel entfernen" onClick={()=>onRemovePlan(t.id)}><X size={15}/></button>
           </>}
         </div>)}
       </div>}
-      {rankedModules.length>0&&<div className="learn-suggestions">
+      {active.length>0&&<div className="learn-suggestions">
         {rankedModules.slice(0,3).map(({module,j},index)=>{
           const target=j.weakLessons[0]
           const examFocus=j.daysUntilExam!==undefined&&j.daysUntilExam<=7&&!target
@@ -202,6 +280,11 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
             <button aria-label={'Lernziel für '+module.name+' übernehmen'} title="Für heute einplanen" onClick={()=>onPlan({id:module.id+'-'+Date.now(),moduleId:module.id,date:today(),title:target?'Wiederholen: '+target.label:examFocus?'Prüfungsaufgaben üben':'Wissen festigen',kind:examFocus?'exam':'review',duration:45,lessonKey:target?.key})}><Plus size={17}/></button>
           </div>
         })}
+        <div className="learn-suggestion learn-suggestion-free">
+          <span className="learn-suggestion-num">04</span>
+          <div><strong>Freies Lernen</strong><small>Eigene Lerneinheit ohne Lernplan erfassen</small></div>
+          <button aria-label="Freies Lernen erfassen" onClick={()=>beginStudy()}><Plus size={17}/></button>
+        </div>
       </div>}
       <div className="learn-today"><Clock3 size={17}/><span>Heute erfasste Lerneinheiten</span><strong>{completed}</strong></div>
     </section>
