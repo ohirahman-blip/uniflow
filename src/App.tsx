@@ -6,6 +6,7 @@ import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, f
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
 import MailPrototype from './MailPrototype'
+import CampusMap from './CampusMap'
 import StartupSplash from './StartupSplash'
 import { disconnectMailAccount, getMailAccount, getMailThreads, type MailAccount } from './mail-client'
 import { configurePushPreferences } from './push-notifications'
@@ -25,12 +26,12 @@ import './onboarding-refine.css'
 import './premium-ai.css'
 import './brand-theme.css'
 
-type Page = 'dashboard' | 'calendar' | 'modules' | 'mail' | 'settings' | 'admin'
+type Page = 'dashboard' | 'campus' | 'calendar' | 'modules' | 'mail' | 'settings' | 'admin'
 const pageFromUrl = (userId?: string): Page => {
   let saved: string | null = null
   try { if(userId)saved=localStorage.getItem('uniflow-last-page:'+userId) } catch { /* Storage may be unavailable. */ }
   const requested = new URLSearchParams(window.location.search).get('page') || saved
-  return requested === 'mail' || requested === 'calendar' || requested === 'modules' || requested === 'settings' ? requested : 'dashboard'
+  return requested === 'campus' || requested === 'mail' || requested === 'calendar' || requested === 'modules' || requested === 'settings' ? requested : 'dashboard'
 }
 /** Entitlements are checked elsewhere; this component is only a visual mark. */
 function BrandMark({premium,page,compact=false}:{premium:boolean;page:Page;compact?:boolean}){
@@ -1246,7 +1247,7 @@ export default function App() {
   const navigatePage=(next:Page,remember=true)=>{
     if(page===next)return
     if(remember)pageHistory.current.push(page)
-    const order:Page[]=['dashboard','calendar','modules','mail','settings','admin']
+    const order:Page[]=['dashboard','campus','calendar','modules','mail','settings','admin']
     setPageDirection(order.indexOf(next)>order.indexOf(page)?'forward':'backward')
     // Root-level View Transitions captured the fixed bottom tab bar and briefly
     // placed it behind the switching page. Animate only the content instead.
@@ -1544,6 +1545,7 @@ export default function App() {
     note('Bewertung gespeichert.')
   }
   const degree = data.degrees.find(d => d.id === data.activeDegreeId)
+  const campusEnabled=/technische universität berlin|tu berlin/i.test(degree?.university||'')
   const semester = data.semesters.find(s => s.id === data.activeSemesterId)
   const degreeModules = data.modules.filter(m => m.degreeId === degree?.id)
   const semesterModules = degreeModules.filter(m => m.semesterIds.includes(semester?.id || ''))
@@ -1654,13 +1656,14 @@ export default function App() {
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
       {page === 'dashboard' && <LearningDashboard
         data={data} semester={semester} modules={semesterModules} timerStorageKey={'uniflow-study-timer-v1-'+user.id} aiAdvice={ai.advice} context={currentStudyContext}
-        onCheckin={saveLectureRating} onTopic={saveLectureTopic}
+        onCheckin={saveLectureRating} onTopic={saveLectureTopic} campusEnabled={campusEnabled} onOpenCampus={()=>navigatePage('campus')}
         onSession={(session:Omit<LearningSession,'id'|'updatedAt'>)=>mutate(d=>({
           ...d,learningSessions:[...(d.learningSessions||[]).filter(old=>!session.scheduledKey||old.scheduledKey!==session.scheduledKey),{...session,id:uid(),updatedAt:new Date().toISOString()}]
         }))}
         onPlan={(task:LearningPlanTask)=>mutate(d=>({...d,learningPlans:[...(d.learningPlans||[]),task]}))}
         onRemovePlan={id=>mutate(d=>({...d,learningPlans:(d.learningPlans||[]).filter(p=>p.id!==id)}))}
       />}
+      {page === 'campus' && (campusEnabled?<CampusMap onBack={()=>{const previous=pageHistory.current.pop();navigatePage(previous||'dashboard',false)}}/>:<div className="page-blank"><h1>Campusplan</h1><p>Der Campusplan ist aktuell für Studierende der TU Berlin verfügbar.</p><button className="primary-action" onClick={()=>navigatePage('dashboard',false)}>Zur Übersicht</button></div>)}
       {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={openRatingOccurrence} onPreviewAssessment={item=>setPreviewAssessmentId(item.id)} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onCancelVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:d.offerings.map(item=>item.id===occ.offering.id?{...item,overrides:{...(item.overrides||{}),[occ.origin]:{date:occ.origin,from:occ.from,to:occ.to,cancelled:true,scope:'single',reason:'removal'}}}:item)}));note('Termin fällt ohne Ersatz aus.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => navigatePage('settings')}>Einstellungen</button></div>}</div>}
       {page === 'mail' && <MailPrototype onUnreadChange={setMailUnread} key={user.id} userId={user.id} onAccountChange={setMailAccount} onNotice={note}/>}
       {page === 'modules' && !selectedModuleId && <ModuleHub degree={degree} modules={degreeModules} goals={(data.creditGoals||[]).filter(goal=>goal.degreeId===degree?.id)} assessments={data.assessments} journeys={journeysByModule} currentSemesterId={semester?.id||''} creditsPassed={creditsPassed} average={average} onAdd={()=>setNewModule(true)} onSaveGoal={goal=>mutate(d=>{const exists=(d.creditGoals||[]).some(item=>item.id===goal.id);return {...d,creditGoals:exists?(d.creditGoals||[]).map(item=>item.id===goal.id?goal:item):[...(d.creditGoals||[]),goal]}})} onDeleteGoal={id=>mutate(d=>({...d,creditGoals:(d.creditGoals||[]).filter(goal=>goal.id!==id)}))} onReorderModules={ids=>mutate(d=>{const queue=ids.map(id=>d.modules.find(module=>module.id===id)).filter((module):module is StudyModule=>!!module);return {...d,modules:d.modules.map(module=>module.degreeId===degree?.id?queue.shift()!:module)}})} onReorderGoals={ids=>mutate(d=>{const selected=new Set(ids),queue=ids.map(id=>(d.creditGoals||[]).find(goal=>goal.id===id)).filter((goal):goal is CreditGoal=>!!goal);return {...d,creditGoals:(d.creditGoals||[]).map(goal=>selected.has(goal.id)?queue.shift()!:goal)}})} editing={newModule} onEdit={m=>setSelectedModuleId(m.id)} newName={newName} setNewName={setNewName} newCredits={newCredits} setNewCredits={setNewCredits} saveNewModule={saveNewModule} cancelNew={()=>setNewModule(false)} />}
