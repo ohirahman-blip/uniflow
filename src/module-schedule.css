@@ -238,6 +238,9 @@
 .module-learning-editor{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:3px 0 15px}
 .module-learning-topic,.module-learning-delete{grid-column:1/-1}
 .module-learning-editor input{height:42px;background:#222;border:0}
+.module-learning-topic-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.module-learning-topic-actions button{border:0;border-radius:9px;padding:10px 12px;background:#eee;color:#171717;font-size:11px;font-weight:700}
+.module-learning-topic-actions button+button{background:#29292c;color:#c5c5ca;font-weight:600}
 .module-learning-delete{display:flex;align-items:center;justify-content:center;gap:7px;border:0;border-radius:9px;padding:10px;background:#2a2325;color:#eda4aa;font-size:11px}
 .plain-number-input{-moz-appearance:textfield;appearance:textfield}
 .plain-number-input::-webkit-inner-spin-button,.plain-number-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
