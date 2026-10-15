@@ -40,12 +40,12 @@
 .settings-ai-toggle{
   position:relative;
   display:block;
-  flex:0 0 40px;
-  width:40px;
-  height:24px;
+  flex:0 0 43px;
+  width:43px;
+  height:25px;
   margin-left:auto;
   padding:3px;
-  border:1px solid #4b4b50;
+  border:0;
   border-radius:999px;
   background:#29292d;
   cursor:pointer;
@@ -53,8 +53,8 @@
 }
 .settings-ai-toggle span{
   display:block;
-  width:16px;
-  height:16px;
+  width:19px;
+  height:19px;
   border-radius:50%;
   background:#bbbcc1;
   transition:transform 190ms cubic-bezier(.2,.8,.3,1),background-color 170ms;
@@ -64,7 +64,7 @@
   border-color:#af7a96;
 }
 .settings-ai-toggle.is-on span{
-  transform:translateX(16px);
+  transform:translateX(18px);
   background:#fff;
 }
 .settings-ai-toggle:focus-visible{
