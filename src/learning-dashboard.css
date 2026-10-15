@@ -1,7 +1,7 @@
 /* Dashboard-only styles. The existing timetable keeps its own styles and logic. */
 .learn-dashboard{max-width:1020px;color:#f4f4f5;padding-top:44px}
 .learn-heading{margin-bottom:28px}
-.learn-heading h1{font-size:clamp(40px,7vw,64px);letter-spacing:-2.5px;font-weight:800;margin:10px 0 5px;line-height:1.1}
+.learn-heading h1{font-size:clamp(32px,5.5vw,50px);letter-spacing:-1.8px;font-weight:800;margin:10px 0 5px;line-height:1.1}
 .learn-heading-dot{color:#a5a5a5}
 .learn-heading p,.learn-muted{color:#89898f;font-size:13px;line-height:1.65}
 .learn-hero-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -30,7 +30,7 @@
 .learn-recommendation{background:#1a1a1a;border-radius:16px;padding:20px;margin-top:15px}
 .learn-recommendation h3{margin:14px 0 6px;font-size:22px;letter-spacing:-.55px}
 .learn-recommendation>p{color:#aaa;line-height:1.6;font-size:12px}
-.learn-recommendation-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:17px}
+.learn-recommendation-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:17px}
 .learn-recommendation-footer span{color:#85858b;font-size:11px}
 .learn-recommendation-footer button{display:flex;align-items:center;gap:7px;background:#f5f5f5;color:#101010;border:0;border-radius:9px;padding:10px 12px;font-size:11px;font-weight:700}
 .learn-today{display:flex;align-items:center;gap:10px;color:#9c9ca2;font-size:12px;padding:17px 2px 0}
@@ -74,6 +74,21 @@
 .learn-suggestion>div small{font-size:11px;color:#9b9ba3;line-height:1.4}
 .learn-suggestion>button{display:grid;place-items:center;background:#252525;color:#eee;border:0;border-radius:9px;width:35px;height:35px;flex-shrink:0}
 .learn-suggestion>button:hover{background:#333}
+.learn-suggestion-free strong,.learn-suggestion-free .learn-suggestion-num{color:#f5f5f6}
+.learn-suggestion-free>button,.learn-suggestion-free>button:hover{background:transparent;color:#fff}
+
+.learn-active-timer{position:relative;display:flex;align-items:flex-end;justify-content:space-between;gap:22px;margin:0 0 25px;padding:18px 20px 21px;border-radius:16px;background:#171717;overflow:hidden}
+.learn-active-timer-copy{display:flex;min-width:0;flex-direction:column;gap:6px}
+.learn-active-timer-label{display:flex;align-items:center;gap:7px;color:#a0a0a7;font-size:10px;font-weight:700;letter-spacing:1px}
+.learn-active-timer-copy>strong{font-size:19px;letter-spacing:-.35px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.learn-active-timer-copy>small{color:#8e8e95;font-size:11px}
+.learn-active-timer-clock{display:flex;flex:0 0 auto;flex-direction:column;align-items:flex-end;gap:9px}
+.learn-active-timer-clock>strong{font-size:29px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.learn-active-timer-clock>div{display:flex;gap:6px}
+.learn-active-timer-clock button{display:flex;align-items:center;gap:6px;border:0;border-radius:8px;padding:8px 10px;background:#f4f4f4;color:#111;font-size:10px;font-weight:700}
+.learn-active-timer-clock .learn-timer-stop{background:#29292c;color:#bbb}
+.learn-active-timer>i{position:absolute;left:0;right:0;bottom:0;height:3px;background:#27272a}
+.learn-active-timer>i>span{display:block;height:100%;background:#f4f4f4;transition:width .25s linear}
 
 
 /* Saved daily study plans: isolated to dashboard; no calendar styling changed. */
@@ -85,10 +100,14 @@
 .learn-planned-content strong { font-size:13px; color:#efedf0; font-weight:650; overflow-wrap:anywhere; }
 .learn-planned-content small { font-size:11px; color:#a4a1a8; }
 .learn-planned-done { color:#91d5aa; font-weight:650; font-size:11px; }
-.learn-planned-finish { color:#fff; background:var(--uniflow-accent,#f94f72); border:0; border-radius:8px; padding:10px 12px; font-weight:650; font-size:11px; cursor:pointer; }
+.learn-planned-actions{display:flex;align-items:center;gap:6px}
+.learn-planned-actions button{white-space:nowrap}
+.learn-planned-timer{display:flex;align-items:center;gap:5px;color:#d6d6da;background:#29292c;border:0;border-radius:8px;padding:10px 11px;font-weight:650;font-size:10px;cursor:pointer}
+.learn-planned-finish { color:#111; background:#f4f4f4; border:0; border-radius:8px; padding:10px 12px; font-weight:700; font-size:11px; cursor:pointer; }
 .learn-planned-delete { color:#8e8b93; background:transparent; border:0; padding:6px; cursor:pointer; display:grid; place-items:center; }
 .learn-suggestions button:disabled { opacity:.4; cursor:default; }
-@media(max-width:420px){ .learn-planned{padding:9px 11px} .learn-planned-item{gap:8px} .learn-planned-finish{padding:9px 8px} }
+@media(max-width:620px){.learn-planned-item{align-items:flex-start;flex-wrap:wrap}.learn-planned-content{min-width:calc(100% - 52px)}.learn-planned-actions{width:100%;padding-left:44px}.learn-planned-delete{margin-left:auto}}
+@media(max-width:420px){ .learn-planned{padding:9px 11px} .learn-planned-item{gap:8px} .learn-planned-actions{padding-left:41px}.learn-planned-actions button{flex:1;justify-content:center}.learn-planned-finish{padding:9px 8px}.learn-active-timer{align-items:stretch;flex-direction:column;gap:16px;padding:17px 17px 20px}.learn-active-timer-clock{align-items:stretch}.learn-active-timer-clock>strong{font-size:27px}.learn-active-timer-clock>div button{flex:1;justify-content:center} }
 
 
 /* Color comes exclusively from the student's chosen module.color. */
