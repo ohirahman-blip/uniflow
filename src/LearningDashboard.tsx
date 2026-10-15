@@ -214,7 +214,6 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
         <label>Dauer<UniflowPicker kind="duration" label="Lerndauer" value={String(duration)} maxMinutes={360} onChange={value=>setDuration(Number(value))}/></label>
         <span className="learn-field-title">Wie lief es?</span>
         <div className="learn-result-options">{ratingLabels.filter(r=>r.value!=='absent').map(r=><button key={r.value} className={result===r.value?'active':''} onClick={()=>setResult(r.value as typeof result)}>{r.label}</button>)}</div>
-        <p className="learn-muted">Lernzeit allein bedeutet nicht, dass du den Stoff beherrschst. Deine Bewertung fließt in die Empfehlungen ein.</p>
         <button className="learn-submit" disabled={!chosenModule} onClick={submitStudy}>Lerneinheit speichern <Check size={17}/></button>
       </div>
     </div>,document.body)}
