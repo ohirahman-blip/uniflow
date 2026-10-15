@@ -127,7 +127,7 @@ assert.match(editor,/>Lehrperson<input/,'Preview allows manually correcting a le
 assert.match(editor,/type="url" placeholder="https:\/\/…"/,'Preview has online-link input')
 assert.match(editor,/Einmalig<\/option>/,'Preview supports switching to one-time')
 assert.match(editor,/endDate===fresh\.endDate/,'Duplicate check includes duration and repetition period')
-assert.match(editor,/disabled=\{!preview\.topics\.length\}/,'Valid recognized terms can be applied even with partial parsing warnings')
+assert.match(editor,/disabled=\{!preview\.topics\.length&&!preview\.assessments\.length&&!preview\.exceptions\.length\}/,'Any valid recognized schedule item can be applied even with partial parsing warnings')
 assert.doesNotMatch(editor,/validated\.errors\.length\|\|!validated\.topics\.length/,'Partial parsing warnings cannot block importing valid terms')
 assert.match(editor,/<textarea ref=\{quickInputRef\} rows=\{1\}/,'Quick input starts at one line')
 assert.match(editor,/useLayoutEffect\(\(\)=>\{resizeQuickInput\(\)\},\[quickText\]\)/,'Quick input grows when its value changes')
@@ -135,7 +135,7 @@ assert.match(editor,/field\.scrollHeight/,'Quick input measures its natural cont
 assert.match(editor,/onToggle=\{e=>\{if\(e\.currentTarget\.open\)requestAnimationFrame\(resizeQuickInput\)\}\}/,'Textarea remeasured when disclosure opens')
 const scheduleCss=fs.readFileSync('src/module-schedule.css','utf8')
 assert.match(scheduleCss,/\.module-fast-quick textarea \{[^\n]*resize:none;[^\n]*overflow-y:hidden;/,'No manual resize handle')
-assert.match(scheduleCss,/\.module-fast \.module-fast-quick textarea\{[^\n]*border-radius:16px;[^\n]*min-height:44px\}/,'Rounded single-line input')
+assert.match(scheduleCss,/\.module-fast \.module-fast-quick textarea\{[^\n]*border-radius:16px;[^\n]*min-height:44px[^\n]*\}/,'Rounded single-line input')
 
 assert.doesNotMatch(editor,/previewTimer\.current=setTimeout/,'No fake AI delay')
 assert.match(edge,/new Response\(null,\{status:204,headers:headers\(req\)\}\)/,'Schedule preflight must have no body')

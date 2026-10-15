@@ -4,7 +4,7 @@
   padding:0;
   border:0;
   background:transparent;
-  color:#eeeeef;
+  color:var(--uf-color-text);
 }
 .lesson-feedback-topic{
   box-sizing:border-box;
@@ -12,9 +12,9 @@
   min-width:0;
   height:43px;
   padding:9px 11px;
-  background:#29292c;
+  background:var(--uf-color-control);
   border:1px solid transparent;
-  border-radius:9px;
+  border-radius:var(--uf-radius-control);
   color:#f6f6f6;
   font:inherit;
   font-size:13px;
@@ -31,7 +31,7 @@
   padding:9px 5px;
   border:1px solid #37373b;
   border-radius:9px;
-  background:#29292c;
+  background:var(--uf-color-control);
   color:#c7c7cc;
   font:inherit;
   font-size:11px;
