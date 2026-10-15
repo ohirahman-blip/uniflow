@@ -1078,6 +1078,11 @@ button {
   justify-content: center;
   gap: 10px;
 }
+.primary-action:disabled {opacity:.38;cursor:not-allowed;}
+.delete-confirm-field{display:flex;flex-direction:column;gap:8px;margin:18px 0 22px;color:#999;font-size:11px}
+.delete-confirm-field strong{color:#f0f0f2;font-size:12px;font-weight:650;overflow-wrap:anywhere}
+.delete-confirm-field input{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #45454a;border-radius:10px;background:#252527;color:#fff;padding:0 12px;font:inherit;font-size:12px;outline:0}
+.delete-confirm-field input:focus-visible{border-color:#8b8b91}
 .detail-category {
   color: #aaa;
   font-size: 12px;
