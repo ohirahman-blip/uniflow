@@ -2457,7 +2457,7 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 }
 .sheet-header-compact h2 { display:none; }
 .sheet-header-compact + .sheet-body { padding-top:10px; }
-.sheet-header-save{border:0;background:transparent;color:#f2bdcf;padding:8px 2px;font:inherit;font-size:13px;font-weight:750}
+.sheet-header-save{border:0;background:transparent;color:var(--uniflow-accent,#f94f72);padding:8px 2px;font:inherit;font-size:12px;font-weight:750}
 
 /* The requested small, symbol-only theme choice. Light mode disabled for now. */
 .theme-icon-switch {
