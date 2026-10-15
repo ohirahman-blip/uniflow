@@ -131,6 +131,7 @@ export default function ModuleScheduleEditor({
   const [expandedTopics,setExpandedTopics]=useState<Record<string,boolean>>({})
   const [editingSlotId,setEditingSlotId]=useState<string|null>(null)
   const [editingLearningId,setEditingLearningId]=useState<string|null>(null)
+  const [learningTopicDrafts,setLearningTopicDrafts]=useState<Record<string,string>>({})
   const [learningOpen,setLearningOpen]=useState(false)
   const [learningFilter,setLearningFilter]=useState<'all'|'classes'|'free'|'exam'>('all')
   const [deleted,setDeleted]=useState<Offering[]>([])
@@ -186,6 +187,27 @@ export default function ModuleScheduleEditor({
     (learningFilter==='free'&&entry.kind==='session'&&entry.item.kind==='review')||
     (learningFilter==='exam'&&entry.kind==='session'&&entry.item.kind==='exam')
   ),[learningFilter,learningHistory])
+  const toggleLearningEditor=(entry:typeof learningHistory[number])=>{
+    const closing=editingLearningId===entry.id
+    setEditingLearningId(closing?null:entry.id)
+    if(!closing&&entry.kind==='checkin'){
+      const saved=lessonTopics.find(topic=>topic.key===entry.item.key)?.title
+      setLearningTopicDrafts(current=>({...current,[entry.item.key]:saved??entry.title}))
+    }
+  }
+  const saveLearningTopic=(checkin:LearningCheckin)=>{
+    const title=(learningTopicDrafts[checkin.key]||'').trim().slice(0,100)
+    onChangeLessonTopics([
+      ...lessonTopics.filter(topic=>topic.key!==checkin.key),
+      ...(title?[{key:checkin.key,moduleId:checkin.moduleId,contentId:checkin.contentId,date:checkin.date,title,updatedAt:new Date().toISOString()}]:[])
+    ])
+    setEditingLearningId(null)
+  }
+  const removeLearningTopic=(checkin:LearningCheckin)=>{
+    onChangeLessonTopics(lessonTopics.filter(topic=>topic.key!==checkin.key))
+    setLearningTopicDrafts(current=>({...current,[checkin.key]:''}))
+    setEditingLearningId(null)
+  }
   if(!semester)return <div className="screen secondary-screen"><button className="text-back" onClick={onBack}>← Module</button><p>Bitte zuerst ein Semester auswählen.</p></div>
 
   const commit=(next:Offering[])=>{setWarning('');onChangeOfferings(next)}
@@ -424,7 +446,7 @@ export default function ModuleScheduleEditor({
       <div className="module-learning-list">{filteredLearningHistory.map(entry=>{
         const editing=editingLearningId===entry.id
         return <div className={'module-learning-row '+(editing?'is-editing':'')} key={entry.id}>
-          <button type="button" className="module-learning-preview" aria-expanded={editing} onClick={()=>setEditingLearningId(editing?null:entry.id)}>
+          <button type="button" className="module-learning-preview" aria-expanded={editing} onClick={()=>toggleLearningEditor(entry)}>
             <span><strong>{entry.title}</strong><small>{formatDate(entry.date,{day:'numeric',month:'short',year:'numeric'})} · {entry.subtitle}</small></span>
             <Pencil size={15}/>
           </button>
@@ -436,11 +458,9 @@ export default function ModuleScheduleEditor({
             <button type="button" className="module-learning-delete" onClick={()=>{onChangeLearningSessions(learningSessions.filter(item=>item.id!==entry.item.id));setEditingLearningId(null)}}><Trash2 size={15}/> Lerneinheit löschen</button>
           </div>}
           {editing&&entry.kind==='checkin'&&<div className="module-learning-editor">
-            <label className="module-learning-topic">Thema<input value={lessonTopics.find(topic=>topic.key===entry.item.key)?.title||entry.title} onChange={event=>onChangeLessonTopics([
-              ...lessonTopics.filter(topic=>topic.key!==entry.item.key),
-              {key:entry.item.key,moduleId:entry.item.moduleId,contentId:entry.item.contentId,date:entry.item.date,title:event.target.value.slice(0,100),updatedAt:new Date().toISOString()}
-            ])}/></label>
+            <label className="module-learning-topic">Thema<input value={learningTopicDrafts[entry.item.key]??entry.title} maxLength={100} onChange={event=>setLearningTopicDrafts(current=>({...current,[entry.item.key]:event.target.value}))} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();saveLearningTopic(entry.item)}}}/></label>
             <label>Bewertung<UniflowPicker label="Bewertung" value={entry.item.rating} options={Object.entries(ratingLabels).filter(([value])=>value!=='absent').map(([value,label])=>({value,label}))} onChange={value=>onChangeLearningCheckins(learningCheckins.map(item=>item.key===entry.item.key?{...item,rating:value as LearningRating,updatedAt:new Date().toISOString()}:item))}/></label>
+            <div className="module-learning-topic-actions"><button type="button" onClick={()=>saveLearningTopic(entry.item)}>Thema speichern</button>{lessonTopics.some(topic=>topic.key===entry.item.key)&&<button type="button" onClick={()=>removeLearningTopic(entry.item)}>Thema entfernen</button>}</div>
             <button type="button" className="module-learning-delete" onClick={()=>{onChangeLearningCheckins(learningCheckins.filter(item=>item.key!==entry.item.key));onChangeLessonTopics(lessonTopics.filter(topic=>topic.key!==entry.item.key));setEditingLearningId(null)}}><Trash2 size={15}/> Bewertung löschen</button>
           </div>}
         </div>
