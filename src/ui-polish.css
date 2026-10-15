@@ -158,7 +158,7 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
 .uf-entry-form .uf-picker-trigger:focus-visible,
 .uf-entry-form input:focus-visible,
 .uf-entry-form .big-choice:focus-visible,
-.uf-entry-form .uf-entry-module-choice:focus-visible {border-color:var(--uniflow-accent,#f94f72);outline:none;}
+.uf-entry-form .uf-entry-module-choice:focus-visible {border-color:#8b8b91;outline:none;}
 .uf-entry-module-choice,
 .uf-entry-form .big-choice {text-align:left;justify-content:space-between;gap:8px;}
 /* The module search/create panel needs more space than the half-width
@@ -249,7 +249,7 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   padding:0 12px;
 }
 .module-fast .module-fast-topic-inputs .uf-picker-trigger>span {font-size:12px;font-weight:500;}
-.module-fast .module-fast-topic-inputs input:focus-visible {border-color:var(--uniflow-accent,#f94f72);}
+.module-fast .module-fast-topic-inputs input:focus-visible {border-color:#8b8b91;}
 
 /* One compact control language across all non-premium edit surfaces. */
 .sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger),
@@ -278,8 +278,38 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
 .learn-sheet :is(input,select,textarea,.uf-picker-trigger):focus-visible,
 .admin-form :is(input,select,textarea,.uf-picker-trigger):focus-visible,
 .settings-screen :is(.setting-input input,.number-setting input):focus-visible {
-  border-color:var(--uniflow-accent,#f94f72);
+  border-color:#8b8b91;
   outline:none;
+}
+.settings-screen .number-setting input {
+  width:54px;
+  min-height:0;
+  height:auto;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  text-align:right;
+}
+.settings-screen .number-setting input:focus-visible {border:0;outline:0;}
+.settings-screen input[type="number"],
+.module-hub input[type="number"],
+.module-fast input[type="number"],
+.sheet input[type="number"] {-moz-appearance:textfield;appearance:textfield;}
+.settings-screen input[type="number"]::-webkit-inner-spin-button,
+.settings-screen input[type="number"]::-webkit-outer-spin-button,
+.module-hub input[type="number"]::-webkit-inner-spin-button,
+.module-hub input[type="number"]::-webkit-outer-spin-button,
+.module-fast input[type="number"]::-webkit-inner-spin-button,
+.module-fast input[type="number"]::-webkit-outer-spin-button,
+.sheet input[type="number"]::-webkit-inner-spin-button,
+.sheet input[type="number"]::-webkit-outer-spin-button {-webkit-appearance:none;margin:0;}
+.sheet .editor-field > input[type="number"],
+.module-fast .module-fast-meta-grid input[type="number"] {
+  background:transparent;
+  border:0;
+  border-bottom:1px solid #45454a;
+  border-radius:0;
 }
 .sheet :is(.category-list button,.repeat-switch button) {font-size:12px;}
 html[data-theme='light'] .uf-entry-form input.line-input,
