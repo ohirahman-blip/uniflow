@@ -117,6 +117,21 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
   const currentText = thread ? drafts[thread.id] || '' : ''
   const currentFiles = thread ? files[thread.id] || [] : []
   const currentReply = thread ? replyingTo[thread.id] : undefined
+  useEffect(()=>{
+    if(!subjectOpen&&!context&&!active&&!selected.size&&!revealed)return
+    const onBack=(event:Event)=>{
+      const detail=(event as CustomEvent<{handled:boolean}>).detail
+      if(detail?.handled)return
+      detail.handled=true
+      if(subjectOpen)setSubjectOpen(false)
+      else if(context)setContext(null)
+      else if(active)setActive(null)
+      else if(selected.size)setSelected(new Set())
+      else setRevealed(null)
+    }
+    window.addEventListener('uniflow-back',onBack)
+    return()=>window.removeEventListener('uniflow-back',onBack)
+  },[active,context,revealed,selected.size,subjectOpen])
 
   const loadThreads = useCallback(async (quiet = false) => {
     if(syncing.current)return
