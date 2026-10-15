@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, BookOpen, Check, ChevronDown, ClipboardList, Copy, GraduationCap, Lock, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Check, ChevronDown, ClipboardList, Copy, GraduationCap, Lock, Pencil, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
 import {
   addDays, assessmentComponentKey, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
   intersects, isAssessment, minutes, occurrenceAtOrigin, timeString, today, uid,
   rebalanceAssessmentWeights, selectedAssessment, upsertAssessment, weekday, weekStart,
   type Assessment, type Offering, type Repeat, type Semester, type StudyModule, type Occurrence
 } from './model'
-import type { Journey } from './learning'
+import type { Journey, LearningCheckin, LearningRating, LearningSession, LessonTopic } from './learning'
 import UniflowPicker from './UniflowPicker'
 import { supabase } from './supabase'
 import { describeAiRequestError } from './ai-errors'
@@ -24,6 +24,15 @@ type QuickPreview = AiSchedulePreview
 const prettyLabel = (type:string,n:number) => type+' '+String(n).padStart(2,'0')
 const norm = (value:string) => value.toLocaleLowerCase('de-DE').replace(/[\s_-]/g,'').replace(/0+(\d+)$/, '$1')
 const durationOf = (o:Offering) => Math.max(1,minutes(o.to)-minutes(o.from))
+const ratingLabels:Record<LearningRating,string>={
+  understood:'Verstanden',partial:'Teilweise',struggling:'Nicht verstanden',absent:'Nicht besucht'
+}
+const offeringSentence=(offering:Offering)=>{
+  const date=formatDate(offering.date,{day:'numeric',month:'short',year:'numeric'})
+  if(offering.recurrence==='once')return `Einmalig am ${date} · ${offering.from}–${offering.to}`
+  const rhythm=offering.recurrence==='biweekly'?'Alle 2 Wochen':'Wöchentlich'
+  return `${rhythm} ab ${date} · jeden ${dayNames[weekday(offering.date)]} um ${offering.from}–${offering.to}`
+}
 const initialDate = (semester:Semester, day:number) =>
   addDays(semester.start,(day-weekday(semester.start)+7)%7)
 const typeFromPrefix = (text:string) => {
@@ -88,11 +97,17 @@ type Props = {
   onAddAssessment:(type:'exam'|'homework')=>void;
   onOpenOccurrence:(occ:Occurrence)=>void;
   onClearException:(offeringId:string,origin:string)=>void;
+  learningSessions:LearningSession[];learningCheckins:LearningCheckin[];lessonTopics:LessonTopic[];
+  onChangeLearningSessions:(next:LearningSession[])=>void;
+  onChangeLearningCheckins:(next:LearningCheckin[])=>void;
+  onChangeLessonTopics:(next:LessonTopic[])=>void;
   cloudStatus:'loading'|'saving'|'synced'|'error';cloudError:string;onRetrySync:()=>void;
 }
 export default function ModuleScheduleEditor({
   module,semester,offerings,assessments,journey,premium,onBack,onUpdateModule,onDeleteModule,
-  onChangeOfferings,onChangeAssessments,onEditAssessment,onAddAssessment,onOpenOccurrence,onClearException,cloudStatus,cloudError,onRetrySync
+  onChangeOfferings,onChangeAssessments,onEditAssessment,onAddAssessment,onOpenOccurrence,onClearException,
+  learningSessions,learningCheckins,lessonTopics,onChangeLearningSessions,onChangeLearningCheckins,onChangeLessonTopics,
+  cloudStatus,cloudError,onRetrySync
 }:Props) {
   const [quickText,setQuickText]=useState('')
   const quickInputRef=useRef<HTMLTextAreaElement|null>(null)
@@ -114,11 +129,26 @@ export default function ModuleScheduleEditor({
   const [exceptionFrom,setExceptionFrom]=useState('10:00')
   const [exceptionTo,setExceptionTo]=useState('12:00')
   const [expandedTopics,setExpandedTopics]=useState<Record<string,boolean>>({})
-  const [expandedAlternatives,setExpandedAlternatives]=useState<Record<string,boolean>>({})
+  const [editingSlotId,setEditingSlotId]=useState<string|null>(null)
+  const [editingLearningId,setEditingLearningId]=useState<string|null>(null)
   const [deleted,setDeleted]=useState<Offering[]>([])
   const [warning,setWarning]=useState('')
   const [thinking,setThinking]=useState(false)
   const [quickError,setQuickError]=useState('')
+  useEffect(()=>{
+    if(!editingSlotId&&!editingLearningId&&!exceptionEditor&&!preview)return
+    const onBack=(event:Event)=>{
+      const detail=(event as CustomEvent<{handled:boolean}>).detail
+      if(detail?.handled)return
+      detail.handled=true
+      if(preview)setPreview(null)
+      else if(exceptionEditor)setExceptionEditor(false)
+      else if(editingLearningId)setEditingLearningId(null)
+      else setEditingSlotId(null)
+    }
+    window.addEventListener('uniflow-back',onBack)
+    return()=>window.removeEventListener('uniflow-back',onBack)
+  },[editingLearningId,editingSlotId,exceptionEditor,preview])
   const previewRequest=useRef<AbortController|null>(null)
   useEffect(()=>()=>{previewRequest.current?.abort()},[])
   const imported=useRef(false)
@@ -132,6 +162,22 @@ export default function ModuleScheduleEditor({
     for(const item of ownAssessments){const key=assessmentComponentKey(item);result.set(key,[...(result.get(key)||[]),item])}
     return [...result.entries()].map(([key,items])=>({key,items:items.sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))}))
   },[ownAssessments])
+  const learningHistory=useMemo(()=>{
+    const lessons=new Map((journey?.lessons||[]).map(lesson=>[lesson.key,lesson]))
+    const topics=new Map(lessonTopics.filter(topic=>topic.moduleId===module.id).map(topic=>[topic.key,topic.title]))
+    const sessions=learningSessions.filter(item=>item.moduleId===module.id).map(item=>({
+      id:'session:'+item.id,date:item.date,kind:'session' as const,item,
+      title:item.kind==='exam'?'Klausurvorbereitung':item.lessonKey?'Veranstaltung wiederholt':'Freies Lernen',
+      subtitle:`${item.duration} Min. · ${ratingLabels[item.rating]}`
+    }))
+    const checkins=learningCheckins.filter(item=>item.moduleId===module.id&&item.rating!=='absent').map(item=>{
+      const lesson=lessons.get(item.key)
+      return {id:'checkin:'+item.key,date:item.date,kind:'checkin' as const,item,
+        title:topics.get(item.key)||lesson?.label||'Besuchte Veranstaltung',
+        subtitle:`${lesson?lesson.from+'–'+lesson.to+' · ':''}${ratingLabels[item.rating]}`}
+    })
+    return [...sessions,...checkins].sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id))
+  },[journey?.lessons,learningCheckins,learningSessions,lessonTopics,module.id])
   if(!semester)return <div className="screen secondary-screen"><button className="text-back" onClick={onBack}>← Module</button><p>Bitte zuerst ein Semester auswählen.</p></div>
 
   const commit=(next:Offering[])=>{setWarning('');onChangeOfferings(next)}
@@ -172,12 +218,12 @@ export default function ModuleScheduleEditor({
   const addAlternative=(parent:Offering)=>{
     const slot={day:(weekday(parent.date)+1)%7,from:parent.from,duration:120,room:''}
     const fresh=newOffering(parent.contentId||parent.familyId||parent.id,parent.contentLabel||parent.category,parent.category,slot,false)
-    setExpandedAlternatives(prev=>({...prev,[parent.contentId||parent.familyId||parent.id]:true}))
+    setEditingSlotId(fresh.id)
     commit([...own,fresh])
   }
   const cloneAlternative=(original:Offering)=>{
     const fresh={...original,id:uid(),overrides:{},scheduleChanges:[],selected:false}
-    setExpandedAlternatives(prev=>({...prev,[original.contentId||original.familyId||original.id]:true}))
+    setEditingSlotId(fresh.id)
     commit([...own,fresh])
   }
   const duplicateTopic=(topic:Offering[])=>{
@@ -192,6 +238,7 @@ export default function ModuleScheduleEditor({
   const remove=(items:Offering[])=>{
     const ids=new Set(items.map(o=>o.id))
     setDeleted(items)
+    if(items.some(item=>item.id===editingSlotId))setEditingSlotId(null)
     commit(own.filter(o=>!ids.has(o.id)))
   }
   const undoDelete=()=>{
@@ -257,7 +304,7 @@ export default function ModuleScheduleEditor({
     if(!premium||!quickText.trim()||thinking)return
     setPreview(null)
     setQuickError('')
-    if(!supabase){setQuickError('Supabase ist nicht eingerichtet.');return}
+    if(!supabase){setQuickError('unicloud ist nicht eingerichtet.');return}
     const controller=new AbortController()
     previewRequest.current=controller
     setThinking(true)
@@ -358,8 +405,36 @@ export default function ModuleScheduleEditor({
       <p>{journey.message}</p>
       <div className="module-fast-journey-stats"><span>Verständnis <b>{journey.understanding===null?'—':journey.understanding+' %'}</b></span><span>Wiederholung <b>{journey.repetition} %</b></span><span>Prüfungstraining <b>{journey.training} %</b></span></div>
     </div>}
+    <section className="module-learning-history">
+      <div className="module-fast-section-head"><div><span className="overline">DEINE LERNEINHEITEN</span><h2>Lernverlauf <small>{learningHistory.length}</small></h2></div></div>
+      {!learningHistory.length&&<p className="module-learning-empty">Noch keine bewerteten Veranstaltungen oder Lerneinheiten.</p>}
+      <div className="module-learning-list">{learningHistory.map(entry=>{
+        const editing=editingLearningId===entry.id
+        return <div className={'module-learning-row '+(editing?'is-editing':'')} key={entry.id}>
+          <button type="button" className="module-learning-preview" aria-expanded={editing} onClick={()=>setEditingLearningId(editing?null:entry.id)}>
+            <span><strong>{entry.title}</strong><small>{formatDate(entry.date,{day:'numeric',month:'short',year:'numeric'})} · {entry.subtitle}</small></span>
+            <Pencil size={15}/>
+          </button>
+          {editing&&entry.kind==='session'&&<div className="module-learning-editor">
+            <label>Datum<UniflowPicker kind="date" label="Datum" value={entry.item.date} onChange={value=>onChangeLearningSessions(learningSessions.map(item=>item.id===entry.item.id?{...item,date:value,updatedAt:new Date().toISOString()}:item))}/></label>
+            <label>Art<UniflowPicker label="Lernart" value={entry.item.kind} options={[{value:'review',label:'Freies Lernen'},{value:'exam',label:'Klausurvorbereitung'}]} onChange={value=>onChangeLearningSessions(learningSessions.map(item=>item.id===entry.item.id?{...item,kind:value as LearningSession['kind'],updatedAt:new Date().toISOString()}:item))}/></label>
+            <label>Dauer<UniflowPicker kind="duration" label="Dauer" value={String(entry.item.duration)} maxMinutes={360} onChange={value=>onChangeLearningSessions(learningSessions.map(item=>item.id===entry.item.id?{...item,duration:Number(value),updatedAt:new Date().toISOString()}:item))}/></label>
+            <label>Bewertung<UniflowPicker label="Bewertung" value={entry.item.rating} options={Object.entries(ratingLabels).filter(([value])=>value!=='absent').map(([value,label])=>({value,label}))} onChange={value=>onChangeLearningSessions(learningSessions.map(item=>item.id===entry.item.id?{...item,rating:value as LearningSession['rating'],updatedAt:new Date().toISOString()}:item))}/></label>
+            <button type="button" className="module-learning-delete" onClick={()=>{onChangeLearningSessions(learningSessions.filter(item=>item.id!==entry.item.id));setEditingLearningId(null)}}><Trash2 size={15}/> Lerneinheit löschen</button>
+          </div>}
+          {editing&&entry.kind==='checkin'&&<div className="module-learning-editor">
+            <label className="module-learning-topic">Thema<input value={lessonTopics.find(topic=>topic.key===entry.item.key)?.title||entry.title} onChange={event=>onChangeLessonTopics([
+              ...lessonTopics.filter(topic=>topic.key!==entry.item.key),
+              {key:entry.item.key,moduleId:entry.item.moduleId,contentId:entry.item.contentId,date:entry.item.date,title:event.target.value.slice(0,100),updatedAt:new Date().toISOString()}
+            ])}/></label>
+            <label>Bewertung<UniflowPicker label="Bewertung" value={entry.item.rating} options={Object.entries(ratingLabels).filter(([value])=>value!=='absent').map(([value,label])=>({value,label}))} onChange={value=>onChangeLearningCheckins(learningCheckins.map(item=>item.key===entry.item.key?{...item,rating:value as LearningRating,updatedAt:new Date().toISOString()}:item))}/></label>
+            <button type="button" className="module-learning-delete" onClick={()=>{onChangeLearningCheckins(learningCheckins.filter(item=>item.key!==entry.item.key));onChangeLessonTopics(lessonTopics.filter(topic=>topic.key!==entry.item.key));setEditingLearningId(null)}}><Trash2 size={15}/> Bewertung löschen</button>
+          </div>}
+        </div>
+      })}</div>
+    </section>
     <div className="module-fast-state" role="status">
-      {cloudStatus==='error'?<><span>Cloud-Speicherung fehlgeschlagen · Eingaben bleiben lokal erhalten.</span><button onClick={onRetrySync}>Erneut synchronisieren</button><small>{cloudError}</small></>:
+      {cloudStatus==='error'?<><span>unicloud-Speicherung fehlgeschlagen · Eingaben bleiben lokal erhalten.</span><button onClick={onRetrySync}>Erneut synchronisieren</button><small>{cloudError}</small></>:
         <span>{cloudStatus==='saving'?'Synchronisiere …':cloudStatus==='synced'?'Automatisch gespeichert':'Speichere lokal …'}</span>}
     </div>
     <details className="module-fast-meta" open={advanced} onToggle={e=>setAdvanced(e.currentTarget.open)}>
@@ -469,7 +544,7 @@ export default function ModuleScheduleEditor({
       <div className="module-assessment-list">{assessmentGroups.map(({key,items})=>{
         const first=items[0],exam=first.type==='exam',selected=items.find(item=>selectedAssessment(item,assessments))||first
         return <article className="module-assessment-card" key={key}>
-          <div className="module-assessment-head"><span className="module-assessment-icon">{exam?<GraduationCap size={17}/>:<ClipboardList size={17}/>}</span><button className="module-assessment-title" onClick={()=>onEditAssessment(selected)}><strong>{first.title}</strong><small>{exam?`${items.length} ${items.length===1?'Termin':'Alternativen'}`:first.completed?'Fertig':'Noch abzugeben'}</small></button><label className="module-assessment-weight"><span>Gewichtung</span><span><input type="number" min="0" max="100" step="0.1" value={first.weight??0} onChange={event=>changeAssessmentWeight(key,Number(event.target.value))}/><em>%</em></span></label></div>
+          <div className="module-assessment-head"><span className="module-assessment-icon">{exam?<GraduationCap size={17}/>:<ClipboardList size={17}/>}</span><button className="module-assessment-title" onClick={()=>onEditAssessment(selected)}><strong>{first.title}</strong><small>{exam?`${items.length} ${items.length===1?'Termin':'Alternativen'}`:first.completed?'Fertig':'Noch abzugeben'}</small></button><label className="module-assessment-weight"><span>Gewichtung</span><span><input className="plain-number-input" type="number" inputMode="decimal" min="0" max="100" step="0.1" value={first.weight??0} onChange={event=>changeAssessmentWeight(key,Number(event.target.value))}/><em>%</em></span></label></div>
           {exam?<div className="module-exam-attempts" role="radiogroup" aria-label={'Prüfungstermin für '+first.title}>{items.map((item,index)=><button type="button" role="radio" aria-checked={item.id===selected.id} className={item.id===selected.id?'selected':''} key={item.id} onClick={()=>selectAttempt(key,item.id)}><span>{index===0?'1. Termin':index===1?'2. Termin':`${index+1}. Termin`}</span><strong>{formatDate(item.date,{day:'numeric',month:'short',year:'numeric'})}</strong>{item.from&&<small>{item.from}{item.to?'–'+item.to:''} Uhr</small>}<i>{item.id===selected.id?<Check size={13}/>:null}</i></button>)}</div>
           :<button type="button" role="checkbox" aria-checked={!!first.completed} className={'module-homework-state '+(first.completed?'done':'')} onClick={()=>toggleHomework(first.id)}><span>{first.completed?<Check size={14}/>:null}</span>{first.completed?'Fertig – wieder öffnen':'Als fertig markieren'}<small>{formatDate(first.date,{day:'numeric',month:'short'})}</small></button>}
         </article>
@@ -481,32 +556,6 @@ export default function ModuleScheduleEditor({
     {groups.map((group,index)=>{
       const first=group.offerings[0]
       const expanded=expandedTopics[group.id]??false
-      const alternativesExpanded=expandedAlternatives[group.id]??false
-      const renderSlot=(o:Offering,i:number)=>{
-        const active=!!occurrenceAtOrigin(o,o.date,false)
-        return <div className="module-fast-slot" key={o.id}>
-          <div className="module-fast-slot-caption">
-            <span className={'module-fast-dot '+(active?'active':'')}/>
-            <strong>{i===0?'Gruppe 1':'Alternative '+i}</strong>
-            <span>{active?'Im Plan':'Alternative'}</span>
-            <div className="module-fast-icon-actions">
-              <button title="Alternative duplizieren" aria-label="Alternative duplizieren" onClick={()=>cloneAlternative(o)}><Copy size={16}/></button>
-              <button title="Alternative löschen" aria-label="Alternative löschen" onClick={()=>remove([o])}><Trash2 size={16}/></button>
-            </div>
-          </div>
-          <div className="module-slot-edit-form uf-entry-form">
-            <div className="editor-field"><span className="field-label">{o.recurrence==='once'?'Datum':'Wochentag'}</span>{o.recurrence==='once'
-              ?<UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={o.date} onChange={value=>{if(value>=semester.start&&value<=semester.end)update(o.id,{date:value,endDate:value})}}/>
-              :<UniflowPicker label="Wochentag" value={String(weekday(o.date))} onChange={value=>setDay(o,Number(value))} options={dayNames.map((label,n)=>({value:String(n),label:label+'s'}))}/>}</div>
-            <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={o.from} maxMinutes={1440-durationOf(o)} onChange={value=>setClock(o,value)}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={o.to} onChange={value=>setEnd(o,value)}/></div></div>
-            <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={o.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>update(o.id,{recurrence:value as Repeat,endDate:value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}/></div>{o.recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" min={semester.start} max={o.endDate} value={o.date} onChange={value=>setSeriesStart(o,value)}/></div>}</div>
-            {o.recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" min={o.date} max={semester.end} value={o.endDate} onChange={value=>{if(value>=o.date&&value<=semester.end)update(o.id,{endDate:value})}}/></div>}
-            <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={o.room} onChange={e=>update(o.id,{room:e.target.value})}/></div>
-            <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://…" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></div>
-            <div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></div>
-          </div>
-        </div>
-      }
       return <section className={'module-fast-topic '+(expanded?'topic-expanded':'topic-collapsed')} key={group.id}>
         <div className="module-fast-topic-bar">
           <button type="button" className="module-fast-topic-toggle" aria-expanded={expanded} onClick={()=>setExpandedTopics(prev=>({...prev,[group.id]:!expanded}))}>
@@ -527,13 +576,29 @@ export default function ModuleScheduleEditor({
           </div>
         </div>
         <div className="module-fast-slot-list">
-          {renderSlot(first,0)}
-          {group.offerings.length>1&&<div className="module-fast-alternatives">
-            <button type="button" className="module-fast-alternatives-toggle" aria-expanded={alternativesExpanded} onClick={()=>setExpandedAlternatives(prev=>({...prev,[group.id]:!alternativesExpanded}))}>
-              <span>Alternativen <small>{group.offerings.length-1}</small></span><ChevronDown size={17} className={alternativesExpanded?'expanded':''}/>
-            </button>
-            {alternativesExpanded&&<div className="module-fast-alternative-list">{group.offerings.slice(1).map((o,i)=>renderSlot(o,i+1))}</div>}
-          </div>}
+          {group.offerings.map((o,i)=>{
+            const active=!!occurrenceAtOrigin(o,o.date,false)
+            const editing=editingSlotId===o.id
+            return <div className={'module-fast-slot '+(editing?'is-editing':'')} key={o.id}>
+              <button type="button" className="module-fast-slot-preview" aria-expanded={editing} onClick={()=>setEditingSlotId(editing?null:o.id)}>
+                <span className={'module-fast-dot '+(active?'active':'')}/>
+                <span className="module-fast-slot-copy"><strong>{i===0?'Gruppe 1':'Alternative '+i}<em>{active?'Im Plan':'Alternative'}</em></strong><small>{offeringSentence(o)}</small>{(o.room||o.organizer)&&<small>{[o.room,o.organizer].filter(Boolean).join(' · ')}</small>}</span>
+                <span className="module-fast-edit-label">{editing?'Schließen':'Bearbeiten'}</span>
+              </button>
+              {editing&&<div className="module-slot-edit-form uf-entry-form">
+                <div className="editor-field"><span className="field-label">{o.recurrence==='once'?'Datum':'Wochentag'}</span>{o.recurrence==='once'
+                  ?<UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={o.date} onChange={value=>{if(value>=semester.start&&value<=semester.end)update(o.id,{date:value,endDate:value})}}/>
+                  :<UniflowPicker label="Wochentag" value={String(weekday(o.date))} onChange={value=>setDay(o,Number(value))} options={dayNames.map((label,n)=>({value:String(n),label:label+'s'}))}/>}</div>
+                <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={o.from} maxMinutes={1440-durationOf(o)} onChange={value=>setClock(o,value)}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={o.to} onChange={value=>setEnd(o,value)}/></div></div>
+                <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={o.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>update(o.id,{recurrence:value as Repeat,endDate:value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}/></div>{o.recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" min={semester.start} max={o.endDate} value={o.date} onChange={value=>setSeriesStart(o,value)}/></div>}</div>
+                {o.recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" min={o.date} max={semester.end} value={o.endDate} onChange={value=>{if(value>=o.date&&value<=semester.end)update(o.id,{endDate:value})}}/></div>}
+                <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={o.room} onChange={e=>update(o.id,{room:e.target.value})}/></div>
+                <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://…" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></div>
+                <div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></div>
+                <div className="module-fast-slot-actions"><button type="button" onClick={()=>cloneAlternative(o)}><Copy size={16}/> Duplizieren</button><button type="button" className="danger" onClick={()=>remove([o])}><Trash2 size={16}/> Löschen</button></div>
+              </div>}
+            </div>
+          })}
         </div>
         <div className="module-fast-topic-foot">
           <button className="module-fast-add-alt" onClick={()=>addAlternative(first)}><Plus size={16}/> Alternative hinzufügen</button>
