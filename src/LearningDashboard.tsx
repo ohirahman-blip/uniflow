@@ -281,7 +281,7 @@ export default function LearningDashboard({data,semester,modules,timerStorageKey
           </div>
         })}
         <div className="learn-suggestion learn-suggestion-free">
-          <span className="learn-suggestion-num">04</span>
+          <span className="learn-suggestion-free-spacer" aria-hidden="true"/>
           <div><strong>Freies Lernen</strong><small>Eigene Lerneinheit ohne Lernplan erfassen</small></div>
           <button aria-label="Freies Lernen erfassen" onClick={()=>beginStudy()}><Plus size={17}/></button>
         </div>
