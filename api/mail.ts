@@ -137,7 +137,9 @@ function messageId(mailbox: string, uid: number) { return Buffer.from(`${mailbox
 function decodeMessageId(id: string) {
   const decoded = Buffer.from(id, 'base64url').toString('utf8'), divider = decoded.lastIndexOf('\0')
   if (divider < 1) throw new Error('Ungültige Nachrichten-ID.')
-  return { mailbox: decoded.slice(0, divider), uid: Number(decoded.slice(divider + 1)) }
+  const mailbox=decoded.slice(0, divider),uid=Number(decoded.slice(divider + 1))
+  if(!mailbox||mailbox.length>500||!Number.isSafeInteger(uid)||uid<1)throw new Error('Ungültige Nachrichten-ID.')
+  return { mailbox, uid }
 }
 function cleanAddress(value?: string | null) { return String(value || '').trim().toLowerCase() }
 async function readMailbox(client: ImapFlow, path: string, outgoing: boolean, since?: Date, before?: number): Promise<{messages:ApiMessage[];before:number}> {
@@ -341,6 +343,32 @@ async function send(req: VercelRequest, res: VercelResponse) {
   if (error) throw error
   return res.json({ message: { id: `cache:${data.id}`, uid: 0, mailbox: 'Gesendet', from: account.email, fromName: account.display_name, to, subject, text, date: data.sent_at, outgoing: true, unread: false, attachments: metadata } })
 }
+async function attachment(req: VercelRequest, res: VercelResponse) {
+  const user = await currentUser(req), account = await accountFor(user.id)
+  if (!account) return fail(res, 409, 'Verbinde zuerst dein Postfach.')
+  const id=String(req.query.messageId||''),index=Number(req.query.attachmentIndex)
+  if(id.startsWith('cache:'))return fail(res,409,'Dieser gesendete Anhang ist verfügbar, sobald er mit dem Gesendet-Ordner synchronisiert wurde.','MAIL_ATTACHMENT_PENDING_SYNC')
+  if(!Number.isSafeInteger(index)||index<0||index>99)return fail(res,400,'Ungültiger Anhang.','MAIL_ATTACHMENT_INVALID')
+  let decoded:{mailbox:string;uid:number}
+  try{decoded=decodeMessageId(id)}catch{return fail(res,400,'Ungültige Nachrichten-ID.','MAIL_MESSAGE_ID_INVALID')}
+  const client=imapClient(account)
+  try{
+    await client.connect()
+    const lock=await client.getMailboxLock(decoded.mailbox)
+    try{
+      const item=await client.fetchOne(decoded.uid,{source:true},{uid:true})
+      if(!item||!item.source)return fail(res,404,'Nachricht nicht gefunden.','MAIL_MESSAGE_NOT_FOUND')
+      const parsed=await simpleParser(item.source),file=parsed.attachments[index]
+      if(!file)return fail(res,404,'Anhang nicht gefunden.','MAIL_ATTACHMENT_NOT_FOUND')
+      const filename=String(file.filename||'Anhang').replace(/[\r\n"\\]/g,'_').slice(0,180)||'Anhang'
+      res.setHeader('content-type',file.contentType||'application/octet-stream')
+      res.setHeader('content-length',String(file.content.length))
+      res.setHeader('content-disposition',`attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`)
+      res.setHeader('x-content-type-options','nosniff')
+      return res.status(200).send(file.content)
+    }finally{lock.release()}
+  }finally{await closeImap(client)}
+}
 type UndoMove={from:string;trash:string;uids:number[];validity:string}
 async function restoreMailMoves(account:AccountRow,moves:UndoMove[]){
   if(!moves.length)return
@@ -440,6 +468,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const action = String(req.query.action || '')
     if (req.method === 'GET' && action === 'account') return await getAccount(req, res)
     if (req.method === 'GET' && action === 'threads') return await threads(req, res)
+    if (req.method === 'GET' && action === 'attachment') return await attachment(req, res)
     if (req.method === 'POST' && action === 'connect') return await connect(req, res)
     if (req.method === 'POST' && action === 'disconnect') return await disconnect(req, res)
     if (req.method === 'POST' && action === 'send') return await send(req, res)

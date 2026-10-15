@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type TouchEvent as ReactTouchEvent } from 'react'
-import { ArrowLeft, ArrowRight, BellOff, Check, CheckCheck, FileText, Inbox, Mail, Paperclip, Plus, Reply, Search, Send, Trash2, X } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
+import { ArrowLeft, ArrowRight, BellOff, Check, CheckCheck, Download, FileText, Inbox, Mail, Paperclip, Plus, Reply, Search, Send, Trash2, X } from 'lucide-react'
 import './mail-prototype.css'
 import { replySubject, validDemoRecipient } from './mail-prototype-logic'
 import {
-  connectMailAccount, encodeMailAttachments, getMailAccount, getMailThreads, sendMailMessage,
+  connectMailAccount, downloadMailAttachment, encodeMailAttachments, getMailAccount, getMailThreads, sendMailMessage,
   suggestedMailServers, updateMailThread, mergeMailPages, type MailAccount, type MailConnectionInput,
   type MailMessage, type MailThread
 } from './mail-client'
@@ -29,6 +29,22 @@ const threadDate = (value: string) => {
   return date.toDateString() === now.toDateString()
     ? date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
     : date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+}
+
+const linkPattern = /(?:https?:\/\/|www\.)[^\s<>]+/gi
+function linkedMailText(text: string) {
+  const parts: ReactNode[] = [], decoded=text
+    .replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;/gi,"'")
+  let last=0
+  for(const match of decoded.matchAll(linkPattern)){
+    const start=match.index??0,raw=match[0],url=raw.replace(/[),.;!?]+$/,'')
+    if(start>last)parts.push(decoded.slice(last,start))
+    parts.push(<a key={`${start}-${url}`} href={url.startsWith('www.')?`https://${url}`:url} target="_blank" rel="noreferrer">{url}</a>)
+    if(url.length<raw.length)parts.push(raw.slice(url.length))
+    last=start+raw.length
+  }
+  if(last<decoded.length)parts.push(decoded.slice(last))
+  return parts.length?parts:decoded
 }
 
 function MailOnboarding({ onConnected }: { onConnected: (account: MailAccount) => void }) {
@@ -103,6 +119,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
   const [subjectOpen, setSubjectOpen] = useState(false)
   const [subject, setSubject] = useState('')
   const [sending, setSending] = useState(false)
+  const [downloading, setDownloading] = useState<string | null>(null)
   const [context, setContext] = useState<{ id: string; x: number; y: number } | null>(null)
   const composer = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -295,6 +312,13 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
     setReplyingTo(current => ({ ...current, [thread.id]: message }))
     composer.current?.focus()
   }
+  const downloadAttachment = async (message:MailMessage,index:number,filename:string) => {
+    const key=`${message.id}:${index}`
+    setDownloading(key)
+    try{await downloadMailAttachment(message.id,index,filename)}
+    catch(reason){onNotice?.(reason instanceof Error?reason.message:'Der Anhang konnte nicht geladen werden.')}
+    finally{setDownloading(null)}
+  }
   const send = async () => {
     if (!thread || (!currentText.trim() && !currentFiles.length) || !subject.trim()) return
     setSending(true)
@@ -350,7 +374,7 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
               }} onPointerDown={event => pointerDown(event, item.id)} onPointerMove={pointerMove} onPointerUp={event => pointerUp(event, item.id)} onPointerCancel={() => { swipeStart.current = null }}
               aria-pressed={selected.has(item.id)} onContextMenu={event => { event.preventDefault(); setContext({ id: item.id, x: Math.min(event.clientX, window.innerWidth - 226), y: Math.min(event.clientY, window.innerHeight - 230) }) }}>
               <span className="mail-avatar">{selected.has(item.id) ? <Check size={17}/> : item.initials}</span>
-              <span className="mail-thread-main"><strong>{item.name}{item.muted && <BellOff size={11}/>}</strong><small>{item.preview}</small></span>
+              <span className="mail-thread-main"><strong>{item.name}{item.muted && <BellOff size={11}/>}</strong><span className="mail-thread-subject">{item.messages[item.messages.length-1]?.subject || '(Kein Betreff)'}</span><small>{item.preview}</small></span>
               <span className="mail-thread-meta"><time>{threadDate(item.date)}</time>{item.unread > 0 && <span>{item.unread}</span>}</span>
             </button>
           </div>)}
@@ -361,8 +385,8 @@ export default function MailPrototype({ userId, onUnreadChange, onAccountChange,
         <div className="mail-inbox-bottom"><Inbox size={14}/><span>{account?.email} · synchronisiert</span></div>
       </aside>
       <div className="mail-conversation">
-        {thread ? <><header className="mail-conversation-header"><button type="button" className="mail-back" onClick={() => setActive(null)} aria-label="Zurück"><ArrowLeft size={19}/></button><div className="mail-avatar small">{thread.initials}</div><div className="mail-person"><strong>{thread.name}</strong><small>{thread.address}</small></div><button type="button" className="mail-rename" onClick={() => void act(thread, thread.muted ? 'unmute' : 'mute')} title={thread.muted ? 'Stummschaltung aufheben' : 'Stummschalten'}><BellOff size={16}/></button></header>
-          <div className="mail-messages">{thread.messages.map(message => <div className={'mail-message' + (message.outgoing ? ' outgoing' : '')} key={message.id}><span className="mail-message-time">{messageDate(message.date)}</span><div className="mail-bubble"><small>{message.subject || '(Kein Betreff)'}</small><p>{message.text || 'Diese Nachricht enthält keinen Text.'}</p>{message.attachments.map(attachment => <span className="mail-received-attachment" key={attachment.filename}><FileText size={13}/>{attachment.filename}</span>)}</div>{!message.outgoing && <button type="button" className="mail-reply" onClick={() => beginReply(message)}><Reply size={13}/> Antworten</button>}</div>)}</div>
+        {thread ? <><header className="mail-conversation-header"><button type="button" className="mail-back" onClick={() => setActive(null)} aria-label="Zurück"><ArrowLeft size={19}/></button><div className="mail-avatar small">{thread.initials}</div><div className="mail-person"><strong>{thread.name}</strong><span className="mail-header-subject">{thread.messages[thread.messages.length-1]?.subject || '(Kein Betreff)'}</span><small>{thread.address}</small></div><button type="button" className="mail-rename" onClick={() => void act(thread, thread.muted ? 'unmute' : 'mute')} title={thread.muted ? 'Stummschaltung aufheben' : 'Stummschalten'}><BellOff size={16}/></button></header>
+          <div className="mail-messages">{thread.messages.map(message => <div className={'mail-message' + (message.outgoing ? ' outgoing' : '')} key={message.id}><span className="mail-message-time">{messageDate(message.date)}</span><div className="mail-bubble"><strong className="mail-message-subject">{message.subject || '(Kein Betreff)'}</strong><p>{linkedMailText(message.text || 'Diese Nachricht enthält keinen Text.')}</p>{message.attachments.map((attachment,index) => {const key=`${message.id}:${index}`,pending=message.id.startsWith('cache:');return <button type="button" className="mail-received-attachment" key={key} disabled={pending||downloading===key} title={pending?'Download nach Synchronisierung mit dem Gesendet-Ordner verfügbar':'Anhang herunterladen'} onClick={()=>void downloadAttachment(message,index,attachment.filename)}><FileText size={14}/><span>{attachment.filename}<small>{attachment.size?`${Math.max(1,Math.round(attachment.size/1024))} KB`:'Anhang'}</small></span><Download size={14}/></button>})}</div>{!message.outgoing && <button type="button" className="mail-reply" onClick={() => beginReply(message)}><Reply size={13}/> Antworten</button>}</div>)}</div>
           <div className="mail-compose">{currentReply && <div className="mail-reply-preview"><Reply size={14}/><span>Antwort auf: {currentReply.subject}</span><button type="button" aria-label="Antwortbezug entfernen" onClick={() => setReplyingTo(current => ({ ...current, [thread.id]: undefined }))}><X size={14}/></button></div>}
             {currentFiles.length > 0 && <div className="mail-attachments">{currentFiles.map(file => <span key={`${file.name}-${file.lastModified}`}><FileText size={13}/><span>{file.name}</span><button type="button" aria-label={`${file.name} entfernen`} onClick={() => setFiles(current => ({ ...current, [thread.id]: currentFiles.filter(item => item !== file) }))}><X size={13}/></button></span>)}</div>}
             <div className="mail-compose-box"><button type="button" className="mail-attach" onClick={() => fileInput.current?.click()} aria-label="Anhang auswählen"><Paperclip size={19}/></button><input type="file" multiple hidden ref={fileInput} onChange={event => { const next = Array.from(event.target.files || []); setFiles(current => ({ ...current, [thread.id]: [...currentFiles, ...next] })); event.target.value = '' }}/><textarea ref={composer} rows={1} aria-label="Nachricht schreiben" placeholder="Schreibe etwas …" value={currentText} onChange={event => setDrafts(current => ({ ...current, [thread.id]: event.target.value }))}/><button type="button" className="mail-send" aria-label="E-Mail senden" disabled={!currentText.trim() && !currentFiles.length} onClick={() => { setSubject(currentReply ? replySubject(currentReply.subject) : ''); setSubjectOpen(true) }}><Send size={17}/></button></div>
