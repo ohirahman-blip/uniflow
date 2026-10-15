@@ -65,7 +65,7 @@ const singleVisitLabel = (occ: Occurrence) => {
 const ensureCredits = (txt: string) => Math.max(0, Number(txt.replace(',', '.')) || 0)
 const getDefaultCredits = (level: string) => level === 'Master' ? 120 : 180
 function IconButton({ children, onClick, label, disabled }: { children: ReactNode; onClick: () => void; label: string; disabled?: boolean }) { return <button className="icon-button" onClick={onClick} aria-label={label} title={label} disabled={disabled}>{children}</button> }
-function BottomSheet({ children, onClose, title, footer, compactHeader = false }: { children: ReactNode; onClose: () => void; title: string; footer?: ReactNode; compactHeader?: boolean }) { useEffect(() => { const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [onClose]); return createPortal(<div className="sheet-backdrop" onPointerDown={e => { if (e.target === e.currentTarget) onClose() }}><div className="sheet" role="dialog" aria-modal="true" aria-label={title}><div className="sheet-handle" /><header className={"sheet-header "+(compactHeader?"sheet-header-compact":"")}><h2>{title}</h2><IconButton onClick={onClose} label="Schließen"><X size={20} /></IconButton></header><div className="sheet-body">{children}</div>{footer && <footer className="sheet-footer">{footer}</footer>}</div></div>, document.body) }
+function BottomSheet({ children, onClose, title, footer, compactHeader = false, headerAction }: { children: ReactNode; onClose: () => void; title: string; footer?: ReactNode; compactHeader?: boolean; headerAction?:ReactNode }) { useEffect(() => { const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [onClose]); return createPortal(<div className="sheet-backdrop" onPointerDown={e => { if (e.target === e.currentTarget) onClose() }}><div className="sheet" role="dialog" aria-modal="true" aria-label={title}><div className="sheet-handle" /><header className={"sheet-header "+(compactHeader?"sheet-header-compact":"")}><h2>{title}</h2>{headerAction??<IconButton onClick={onClose} label="Schließen"><X size={20} /></IconButton>}</header><div className="sheet-body">{children}</div>{footer && <footer className="sheet-footer">{footer}</footer>}</div></div>, document.body) }
 function useOutsideDismiss(open: boolean, onDismiss: () => void) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -379,7 +379,7 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
     <div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={semester.end} onChange={setDate}/></div>
     <div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>
     {hasTime&&<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>}
-    <div className="editor-field"><span className="field-label">Gewichtung in Prozent <span className="optional">wird automatisch ausgeglichen</span></span><input className="line-input" type="number" min="0" max="100" step="0.1" value={weight} placeholder="Automatisch" onChange={e=>setWeight(e.target.value)}/></div>
+    <div className="editor-field"><span className="field-label">Gewichtung in Prozent <span className="optional">wird automatisch ausgeglichen</span></span><input className="line-input plain-number-input" type="number" inputMode="decimal" min="0" max="100" step="0.1" value={weight} placeholder="Automatisch" onChange={e=>setWeight(e.target.value)}/></div>
     {<button className={'assessment-check '+(completed?'completed':'')} onClick={()=>setCompleted(v=>!v)}><span>{completed?<Check size={15}/>:null}</span>{completed?'Erledigt':'Als erledigt markieren'}</button>}
     {existing&&onDelete&&<button className="danger-simple" onClick={onDelete}><Trash2 size={18}/> {type==='exam'?'Prüfung':'Hausaufgabe'} löschen</button>}
     {err&&<p className="inline-error" role="alert">{err}</p>}
@@ -678,6 +678,23 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const [fan,setFan] = useState<FanState|null>(null)
   const [fanPicked,setFanPicked] = useState<Occurrence|null>(null)
   const [walletContext,setWalletContext] = useState<{occ:Occurrence;x:number;y:number}|null>(null)
+  useEffect(()=>{
+    if(!walletContext&&!fan&&!proposal&&!walletMove&&!monthOpen&&!focusOpen&&!taskMenu)return
+    const onBack=(event:Event)=>{
+      const detail=(event as CustomEvent<{handled:boolean}>).detail
+      if(detail?.handled)return
+      detail.handled=true
+      if(walletContext)setWalletContext(null)
+      else if(fan)setFan(null)
+      else if(proposal)setProposal(null)
+      else if(walletMove)setWalletMove(null)
+      else if(monthOpen)setMonthOpen(false)
+      else if(focusOpen)setFocusOpen(false)
+      else setTaskMenu(false)
+    }
+    window.addEventListener('uniflow-back',onBack)
+    return()=>window.removeEventListener('uniflow-back',onBack)
+  },[fan,focusOpen,monthOpen,proposal,taskMenu,walletContext,walletMove])
   const walletRef=useRef<HTMLDivElement>(null)
   useEffect(()=>{
     if(!walletContext)return
@@ -852,6 +869,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   }
   const onWeekDown=(e:ReactPointerEvent<HTMLDivElement>)=>{
     if(e.pointerType==='mouse'&&e.button!==0)return
+    if(e.pointerType==='touch'&&e.clientX<=28){weekGesture.current=null;return}
     weekGesture.current={x:e.clientX,y:e.clientY}
   }
   const onWeekUp=(e:ReactPointerEvent<HTMLDivElement>)=>{
@@ -1220,10 +1238,14 @@ export default function App() {
   const [choiceAttendance,setChoiceAttendance] = useState<'replace'|'both'>('replace')
   const [data, setData] = useState<AppData>(() => supabase ? { ...emptyData } : loadData()), [onboarding, setOnboarding] = useState(() => supabase ? true : !loadData().activeDegreeId), [page, setPage] = useState<Page>(pageFromUrl), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
   const [pageDirection,setPageDirection]=useState<'forward'|'backward'>('forward')
+  const [ratingDraftTopic,setRatingDraftTopic]=useState('')
+  const [ratingDraftValue,setRatingDraftValue]=useState<LearningRating|undefined>()
   const [mailUnread,setMailUnread]=useState(0)
   const [mailAccount,setMailAccount]=useState<MailAccount|null>(null)
-  const navigatePage=(next:Page)=>{
+  const pageHistory=useRef<Page[]>([])
+  const navigatePage=(next:Page,remember=true)=>{
     if(page===next)return
+    if(remember)pageHistory.current.push(page)
     const order:Page[]=['dashboard','calendar','modules','mail','settings','admin']
     setPageDirection(order.indexOf(next)>order.indexOf(page)?'forward':'backward')
     // Root-level View Transitions captured the fixed bottom tab bar and briefly
@@ -1248,6 +1270,51 @@ export default function App() {
   const [catalog, setCatalog] = useState<Catalog>(emptyCatalog)
   const [confirmDeleteSemester, setConfirmDeleteSemester] = useState<Semester | null>(null)
   const [cloudBusy, setCloudBusy] = useState(false)
+  const backActionRef=useRef<()=>void>(()=>{})
+  backActionRef.current=()=>{
+    if(pendingBackup)return setPendingBackup(null)
+    if(confirmDeleteSemester)return setConfirmDeleteSemester(null)
+    if(confirmDeleteModule)return setConfirmDeleteModule(null)
+    if(confirmReset)return setConfirmReset(false)
+    if(deletingAssessment)return setDeletingAssessment(null)
+    if(editingAssessment)return setEditingAssessment(null)
+    if(assessmentDraft)return setAssessmentDraft(null)
+    if(previewAssessmentId)return setPreviewAssessmentId(null)
+    if(ratingOccurrence)return setRatingOccurrence(null)
+    if(detail)return setDetail(null)
+    if(editingOffering)return setEditingOffering(null)
+    if(alternativeDraft)return setAlternativeDraft(null)
+    if(pendingAlternative)return setPendingAlternative(null)
+    if(deleteProposal)return setDeleteProposal(null)
+    if(pauseProposal)return setPauseProposal(null)
+    if(editingModule)return setEditingModule(null)
+    if(entry)return setEntry(null)
+    if(selectedModuleId)return setSelectedModuleId(null)
+    const previous=pageHistory.current.pop()
+    if(previous)return navigatePage(previous,false)
+    if(page!=='dashboard')navigatePage('dashboard',false)
+  }
+  useEffect(()=>{
+    let start:{x:number;y:number}|null=null
+    const onTouchStart=(event:TouchEvent)=>{
+      const touch=event.touches[0]
+      if(!user||onboarding||event.touches.length!==1||!touch||touch.clientX>28){start=null;return}
+      start={x:touch.clientX,y:touch.clientY}
+    }
+    const onTouchEnd=(event:TouchEvent)=>{
+      if(!start)return
+      const touch=event.changedTouches[0]
+      const dx=touch.clientX-start.x,dy=touch.clientY-start.y
+      start=null
+      if(dx<72||Math.abs(dx)<Math.abs(dy)*1.25)return
+      const detail={handled:false}
+      window.dispatchEvent(new CustomEvent('uniflow-back',{detail}))
+      if(!detail.handled)backActionRef.current()
+    }
+    window.addEventListener('touchstart',onTouchStart,{passive:true})
+    window.addEventListener('touchend',onTouchEnd,{passive:true})
+    return()=>{window.removeEventListener('touchstart',onTouchStart);window.removeEventListener('touchend',onTouchEnd)}
+  },[user,onboarding])
   useEffect(() => { document.documentElement.dataset.theme = 'dark' }, [data.theme])
   useEffect(()=>{
     document.documentElement.dataset.uniflowTier=premium?'plus':'free'
@@ -1305,6 +1372,7 @@ export default function App() {
       if(next)setStartupFinished(false)
       setData({ ...emptyData }) // never show the last account's private data after sign-out
       setOnboarding(true)
+      pageHistory.current=[]
       setPage(pageFromUrl(next?.id))
       setMailUnread(0)
       setMailAccount(null)
@@ -1402,7 +1470,7 @@ export default function App() {
     // Best effort flush, but never silently discard edits when it fails.
     try { await saveSequence.current; await cloudSave(user.id, data) }
     catch (e) {
-      if (!window.confirm('Deine letzten Änderungen konnten nicht in Supabase gespeichert werden. Trotzdem abmelden? Die lokale Kopie bleibt erhalten.')) return
+      if (!window.confirm('Deine letzten Änderungen konnten nicht in unicloud gespeichert werden. Trotzdem abmelden? Die lokale Kopie bleibt erhalten.')) return
     }
     try { await signOutApple() }
     catch (e) { setToast({ id: uid(), text: e instanceof Error ? e.message : 'Abmelden fehlgeschlagen.' }) }
@@ -1450,9 +1518,30 @@ export default function App() {
     ]
   }))
   const ratingLesson=ratingOccurrence?lessonForOccurrence(ratingOccurrence,data):null
-  const ratingTopic=ratingLesson?(data.lessonTopics||[]).find(topic=>topic.key===ratingLesson.key)?.title||'':''
-  const ratingValue=ratingLesson?(data.learningCheckins||[]).find(checkin=>checkin.key===ratingLesson.key)?.rating:undefined
   const ratingModule=ratingLesson?data.modules.find(m=>m.id===ratingLesson.moduleId):undefined
+  const openRatingOccurrence=(occurrence:Occurrence)=>{
+    const lesson=lessonForOccurrence(occurrence,data)
+    setRatingDraftTopic((data.lessonTopics||[]).find(topic=>topic.key===lesson.key)?.title||'')
+    setRatingDraftValue((data.learningCheckins||[]).find(checkin=>checkin.key===lesson.key)?.rating)
+    setRatingOccurrence(occurrence)
+  }
+  const saveRatingDraft=()=>{
+    if(!ratingLesson)return
+    const now=new Date().toISOString()
+    mutate(workspace=>({
+      ...workspace,
+      lessonTopics:[
+        ...(workspace.lessonTopics||[]).filter(topic=>topic.key!==ratingLesson.key),
+        ...(ratingDraftTopic.trim()?[{key:ratingLesson.key,moduleId:ratingLesson.moduleId,contentId:ratingLesson.contentId,date:ratingLesson.date,title:ratingDraftTopic.trim().slice(0,100),updatedAt:now}]:[])
+      ],
+      learningCheckins:ratingDraftValue?[
+        ...(workspace.learningCheckins||[]).filter(checkin=>checkin.key!==ratingLesson.key),
+        {key:ratingLesson.key,moduleId:ratingLesson.moduleId,contentId:ratingLesson.contentId,date:ratingLesson.date,rating:ratingDraftValue,updatedAt:now}
+      ]:workspace.learningCheckins
+    }))
+    setRatingOccurrence(null)
+    note('Bewertung gespeichert.')
+  }
   const degree = data.degrees.find(d => d.id === data.activeDegreeId)
   const semester = data.semesters.find(s => s.id === data.activeSemesterId)
   const degreeModules = data.modules.filter(m => m.degreeId === degree?.id)
@@ -1542,7 +1631,7 @@ export default function App() {
       if (epoch !== authEpoch.current) return
       savedSnapshot.current = JSON.stringify(fresh)
       localStorage.setItem(STORE + '-user-' + user.id, JSON.stringify(fresh))
-      setData(fresh); setOnboarding(true); setPage('dashboard'); setConfirmReset(false); setToast(null); setCloudStatus('synced')
+      setData(fresh); setOnboarding(true); pageHistory.current=[]; setPage('dashboard'); setConfirmReset(false); setToast(null); setCloudStatus('synced')
     } catch (e) { note(e instanceof Error ? e.message : 'Zurücksetzen fehlgeschlagen. Daten bleiben erhalten.') }
     finally { setCloudBusy(false) }
   }
@@ -1557,7 +1646,7 @@ export default function App() {
     onFinish={finishStartup}/>
   if (!user) return <><AuthScreen/>{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(null)}/>}</>
   if (!cloudReady) return <main className="auth-loading auth-cloud-loading"><div><div className="wordmark">uniflow<span className="wordmark-dot">.</span></div><p>{cloudStatus === 'error' ? cloudError : 'Deine Daten werden sicher geladen …'}</p>{cloudStatus === 'error' && <><button className="primary-action" onClick={() => void loadUserWorkspace(user, authEpoch.current)}>Erneut versuchen</button><button className="auth-secondary" onClick={() => void logOut()}>Abmelden</button></>}</div></main>
-  if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); setPage('calendar') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
+  if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); pageHistory.current=[]; setPage('calendar') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
   return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{ id: 'dashboard' as const, title: 'Übersicht', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'modules', title: 'Module', icon: BookOpen }, { id: 'mail', title: 'Postfach', icon: Mail }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} />{n.id==='mail'&&mailUnread>0&&<em className="mail-nav-badge">{mailUnread>99?'99+':mailUnread}</em>}</span>{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
     <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
@@ -1570,7 +1659,7 @@ export default function App() {
         onPlan={(task:LearningPlanTask)=>mutate(d=>({...d,learningPlans:[...(d.learningPlans||[]),task]}))}
         onRemovePlan={id=>mutate(d=>({...d,learningPlans:(d.learningPlans||[]).filter(p=>p.id!==id)}))}
       />}
-      {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={setRatingOccurrence} onPreviewAssessment={item=>setPreviewAssessmentId(item.id)} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onCancelVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:d.offerings.map(item=>item.id===occ.offering.id?{...item,overrides:{...(item.overrides||{}),[occ.origin]:{date:occ.origin,from:occ.from,to:occ.to,cancelled:true,scope:'single',reason:'removal'}}}:item)}));note('Termin fällt ohne Ersatz aus.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => setPage('settings')}>Einstellungen</button></div>}</div>}
+      {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={openRatingOccurrence} onPreviewAssessment={item=>setPreviewAssessmentId(item.id)} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onCancelVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:d.offerings.map(item=>item.id===occ.offering.id?{...item,overrides:{...(item.overrides||{}),[occ.origin]:{date:occ.origin,from:occ.from,to:occ.to,cancelled:true,scope:'single',reason:'removal'}}}:item)}));note('Termin fällt ohne Ersatz aus.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => navigatePage('settings')}>Einstellungen</button></div>}</div>}
       {page === 'mail' && <MailPrototype key={user.id} userId={user.id} onUnreadChange={setMailUnread} onAccountChange={setMailAccount} onNotice={note}/>}
       {page === 'modules' && !selectedModuleId && <ModuleHub degree={degree} modules={degreeModules} goals={(data.creditGoals||[]).filter(goal=>goal.degreeId===degree?.id)} assessments={data.assessments} journeys={journeysByModule} currentSemesterId={semester?.id||''} creditsPassed={creditsPassed} average={average} onAdd={()=>setNewModule(true)} onSaveGoal={goal=>mutate(d=>{const exists=(d.creditGoals||[]).some(item=>item.id===goal.id);return {...d,creditGoals:exists?(d.creditGoals||[]).map(item=>item.id===goal.id?goal:item):[...(d.creditGoals||[]),goal]}})} onDeleteGoal={id=>mutate(d=>({...d,creditGoals:(d.creditGoals||[]).filter(goal=>goal.id!==id)}))} onReorderModules={ids=>mutate(d=>{const queue=ids.map(id=>d.modules.find(module=>module.id===id)).filter((module):module is StudyModule=>!!module);return {...d,modules:d.modules.map(module=>module.degreeId===degree?.id?queue.shift()!:module)}})} onReorderGoals={ids=>mutate(d=>{const selected=new Set(ids),queue=ids.map(id=>(d.creditGoals||[]).find(goal=>goal.id===id)).filter((goal):goal is CreditGoal=>!!goal);return {...d,creditGoals:(d.creditGoals||[]).map(goal=>selected.has(goal.id)?queue.shift()!:goal)}})} editing={newModule} onEdit={m=>setSelectedModuleId(m.id)} newName={newName} setNewName={setNewName} newCredits={newCredits} setNewCredits={setNewCredits} saveNewModule={saveNewModule} cancelNew={()=>setNewModule(false)} />}
       {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleScheduleEditor
@@ -1608,11 +1697,17 @@ export default function App() {
         onClearException={(id,origin)=>mutate(d=>({...d,offerings:d.offerings.map(o=>o.id===id
           ?{...o,overrides:Object.fromEntries(Object.entries(o.overrides||{}).filter(([day])=>day!==origin))}
           :o)}))}
+        learningSessions={data.learningSessions||[]}
+        learningCheckins={data.learningCheckins||[]}
+        lessonTopics={data.lessonTopics||[]}
+        onChangeLearningSessions={learningSessions=>mutate(d=>({...d,learningSessions}))}
+        onChangeLearningCheckins={learningCheckins=>mutate(d=>({...d,learningCheckins}))}
+        onChangeLessonTopics={lessonTopics=>mutate(d=>({...d,lessonTopics}))}
         cloudStatus={cloudStatus}
         cloudError={cloudError}
         onRetrySync={()=>void syncNow()}
       />}
-      {page === 'admin' && user && admin && <AdminPanel user={user} notice={note} onBack={()=>setPage('settings')} />}
+      {page === 'admin' && user && admin && <AdminPanel user={user} notice={note} onBack={()=>{pageHistory.current.pop();navigatePage('settings',false)}} />}
       {page === 'settings' && <div className="screen secondary-screen settings-screen"><div className="page-title-row"><div><h1>Einstellungen</h1></div></div><section className="settings-section"><h2>Profil</h2><label className="setting-input"><span>Dein Name</span><input value={data.profile} onChange={e => mutate(d => ({ ...d, profile: e.target.value }))} /></label><div className="setting-line"><span>Studiengang</span><strong>{degree?.name}</strong></div><div className="setting-line"><span>Hochschule</span><strong>{degree?.university || 'Nicht angegeben'}</strong></div><div className="setting-line"><span>LP-Ziel</span><div className="number-setting"><input type="number" min="0" value={degree?.targetCredits || 0} onChange={e => mutate(d => ({ ...d, degrees: d.degrees.map(x => x.id === degree?.id ? { ...x, targetCredits: +e.target.value || 0 } : x) }))} /> LP</div></div></section>{admin && <section className="settings-section admin-settings-link">
         <h2>Administration</h2>
         <button className="settings-action" onClick={()=>navigatePage('admin')}><Settings2 size={19}/> Adminbereich öffnen <ArrowRight size={17}/></button>
@@ -1626,7 +1721,7 @@ export default function App() {
             className={'settings-ai-toggle'+(ai.consent?' is-on':'')}
             onClick={()=>ai.setConsent(!ai.consent)}><span/></button>
         </div>
-        <span className="uf-visually-hidden" id="settings-ai-data-note">Bei Aktivierung werden relevante Modulnamen, Themen, Bewertungen und Prüfungstermine über Supabase an DeepSeek übermittelt.</span>
+        <span className="uf-visually-hidden" id="settings-ai-data-note">Bei Aktivierung werden relevante Modulnamen, Themen, Bewertungen und Prüfungstermine über unicloud an DeepSeek übermittelt.</span>
         {ai.consent&&ai.working&&<p className="settings-ai-status" role="status"><Sparkles size={14}/> Deine KI-Empfehlung wird erstellt …</p>}
         {ai.consent&&!ai.working&&ai.advice&&<div className="settings-ai-result" role="status">
           <span><Sparkles size={14}/> uniflow+</span><strong>{ai.advice.title}</strong><p>{ai.advice.message}</p>
@@ -1636,7 +1731,7 @@ export default function App() {
         <div className="setting-line"><span><strong>Neue Mails</strong><small>Benachrichtigt dich über ungelesene Nachrichten.</small></span><button type="button" role="switch" aria-checked={data.notificationPreferences?.mail||false} className={'settings-switch'+(data.notificationPreferences?.mail?' is-on':'')} onClick={()=>void setNotificationPreference('mail',!(data.notificationPreferences?.mail||false))}><span/></button></div>
         <div className="setting-line"><span><strong>Feedback nach Terminen</strong><small>Fragt nach dem Ende einer Veranstaltung kurz nach.</small></span><button type="button" role="switch" aria-checked={data.notificationPreferences?.lessonFeedback||false} className={'settings-switch'+(data.notificationPreferences?.lessonFeedback?' is-on':'')} onClick={()=>void setNotificationPreference('lessonFeedback',!(data.notificationPreferences?.lessonFeedback||false))}><span/></button></div>
         <p className="quiet-copy">Nur diese beiden Benachrichtigungen werden verwendet. Auf iPhone und iPad funktioniert Push, wenn uniflow zum Home-Bildschirm hinzugefügt wurde.</p>
-      </section><section className="settings-section"><h2>Stundenplan</h2><div className="setting-line"><span>Erste Stunde</span><div className="small-picker"><button disabled={data.firstHour <= 0} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour - 2 }))}>−</button><strong>{timeString(data.firstHour * 60)}</strong><button disabled={data.firstHour >= data.lastHour - 2} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Letzte Stunde</span><div className="small-picker"><button disabled={data.lastHour <= data.firstHour + 2} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour - 2 }))}>−</button><strong>{timeString(data.lastHour * 60)}</strong><button disabled={data.lastHour >= 24} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Woche anzeigen bis</span><div className="inline-toggle week-end-toggle">{([{v:4,label:'Fr'},{v:5,label:'Sa'},{v:6,label:'So'}] as const).map(x=><button key={x.v} className={(data.weekEndDay??4)===x.v?'selected':''} onClick={()=>mutate(d=>({...d,weekEndDay:x.v}))}>{x.label}</button>)}</div></div><small className="setting-hint">Die Wochenansicht endet am gewählten Tag. Spätere Termine bleiben über die Tages- oder Zwei-Tage-Ansicht erreichbar.</small><small className="setting-hint">Das Raster bleibt in Zwei-Stunden-Schritten. Veranstaltungen können minutengenau beginnen und enden.</small></section><section className="settings-section"><h2>Semester</h2><div className="semester-picker-list">{data.semesters.filter(s => s.degreeId === degree?.id).map(s => <button key={s.id} className={s.id === semester?.id ? 'current' : ''} onClick={() => { mutate(d => ({ ...d, activeSemesterId: s.id })); note(`${s.name} geöffnet.`) }}><span><strong>{s.name}</strong><small>{formDate(s.start)} – {formDate(s.end)}</small></span>{s.id === semester?.id && <Check size={18} />}</button>)}</div>{semester && <label className="setting-input"><span>Letzter Vorlesungstag</span><DateControl value={semester.lectureEnd} min={semester.start} max={semester.end} onChange={v => mutate(d => ({ ...d, semesters: d.semesters.map(s => s.id === semester.id ? { ...s, lectureEnd: v } : s) }))} /></label>}<button className="underlined-link" onClick={() => { if (!degree) return; const recent = data.semesters.filter(s => s.degreeId === degree.id).sort((a, b) => b.end.localeCompare(a.end))[0]; const start = recent ? addDays(recent.end, 1) : currentSemesterDates().start; const next = semesterFromStart(start); if (data.semesters.some(s => s.degreeId === degree.id && overlaps(s.start, s.end, next.start, next.end))) { note('Dieses Semester ist bereits vorhanden.'); return } const newSemester: Semester = { ...next, id: uid(), degreeId: degree.id, archived: false }; mutate(d => ({ ...d, semesters: [...d.semesters, newSemester], activeSemesterId: d.activeSemesterId })); note('Nächstes Semester gespeichert. Das aktuelle bleibt ausgewählt.') }}>Nächstes Semester hinzufügen <Plus size={17} /></button><div className="semester-management"><h3>Semester verwalten</h3>{data.semesters.filter(x=>x.degreeId===degree?.id).map(x=><div key={x.id} className="semester-manage-row"><span><strong>{x.name}</strong><small>{x.id===semester?.id?'Ausgewählt':x.start>today()?'Geplant':x.end<today()?'Vergangen':'Laufend'} · {formDate(x.start)} – {formDate(x.end)}</small></span><button aria-label={`${x.name} löschen`} onClick={()=>setConfirmDeleteSemester(x)}><Trash2 size={18}/></button></div>)}</div></section><section className="settings-section"><h2>Deine Daten</h2>{mailAccount?.connected&&<><div className="cloud-account-state"><div><strong>Mail-Postfach</strong><small>{mailAccount.email} · {mailAccount.status==='error'?'Verbindung prüfen':'Verbunden'}</small></div><Mail size={19}/></div><button className="settings-action settings-danger" onClick={()=>void disconnectMailbox()}><LogOut size={19}/> Postfach abmelden <ArrowRight size={17}/></button></>}<button className="settings-action" onClick={saveBackup}><Download size={19} /> Backup herunterladen <ArrowRight size={17} /></button><button className="settings-action" onClick={() => fileRef.current?.click()}><Upload size={19} /> Backup importieren <ArrowRight size={17} /></button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => { void readBackup(e.target.files?.[0]); e.target.value = '' }} /><button className="settings-action settings-danger" onClick={() => setConfirmReset(true)}><RotateCcw size={19} /> Alles zurücksetzen <ArrowRight size={17} /></button><div className="cloud-account-state"><div><strong>Supabase Cloud</strong><small>{cloudStatus === 'synced' ? 'Alle Änderungen gespeichert' : cloudStatus === 'saving' ? 'Synchronisiere …' : cloudStatus === 'error' ? 'Synchronisierung fehlgeschlagen' : 'Verbunden'}</small></div>{cloudStatus === 'synced' ? <Check size={19}/> : <RefreshCw size={19}/>}</div>{cloudStatus === 'error' && <p className="auth-error">{cloudError}</p>}<button className="settings-action" disabled={cloudBusy || cloudStatus === 'saving'} onClick={() => void syncNow()}><RefreshCw size={19}/> Jetzt synchronisieren <ArrowRight size={17}/></button><button className="settings-action" onClick={() => void logOut()}><LogOut size={19}/> uniflow abmelden <ArrowRight size={17}/></button><p className="quiet-copy">Angemeldet als {user.email || user.id.slice(0,8) + '…'}. Deine Daten werden beim Öffnen geladen und bei Änderungen automatisch nach Supabase gespeichert. Bei gleichzeitigen Änderungen auf mehreren Geräten kann der zuletzt gespeicherte Stand gewinnen.</p></section></div>}
+      </section><section className="settings-section"><h2>Stundenplan</h2><div className="setting-line"><span>Erste Stunde</span><div className="small-picker"><button disabled={data.firstHour <= 0} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour - 2 }))}>−</button><strong>{timeString(data.firstHour * 60)}</strong><button disabled={data.firstHour >= data.lastHour - 2} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Letzte Stunde</span><div className="small-picker"><button disabled={data.lastHour <= data.firstHour + 2} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour - 2 }))}>−</button><strong>{timeString(data.lastHour * 60)}</strong><button disabled={data.lastHour >= 24} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Woche anzeigen bis</span><div className="inline-toggle week-end-toggle">{([{v:4,label:'Fr'},{v:5,label:'Sa'},{v:6,label:'So'}] as const).map(x=><button key={x.v} className={(data.weekEndDay??4)===x.v?'selected':''} onClick={()=>mutate(d=>({...d,weekEndDay:x.v}))}>{x.label}</button>)}</div></div><small className="setting-hint">Die Wochenansicht endet am gewählten Tag. Spätere Termine bleiben über die Tages- oder Zwei-Tage-Ansicht erreichbar.</small><small className="setting-hint">Das Raster bleibt in Zwei-Stunden-Schritten. Veranstaltungen können minutengenau beginnen und enden.</small></section><section className="settings-section"><h2>Semester</h2><div className="semester-picker-list">{data.semesters.filter(s => s.degreeId === degree?.id).map(s => <button key={s.id} className={s.id === semester?.id ? 'current' : ''} onClick={() => { mutate(d => ({ ...d, activeSemesterId: s.id })); note(`${s.name} geöffnet.`) }}><span><strong>{s.name}</strong><small>{formDate(s.start)} – {formDate(s.end)}</small></span>{s.id === semester?.id && <Check size={18} />}</button>)}</div>{semester && <label className="setting-input"><span>Letzter Vorlesungstag</span><DateControl value={semester.lectureEnd} min={semester.start} max={semester.end} onChange={v => mutate(d => ({ ...d, semesters: d.semesters.map(s => s.id === semester.id ? { ...s, lectureEnd: v } : s) }))} /></label>}<button className="underlined-link" onClick={() => { if (!degree) return; const recent = data.semesters.filter(s => s.degreeId === degree.id).sort((a, b) => b.end.localeCompare(a.end))[0]; const start = recent ? addDays(recent.end, 1) : currentSemesterDates().start; const next = semesterFromStart(start); if (data.semesters.some(s => s.degreeId === degree.id && overlaps(s.start, s.end, next.start, next.end))) { note('Dieses Semester ist bereits vorhanden.'); return } const newSemester: Semester = { ...next, id: uid(), degreeId: degree.id, archived: false }; mutate(d => ({ ...d, semesters: [...d.semesters, newSemester], activeSemesterId: d.activeSemesterId })); note('Nächstes Semester gespeichert. Das aktuelle bleibt ausgewählt.') }}>Nächstes Semester hinzufügen <Plus size={17} /></button><div className="semester-management"><h3>Semester verwalten</h3>{data.semesters.filter(x=>x.degreeId===degree?.id).map(x=><div key={x.id} className="semester-manage-row"><span><strong>{x.name}</strong><small>{x.id===semester?.id?'Ausgewählt':x.start>today()?'Geplant':x.end<today()?'Vergangen':'Laufend'} · {formDate(x.start)} – {formDate(x.end)}</small></span><button aria-label={`${x.name} löschen`} onClick={()=>setConfirmDeleteSemester(x)}><Trash2 size={18}/></button></div>)}</div></section><section className="settings-section"><h2>Deine Daten</h2>{mailAccount?.connected&&<><div className="cloud-account-state"><div><strong>Mail-Postfach</strong><small>{mailAccount.email} · {mailAccount.status==='error'?'Verbindung prüfen':'Verbunden'}</small></div><Mail size={19}/></div><button className="settings-action settings-danger" onClick={()=>void disconnectMailbox()}><LogOut size={19}/> Postfach abmelden <ArrowRight size={17}/></button></>}<button className="settings-action" onClick={saveBackup}><Download size={19} /> Backup herunterladen <ArrowRight size={17} /></button><button className="settings-action" onClick={() => fileRef.current?.click()}><Upload size={19} /> Backup importieren <ArrowRight size={17} /></button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => { void readBackup(e.target.files?.[0]); e.target.value = '' }} /><button className="settings-action settings-danger" onClick={() => setConfirmReset(true)}><RotateCcw size={19} /> Alles zurücksetzen <ArrowRight size={17} /></button><div className="cloud-account-state"><div><strong>unicloud</strong><small>{cloudStatus === 'synced' ? 'Alle Änderungen gespeichert' : cloudStatus === 'saving' ? 'Synchronisiere …' : cloudStatus === 'error' ? 'Synchronisierung fehlgeschlagen' : 'Verbunden'}</small></div>{cloudStatus === 'synced' ? <Check size={19}/> : <RefreshCw size={19}/>}</div>{cloudStatus === 'error' && <p className="auth-error">{cloudError}</p>}<button className="settings-action" disabled={cloudBusy || cloudStatus === 'saving'} onClick={() => void syncNow()}><RefreshCw size={19}/> Jetzt synchronisieren <ArrowRight size={17}/></button><button className="settings-action" onClick={() => void logOut()}><LogOut size={19}/> uniflow abmelden <ArrowRight size={17}/></button><p className="quiet-copy">Angemeldet als {user.email || user.id.slice(0,8) + '…'}. Deine Daten werden beim Öffnen geladen und bei Änderungen automatisch in unicloud gespeichert. Bei gleichzeitigen Änderungen auf mehreren Geräten kann der zuletzt gespeicherte Stand gewinnen.</p></section></div>}
       </div>
     </div>
     <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Heute', icon: Layers2 }, { id: 'calendar', name: 'Plan', icon: CalendarDays }, { id: 'modules', name: 'Module', icon: BookOpen }, { id: 'mail', name: 'Postfach', icon: Mail }, { id: 'settings', name: 'Einstellungen', icon: Settings2 }] as const).map(item => <button key={item.id} className={page === item.id || (page === 'admin' && item.id === 'settings') ? 'active' : ''} onClick={() => navigatePage(item.id)}><span className="nav-icon-wrap"><item.icon size={21} />{item.id==='mail'&&mailUnread>0&&<em className="mail-nav-badge">{mailUnread>99?'99+':mailUnread}</em>}</span><span>{item.name}</span></button>)}</nav>
@@ -1650,14 +1745,15 @@ export default function App() {
     {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={semester} modules={semesterModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
     {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Prüfung löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“ am {formDate(deletingAssessment.date)} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>{const remaining=d.assessments.filter(x=>x.id!==deletingAssessment.id);return {...d,assessments:rebalanceAssessmentWeights(remaining,deletingAssessment.moduleId)}});setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
     {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }] })); note('Modul hinzugefügt.') } return id }} />}
-    {ratingLesson&&ratingOccurrence&&<BottomSheet title="Bewertung" onClose={()=>setRatingOccurrence(null)} compactHeader>
+    {ratingLesson&&ratingOccurrence&&<BottomSheet title="Bewertung" onClose={()=>setRatingOccurrence(null)} compactHeader
+      headerAction={<button type="button" className="sheet-header-save" onClick={saveRatingDraft}>Speichern</button>}>
       <div className="learn-checkin-heading" aria-label="Bewertung der Veranstaltung">
         <div><strong style={{color:ratingModule?.color||"#ededed"}}>{ratingModule?.name||ratingOccurrence.offering.name}</strong>
           <span>{ratingLesson.label} · {formatDate(ratingLesson.date,{day:'numeric',month:'short'})}</span></div>
         <span className="learn-eyebrow">Wie lief's?</span>
       </div>
-      <LessonFeedback key={ratingLesson.key} lesson={ratingLesson} topic={ratingTopic} rating={ratingValue}
-        canRate={canRateOccurrence(ratingOccurrence)} onTopic={saveLectureTopic} onRating={saveLectureRating}/>
+      <LessonFeedback key={ratingLesson.key} lesson={ratingLesson} topic={ratingDraftTopic} rating={ratingDraftValue}
+        canRate={canRateOccurrence(ratingOccurrence)} onTopic={(_,title)=>setRatingDraftTopic(title)} onRating={(_,rating)=>setRatingDraftValue(rating)}/>
     </BottomSheet>}
     {detail && <EventDetails occ={detail} module={degreeModules.find(m=>m.id===detail.offering.moduleId)} modules={semesterModules} offerings={data.offerings} data={data}
        onTopic={saveLectureTopic} onRating={saveLectureRating}
@@ -1693,7 +1789,7 @@ export default function App() {
     {confirmDeleteSemester && <BottomSheet title="Semester löschen?" onClose={()=>setConfirmDeleteSemester(null)}><p className="scope-intro">{confirmDeleteSemester.name} und die dazugehörigen Kalendertermine werden gelöscht. Die Module bleiben im Studiengang erhalten, werden aber von diesem Semester gelöst.</p><button className="primary-action" onClick={()=>{const id=confirmDeleteSemester.id;const removedOfferingIds=new Set(data.offerings.filter(o=>o.semesterId===id).map(o=>o.id));mutate(d=>({...d, semesters:d.semesters.filter(s=>s.id!==id), activeSemesterId:d.activeSemesterId===id?(d.semesters.find(s=>s.id!==id&&s.degreeId===confirmDeleteSemester.degreeId)?.id||''):d.activeSemesterId, offerings:d.offerings.filter(o=>o.semesterId!==id), assessments:d.assessments.filter(a=>a.semesterId!==id), alternatives:(d.alternatives||[]).filter(a=>!removedOfferingIds.has(a.parentOfferingId)), modules:d.modules.map(m=>({...m,semesterIds:m.semesterIds.filter(x=>x!==id)}))}));setConfirmDeleteSemester(null);note('Semester gelöscht.')} }>Semester und Termine löschen</button><button className="dismiss-action" onClick={()=>setConfirmDeleteSemester(null)}>Abbrechen</button></BottomSheet>}
     {confirmDeleteModule && <BottomSheet title="Modul löschen?" onClose={() => setConfirmDeleteModule(null)}><p className="scope-intro">„{confirmDeleteModule.name}“ und alle zugehörigen Termine werden gelöscht. Das lässt sich nicht rückgängig machen.</p><button className="primary-action" onClick={() => { mutate(d => ({ ...d, modules: d.modules.filter(m => m.id !== confirmDeleteModule.id), offerings: d.offerings.filter(o => o.moduleId !== confirmDeleteModule.id), assessments:d.assessments.filter(a=>a.moduleId!==confirmDeleteModule.id), alternatives: (d.alternatives || []).filter(a => a.moduleId !== confirmDeleteModule.id && !d.offerings.some(o => o.moduleId === confirmDeleteModule.id && o.id === a.parentOfferingId)) })); setConfirmDeleteModule(null);setSelectedModuleId(null); note('Modul gelöscht.') }}>Modul und Termine löschen</button><button className="dismiss-action" onClick={() => setConfirmDeleteModule(null)}>Abbrechen</button></BottomSheet>}
     {pendingBackup && <BottomSheet title="Backup importieren?" onClose={() => setPendingBackup(null)}><p className="scope-intro">Das Backup ersetzt die derzeitigen lokalen uniflow-Daten auf diesem Gerät.</p><button className="primary-action" onClick={() => { setData(pendingBackup); setOnboarding(!pendingBackup.activeDegreeId); setPendingBackup(null); note('Backup wiederhergestellt.') }}>Backup wiederherstellen</button><button className="dismiss-action" onClick={() => setPendingBackup(null)}>Abbrechen</button></BottomSheet>}
-    {confirmReset && <BottomSheet title="Neu anfangen?" onClose={() => setConfirmReset(false)}><p className="scope-intro">Dein uniflow-Stundenplan, deine Module und Semester werden auch in Supabase auf einen leeren Stand zurückgesetzt. Speichere vorher ein Backup, wenn du sie behalten möchtest.</p><button className="primary-action" onClick={() => void doReset()} disabled={cloudBusy}>Alle Daten löschen</button><button className="dismiss-action" onClick={() => setConfirmReset(false)}>Abbrechen</button></BottomSheet>}
+    {confirmReset && <BottomSheet title="Neu anfangen?" onClose={() => setConfirmReset(false)}><p className="scope-intro">Dein uniflow-Stundenplan, deine Module und Semester werden auch in unicloud auf einen leeren Stand zurückgesetzt. Speichere vorher ein Backup, wenn du sie behalten möchtest.</p><button className="primary-action" onClick={() => void doReset()} disabled={cloudBusy}>Alle Daten löschen</button><button className="dismiss-action" onClick={() => setConfirmReset(false)}>Abbrechen</button></BottomSheet>}
     {toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}
   </div>
 }
