@@ -12,6 +12,18 @@ const learning={exports:{}}
 new Function('module','exports','require',compile('src/learning.ts'))(learning,learning.exports,id=>id==='./model'?model.exports:require(id))
 const dashboard=ts.transpileModule(fs.readFileSync('src/LearningDashboard.tsx','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX},reportDiagnostics:true})
 assert.equal((dashboard.diagnostics||[]).filter(d=>d.category===ts.DiagnosticCategory.Error).length,0,'Dashboard TSX syntax')
+compile('src/ModuleScheduleEditor.tsx')
+compile('src/CampusMap.tsx')
+const editorSource=fs.readFileSync('src/ModuleScheduleEditor.tsx','utf8')
+const campusSource=fs.readFileSync('src/CampusMap.tsx','utf8')
+const appSource=fs.readFileSync('src/App.tsx','utf8')
+assert.match(editorSource,/learningTopicDrafts/,'Learning topic typing uses a stable local draft')
+assert.match(editorSource,/Thema speichern/,'Learning topic changes are committed explicitly')
+assert.match(editorSource,/Thema entfernen/,'A custom learning topic can be removed')
+assert.match(campusSource,/MA 042/,'Campus room search explains TU room codes')
+assert.match(campusSource,/Offiziellen TU-Campusplan öffnen/,'Campus page links to the complete official directory')
+assert.match(appSource,/page === 'campus'/,'Campus map is wired as its own page')
+assert.match(appSource,/const campusEnabled=\/technische universität berlin\|tu berlin/i,'Campus entry is limited to TU Berlin students')
 const {pastLessons,pastFreeStudy,journeyFor}=learning.exports
 const {emptyData}=model.exports
 const moduleA={id:'a',degreeId:'d',name:'A',shortName:'A',credits:6,color:'#fff',status:'current',grade:'',counted:true,hidden:false,semesterIds:['s']}
