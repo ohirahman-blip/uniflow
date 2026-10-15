@@ -128,7 +128,7 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
           <><strong>Alles im Blick.</strong><p>Aktuell keine weitere Veranstaltung gefunden.</p></>}
       </section>
       <section className={'learn-hero '+(examModule?'learn-hero-subject':'')} style={accent(examModule?.color)}>
-        <span className="learn-eyebrow"><GraduationCap size={15}/> NÄCHSTE KLAUSUR</span>
+        <span className="learn-eyebrow"><GraduationCap size={15}/> NÄCHSTE PRÜFUNG</span>
         {recentExam?<><strong>{examModule?.name||recentExam.title}</strong><p>{shortDate(recentExam.date)} · in {Math.max(0,Math.round((fromDate(recentExam.date).getTime()-fromDate(today()).getTime())/86400000))} Tagen</p></>:
           <><strong>Keine Prüfung geplant</strong><p>Neue Prüfungen erscheinen automatisch hier.</p></>}
       </section>
