@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowRight, CalendarClock, Check, ChevronRight, Clock3, GraduationCap, Plus, Sparkles, X } from 'lucide-react'
 import {
   formatDate, fromDate, isAssessment, minutes, occurrencesOn, selectedAssessment, today,
@@ -44,6 +45,17 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
   const [showAll,setShowAll]=useState(false)
   const [activePlan,setActivePlan]=useState<string|undefined>()
   const [clockTick,setClockTick]=useState(0)
+  useEffect(()=>{
+    if(!studyOpen)return
+    const onBack=(event:Event)=>{
+      const detail=(event as CustomEvent<{handled:boolean}>).detail
+      if(detail?.handled)return
+      detail.handled=true
+      setStudyOpen(false)
+    }
+    window.addEventListener('uniflow-back',onBack)
+    return()=>window.removeEventListener('uniflow-back',onBack)
+  },[studyOpen])
   useEffect(()=>{
     const timer=window.setInterval(()=>setClockTick(t=>t+1),5*60_000)
     const onVisible=()=>{if(document.visibilityState==='visible')setClockTick(t=>t+1)}
@@ -193,7 +205,7 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
       </div>}
       <div className="learn-today"><Clock3 size={17}/><span>Heute erfasste Lerneinheiten</span><strong>{completed}</strong></div>
     </section>
-    {studyOpen&&<div className="learn-backdrop" onClick={e=>{if(e.target===e.currentTarget)setStudyOpen(false)}}>
+    {studyOpen&&createPortal(<div className="learn-backdrop" onClick={e=>{if(e.target===e.currentTarget)setStudyOpen(false)}}>
       <div className="learn-sheet" role="dialog" aria-modal="true" aria-label="Lerneinheit erfassen">
         <div className="learn-sheet-head"><div><h2>Freies Lernen</h2></div><button aria-label="Schließen" onClick={()=>setStudyOpen(false)}><X size={20}/></button></div>
         <label>Modul<UniflowPicker label="Modul" value={chosenModule?.id||''} onChange={value=>{setModuleId(value);setLessonKey('')}} options={active.map(m=>({value:m.id,label:m.name}))}/></label>
@@ -205,7 +217,7 @@ export default function LearningDashboard({data,semester,modules,aiAdvice,contex
         <p className="learn-muted">Lernzeit allein bedeutet nicht, dass du den Stoff beherrschst. Deine Bewertung fließt in die Empfehlungen ein.</p>
         <button className="learn-submit" disabled={!chosenModule} onClick={submitStudy}>Lerneinheit speichern <Check size={17}/></button>
       </div>
-    </div>}
+    </div>,document.body)}
   </div>
 }
 function addDaysLocal(iso:string,n:number){
