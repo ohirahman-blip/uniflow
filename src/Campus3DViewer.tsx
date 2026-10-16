@@ -83,6 +83,10 @@ export default function Campus3DViewer({activeCode,activeName}:Campus3DViewerPro
       const manager=new T.LoadingManager()
       manager.onProgress=(_,loaded,total)=>{if(!disposed)setProgress(Math.round(loaded/total*100))}
       const draco=new DRACOLoader(manager)
+      // Keep the decoder with the app. Relying on DRACOLoader's empty default
+      // path leaves compressed campus tiles waiting for decoder files at `/`.
+      draco.setDecoderPath('/draco/')
+      draco.setDecoderConfig({type:'wasm'})
       const loader=new GLTFLoader(manager)
       loader.setDRACOLoader(draco)
       const loaded:Object3D[]=[]
