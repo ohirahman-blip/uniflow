@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowRight, CalendarClock, Check, ChevronRight, Clock3, GraduationCap, MapPinned, Pause, Play, Plus, Sparkles, Square, Timer, X } from 'lucide-react'
+import { ArrowRight, CalendarClock, Check, ChevronRight, Clock3, GraduationCap, Pause, Play, Plus, Sparkles, Square, Timer, X } from 'lucide-react'
 import {
   formatDate, fromDate, isAssessment, minutes, occurrencesOn, selectedAssessment, today,
   type AppData, type Semester, type StudyModule
@@ -27,8 +27,6 @@ type Props = {
   onSession: (session:Omit<LearningSession,'id'|'updatedAt'>)=>void
   onPlan: (task:LearningPlanTask)=>void
   onRemovePlan: (id:string)=>void
-  campusEnabled:boolean
-  onOpenCampus:()=>void
 }
 type ActiveStudyTimer={
   planId:string
@@ -58,7 +56,7 @@ const readStudyTimer=(key:string):ActiveStudyTimer|null=>{
   }catch{return null}
 }
 
-export default function LearningDashboard({data,semester,modules,timerStorageKey,aiAdvice,context,onTopic,onCheckin,onSession,onPlan,onRemovePlan,campusEnabled,onOpenCampus}:Props){
+export default function LearningDashboard({data,semester,modules,timerStorageKey,aiAdvice,context,onTopic,onCheckin,onSession,onPlan,onRemovePlan}:Props){
   const [studyOpen,setStudyOpen]=useState(false)
   const [moduleId,setModuleId]=useState('')
   const [lessonKey,setLessonKey]=useState('')
@@ -228,8 +226,6 @@ export default function LearningDashboard({data,semester,modules,timerStorageKey
             </button>}
         </div>
       </div>
-
-      {campusEnabled&&<button type="button" className="learn-campus-entry" onClick={onOpenCampus}><span><MapPinned size={20}/></span><div><small>TU BERLIN · CAMPUSPLAN</small><strong>Deinen Raum finden</strong><p>Raumcode eingeben und Gebäude auf dem Campus finden.</p></div><ArrowRight size={18}/></button>}
 
     </section><section className="learn-section">
       <div className="learn-title"><h2>Kurzer Check-in</h2><span className="learn-counter">{pending.length} offen</span></div>

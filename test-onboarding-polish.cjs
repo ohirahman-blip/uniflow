@@ -5,6 +5,7 @@ const app=fs.readFileSync('src/App.tsx','utf8')
 const base=fs.readFileSync('src/styles.css','utf8')
 const strip=fs.readFileSync('src/calendar-week-strip.css','utf8')
 const polish=fs.readFileSync('src/onboarding-refine.css','utf8')
+const splash=fs.readFileSync('src/startup-splash.css','utf8')
 
 const diag=ts.transpileModule(app,{
   compilerOptions:{target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX},
@@ -40,10 +41,13 @@ assert.match(app,/className="onboard-step-motion"/)
 assert.match(polish,/@keyframes uf-kinetic-title/)
 assert.match(polish,/prefers-reduced-motion:reduce/)
 assert.match(polish,/\.onboarding \.aurora\s*\{[^}]*mask-image: linear-gradient\(/s)
+assert.match(base,/html\[data-theme='light'\] \.onboarding \{ background:#f7f7f6;/,'Onboarding has an explicit light surface')
+assert.match(base,/html\[data-theme='light'\] \.auth-field input \{[^}]*color:#18181a;/s,'Authentication inputs stay readable in light mode')
+assert.match(splash,/html\[data-theme='light'\] \.uf-startup\{color:#18181a\}/,'Startup wordmark stays visible in light mode')
 
 // The calendar keeps its data/gesture rules. Only the requested paints change.
 assert.match(base,/\.course-past\s*\{\s*filter:none;\s*opacity:\.88;\s*\}/)
 assert.match(base,/\.course-past:hover,\.course-past:focus-visible\s*\{\s*filter:none;\s*opacity:1;\s*\}/)
 assert.match(strip,/\.uf-week-range\s*\{[^}]*background:#171719;/s)
 assert.match(strip,/\.calendar-sticky-header\s*\{[^}]*z-index: 90;/s)
-console.log('✔ onboarding/OTP polish: 8-slot paste and autofill, direct calendar entry, kinetic motion, calm halo, retained past colors and dark date strip')
+console.log('✔ onboarding/OTP polish: 8-slot paste and autofill, direct calendar entry, kinetic motion, readable light theme, retained past colors and dark date strip')
