@@ -18,11 +18,16 @@ assert.ok(header.indexOf('className="focus-select-wrap"')>toolbar && header.inde
 assert.ok(/<\/div>}\s*<\/div>\s*\{monthOpen\?<div className="uf-month-swipe"/.test(header),'Sticky wrapper must close before month swipe view or timetable')
 
 assert.match(css,/\.calendar-sticky-header\s*\{[^}]*position:\s*sticky;[^}]*z-index:\s*90;/s)
+assert.match(css,/\.calendar-sticky-header\s*\{[^}]*top:\s*15px;/s,'Header starts pinned at the normal tablet/desktop offset')
+assert.match(css,/@media\s*\(min-width:\s*901px\)\s*\{\s*\.calendar-sticky-header\s*\{\s*top:\s*30px;/s,'Wide calendar keeps its initial 30px position while scrolling')
 assert.match(css,/\.calendar-sticky-header\s*>\s*\.calendar-compact-toolbar\s*\{[^}]*z-index:\s*3;/s)
 assert.match(css,/\.calendar-sticky-header\s*>\s*\.uf-week-strip\s*\{[^}]*position:\s*relative;[^}]*z-index:\s*1;/s)
 assert.match(css,/\.calendar-sticky-header\s+\.mini-popover\s*\{[^}]*z-index:\s*100;/s)
 assert.match(css,/@media\s*\(max-width:\s*720px\)\s*\{\s*\.calendar-sticky-header\s*\{/s,'Mobile header must cover the entire date strip')
 assert.ok(header.includes('aria-expanded={taskMenu}') && header.includes('aria-expanded={focusOpen}'),'Both menus expose open state')
+assert.ok(header.includes('aria-label="Ein-Tages-Ansicht"><span className="calendar-view-number" aria-hidden="true">1</span><span className="calendar-view-label" aria-hidden="true">Tag</span>'),'Day button uses 1 and expands to 1 Tag')
+assert.ok(header.includes('aria-label="Zwei-Tage-Ansicht"><span className="calendar-view-number" aria-hidden="true">2</span><span className="calendar-view-label" aria-hidden="true">Tage</span>'),'Two-day button uses 2 and expands to 2 Tage')
+assert.match(css,/\.calendar-compact-toolbar \.view-switch \.calendar-view-count\.active\s*\{\s*width:64px;/,'Selected day count expands smoothly')
 
 const diagnostics=ts.transpileModule(app,{compilerOptions:{target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX},reportDiagnostics:true}).diagnostics||[]
 assert.equal(diagnostics.filter(item=>item.category===ts.DiagnosticCategory.Error).length,0,'Calendar TSX must parse')

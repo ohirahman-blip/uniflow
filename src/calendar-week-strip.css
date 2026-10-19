@@ -428,7 +428,9 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
    allowing Safari's sticky date strip to paint over an open menu. */
 .calendar-sticky-header {
   position: sticky;
-  top: 0;
+  /* Match the header's normal starting offset so it is pinned from the first
+     rendered frame instead of travelling through the page padding first. */
+  top: 15px;
   z-index: 90;
   isolation: isolate;
   background:var(--uf-page-background,#080808);
@@ -455,12 +457,56 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
   /* The menu may overlap the weekday strip and still remain clickable. */
   pointer-events: auto;
 }
+@media (min-width: 901px) {
+  .calendar-sticky-header { top: 30px; }
+}
 @media (max-width: 720px) {
   .calendar-sticky-header {
+    top: 13px;
     margin-inline: -10px;
     width: calc(100% + 20px);
     padding-inline: 10px;
   }
+}
+
+/* Keep the existing view-switch styling. Only the 1/2 glyphs reveal their
+   label when selected, with the button itself easing wider. */
+.calendar-compact-toolbar .view-switch .calendar-view-count {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:0;
+  width:36px;
+  min-width:36px;
+  overflow:hidden;
+  white-space:nowrap;
+  transition:width 280ms cubic-bezier(.2,.8,.2,1),background-color 180ms ease,color 180ms ease;
+}
+.calendar-compact-toolbar .view-switch .calendar-view-count.active { width:64px; }
+.calendar-compact-toolbar .view-switch .calendar-view-count-two.active { width:70px; }
+.calendar-view-number { flex:0 0 auto; font-variant-numeric:tabular-nums; }
+.calendar-view-label {
+  max-width:0;
+  margin-left:0;
+  overflow:hidden;
+  opacity:0;
+  transform:translateX(-3px);
+  transition:max-width 280ms cubic-bezier(.2,.8,.2,1),margin-left 280ms cubic-bezier(.2,.8,.2,1),opacity 160ms ease,transform 280ms cubic-bezier(.2,.8,.2,1);
+}
+.calendar-view-count.active .calendar-view-label {
+  max-width:34px;
+  margin-left:4px;
+  opacity:1;
+  transform:translateX(0);
+}
+@media (max-width: 720px) {
+  .calendar-compact-toolbar .view-switch .calendar-view-count { width:35px; min-width:35px; }
+  .calendar-compact-toolbar .view-switch .calendar-view-count.active { width:62px; }
+  .calendar-compact-toolbar .view-switch .calendar-view-count-two.active { width:68px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendar-compact-toolbar .view-switch .calendar-view-count,
+  .calendar-view-label { transition:none!important; }
 }
 html[data-theme='light'] .calendar-sticky-header,
 html[data-theme='light'] .calendar-sticky-header > .calendar-compact-toolbar {

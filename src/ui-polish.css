@@ -462,10 +462,12 @@ input.line-input.room-input {font-family:inherit;font-size:12px;font-weight:500;
   .app-root{min-height:100dvh}
   .app-top{min-height:57px}
   .screen-calendar{padding-top:18px}
+  .calendar-sticky-header{top:calc(max(env(safe-area-inset-top,0px),14px) + 18px)}
 }
 @media(max-width:720px) and (display-mode:fullscreen){
   .app-main{padding-top:max(env(safe-area-inset-top,0px),14px)}
   .screen-calendar{padding-top:18px}
+  .calendar-sticky-header{top:calc(max(env(safe-area-inset-top,0px),14px) + 18px)}
 }
 
 /* Seamless bars match the dashboard exactly: no fade, no divider. */

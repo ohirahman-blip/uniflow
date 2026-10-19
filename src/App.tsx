@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpDown, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, Mail, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarRange, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpDown, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, Mail, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, rebalanceAssessmentWeights, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
@@ -1084,8 +1084,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     <div className="calendar-sticky-header">
     <div className="calendar-compact-toolbar">
       <div className="view-switch" role="group" aria-label="Kalenderansicht">
-        <button className={!monthOpen&&mode==='day'?'active':''} onClick={()=>changeMode('day')} title="Tag" aria-label="Tagesansicht"><CalendarDays size={17}/></button>
-        <button className={!monthOpen&&mode==='two'?'active':''} onClick={()=>changeMode('two')} title="2 Tage" aria-label="Zwei-Tage-Ansicht"><CalendarRange size={17}/></button>
+        <button className={'calendar-view-count '+(!monthOpen&&mode==='day'?'active':'')} onClick={()=>changeMode('day')} title="1 Tag" aria-label="Ein-Tages-Ansicht"><span className="calendar-view-number" aria-hidden="true">1</span><span className="calendar-view-label" aria-hidden="true">Tag</span></button>
+        <button className={'calendar-view-count calendar-view-count-two '+(!monthOpen&&mode==='two'?'active':'')} onClick={()=>changeMode('two')} title="2 Tage" aria-label="Zwei-Tage-Ansicht"><span className="calendar-view-number" aria-hidden="true">2</span><span className="calendar-view-label" aria-hidden="true">Tage</span></button>
         <button className={!monthOpen&&mode==='week'?'active':''} onClick={()=>changeMode('week')} title="Woche" aria-label="Wochenansicht"><CalendarCheck2 size={17}/></button>
         <button className={monthOpen?'active':''} onClick={()=>setMonthOpen(v=>!v)} title="Monat" aria-label="Monatsansicht für Prüfungen und Hausaufgaben"><LayoutGrid size={17}/></button>
       </div>
