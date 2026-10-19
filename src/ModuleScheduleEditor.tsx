@@ -101,13 +101,11 @@ type Props = {
   onChangeLearningSessions:(next:LearningSession[])=>void;
   onChangeLearningCheckins:(next:LearningCheckin[])=>void;
   onChangeLessonTopics:(next:LessonTopic[])=>void;
-  cloudStatus:'loading'|'saving'|'synced'|'error';cloudError:string;onRetrySync:()=>void;
 }
 export default function ModuleScheduleEditor({
   module,semester,offerings,assessments,journey,premium,onBack,onUpdateModule,onDeleteModule,
   onChangeOfferings,onChangeAssessments,onEditAssessment,onAddAssessment,onOpenOccurrence,onClearException,
-  learningSessions,learningCheckins,lessonTopics,onChangeLearningSessions,onChangeLearningCheckins,onChangeLessonTopics,
-  cloudStatus,cloudError,onRetrySync
+  learningSessions,learningCheckins,lessonTopics,onChangeLearningSessions,onChangeLearningCheckins,onChangeLessonTopics
 }:Props) {
   const [quickText,setQuickText]=useState('')
   const quickInputRef=useRef<HTMLTextAreaElement|null>(null)
@@ -423,12 +421,20 @@ export default function ModuleScheduleEditor({
   const futureExceptions=own.flatMap(o=>Object.entries(o.overrides||{})
     .filter(([date,value])=>date>=today()&&(value.scope==='single'||(!value.scope&&(!!value.cancelled||!!value.date||!!value.from))))
     .map(([origin,value])=>({o,origin,value}))).sort((a,b)=>a.origin.localeCompare(b.origin))
+  const renderAssessmentCard=({key,items}:{key:string;items:Assessment[]})=>{
+    const first=items[0],exam=first.type==='exam',selected=items.find(item=>selectedAssessment(item,assessments))||first
+    return <article className="module-assessment-card" key={key}>
+      <div className="module-assessment-head"><span className="module-assessment-icon">{exam?<GraduationCap size={17}/>:<ClipboardList size={17}/>}</span><button className="module-assessment-title" onClick={()=>onEditAssessment(selected)}><strong>{first.title}</strong><small>{exam?`${items.length} ${items.length===1?'Termin':'Alternativen'}`:first.completed?'Fertig':'Noch abzugeben'}</small></button><label className="module-assessment-weight"><span>Gewichtung</span><span><input className="plain-number-input" type="number" inputMode="decimal" min="0" max="100" step="0.1" value={first.weight??0} onChange={event=>changeAssessmentWeight(key,Number(event.target.value))}/><em>%</em></span></label></div>
+      {exam?<div className="module-exam-attempts" role="radiogroup" aria-label={'Prüfungstermin für '+first.title}>{items.map((item,index)=><button type="button" role="radio" aria-checked={item.id===selected.id} className={item.id===selected.id?'selected':''} key={item.id} onClick={()=>selectAttempt(key,item.id)}><span>{index===0?'1. Termin':index===1?'2. Termin':`${index+1}. Termin`}</span><strong>{formatDate(item.date,{day:'numeric',month:'short',year:'numeric'})}</strong>{item.from&&<small>{item.from}{item.to?'–'+item.to:''} Uhr</small>}<i>{item.id===selected.id?<Check size={13}/>:null}</i></button>)}</div>
+        :<button type="button" role="checkbox" aria-checked={!!first.completed} className={'module-homework-state '+(first.completed?'done':'')} onClick={()=>toggleHomework(first.id)}><span>{first.completed?<Check size={14}/>:null}</span>{first.completed?'Fertig – wieder öffnen':'Als fertig markieren'}<small>{formatDate(first.date,{day:'numeric',month:'short'})}</small></button>}
+    </article>
+  }
 
   return <div className="screen secondary-screen module-detail-screen module-fast">
     <button className="text-back" onClick={onBack}><ArrowLeft size={18}/> Alle Module</button>
     <div className="module-detail-heading">
       <span className="module-emoji" style={{background:module.color}}>{module.emoji||<BookOpen size={20}/>}</span>
-      <div><span className="overline">MODUL</span><h1>{module.name}</h1><p>{module.credits} LP · {module.shortName}</p></div>
+      <div><span className="overline">MODUL</span><h1>{module.name}</h1></div>
     </div>
     {journey&&journey.total>0&&<div className="module-fast-journey">
       <div className="module-fast-journey-head"><strong>{journey.status}</strong><span>{journey.rated}/{journey.total} bewertet</span></div>
@@ -436,7 +442,7 @@ export default function ModuleScheduleEditor({
       <div className="module-fast-journey-stats"><span>Verständnis <b>{journey.understanding===null?'—':journey.understanding+' %'}</b></span><span>Wiederholung <b>{journey.repetition} %</b></span><span>Prüfungstraining <b>{journey.training} %</b></span></div>
     </div>}
     <details className="module-learning-history" open={learningOpen} onToggle={event=>setLearningOpen(event.currentTarget.open)}>
-      <summary className="module-learning-summary"><div><span className="overline">DEINE LERNEINHEITEN</span><h2>Lernverlauf <small>{learningHistory.length}</small></h2></div><ChevronDown size={18}/></summary>
+      <summary className="module-learning-summary"><div><h2>Lernverlauf <small>{learningHistory.length}</small></h2></div><ChevronDown size={18}/></summary>
       <div className="module-learning-body">
       {learningHistory.length>0&&<div className="module-learning-filters" role="group" aria-label="Lernverlauf filtern">
         {([['all','Alle'],['classes','Veranstaltungen'],['free','Freies Lernen'],['exam','Prüfung']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={learningFilter===value} className={learningFilter===value?'active':''} onClick={()=>{setLearningFilter(value);setEditingLearningId(null)}}>{label}</button>)}
@@ -467,10 +473,6 @@ export default function ModuleScheduleEditor({
       })}</div>
       </div>
     </details>
-    <div className="module-fast-state" role="status">
-      {cloudStatus==='error'?<><span>unicloud-Speicherung fehlgeschlagen · Eingaben bleiben lokal erhalten.</span><button onClick={onRetrySync}>Erneut synchronisieren</button><small>{cloudError}</small></>:
-        <span>{cloudStatus==='saving'?'Synchronisiere …':cloudStatus==='synced'?'Automatisch gespeichert':'Speichere lokal …'}</span>}
-    </div>
     <details className="module-fast-meta" open={advanced} onToggle={e=>setAdvanced(e.currentTarget.open)}>
       <summary><span>Modulangaben bearbeiten</span><ChevronDown size={17}/></summary>
       <div className="module-fast-meta-grid">
@@ -573,20 +575,14 @@ export default function ModuleScheduleEditor({
       </div>}
 
     <section className="module-assessments">
-      <div className="module-fast-section-head"><div><span className="overline">DEINE PRÜFUNGSBESTANDTEILE</span><h2>Prüfungen & Hausaufgaben <small>{assessmentGroups.length}</small></h2></div><div className="module-assessment-add"><button onClick={()=>onAddAssessment('exam')}><GraduationCap size={16}/> Prüfung</button><button onClick={()=>onAddAssessment('homework')}><ClipboardList size={16}/> Aufgabe</button></div></div>
-      {!assessmentGroups.length&&<div className="module-topic-empty">Noch keine Prüfungsbestandteile eingetragen.</div>}
-      <div className="module-assessment-list">{assessmentGroups.map(({key,items})=>{
-        const first=items[0],exam=first.type==='exam',selected=items.find(item=>selectedAssessment(item,assessments))||first
-        return <article className="module-assessment-card" key={key}>
-          <div className="module-assessment-head"><span className="module-assessment-icon">{exam?<GraduationCap size={17}/>:<ClipboardList size={17}/>}</span><button className="module-assessment-title" onClick={()=>onEditAssessment(selected)}><strong>{first.title}</strong><small>{exam?`${items.length} ${items.length===1?'Termin':'Alternativen'}`:first.completed?'Fertig':'Noch abzugeben'}</small></button><label className="module-assessment-weight"><span>Gewichtung</span><span><input className="plain-number-input" type="number" inputMode="decimal" min="0" max="100" step="0.1" value={first.weight??0} onChange={event=>changeAssessmentWeight(key,Number(event.target.value))}/><em>%</em></span></label></div>
-          {exam?<div className="module-exam-attempts" role="radiogroup" aria-label={'Prüfungstermin für '+first.title}>{items.map((item,index)=><button type="button" role="radio" aria-checked={item.id===selected.id} className={item.id===selected.id?'selected':''} key={item.id} onClick={()=>selectAttempt(key,item.id)}><span>{index===0?'1. Termin':index===1?'2. Termin':`${index+1}. Termin`}</span><strong>{formatDate(item.date,{day:'numeric',month:'short',year:'numeric'})}</strong>{item.from&&<small>{item.from}{item.to?'–'+item.to:''} Uhr</small>}<i>{item.id===selected.id?<Check size={13}/>:null}</i></button>)}</div>
-          :<button type="button" role="checkbox" aria-checked={!!first.completed} className={'module-homework-state '+(first.completed?'done':'')} onClick={()=>toggleHomework(first.id)}><span>{first.completed?<Check size={14}/>:null}</span>{first.completed?'Fertig – wieder öffnen':'Als fertig markieren'}<small>{formatDate(first.date,{day:'numeric',month:'short'})}</small></button>}
-        </article>
-      })}</div>
+      <div className="module-fast-section-head"><div><h2>Prüfungen <small>{assessmentGroups.filter(group=>group.items[0]?.type==='exam').length}</small></h2></div><button onClick={()=>onAddAssessment('exam')}><Plus size={16}/> Hinzufügen</button></div>
+      <div className="module-assessment-list">{assessmentGroups.filter(group=>group.items[0]?.type==='exam').map(renderAssessmentCard)}</div>
+      <div className="module-fast-section-head module-homework-heading"><div><h2>Hausaufgaben <small>{assessmentGroups.filter(group=>group.items[0]?.type==='homework').length}</small></h2></div><button onClick={()=>onAddAssessment('homework')}><Plus size={16}/> Hinzufügen</button></div>
+      <div className="module-assessment-list">{assessmentGroups.filter(group=>group.items[0]?.type==='homework').map(renderAssessmentCard)}</div>
+      {!assessmentGroups.length&&<div className="module-topic-empty">Noch keine Prüfungen oder Hausaufgaben eingetragen.</div>}
     </section>
 
-    <div className="module-fast-section-head"><div><span className="overline">DEINE VERANSTALTUNGEN</span><h2>Vorlesungen & Übungen <small>{groups.length}</small></h2></div><button onClick={addTopic}><Plus size={17}/> Hinzufügen</button></div>
-    <p className="module-fast-intro">Alle Gruppen bleiben erhalten. Bearbeite Zeiten direkt – Ende automatisch aus Beginn und Dauer.</p>
+    <div className="module-fast-section-head"><div><h2>Veranstaltungen <small>{groups.length}</small></h2></div><button onClick={addTopic}><Plus size={16}/> Hinzufügen</button></div>
     {groups.map((group,index)=>{
       const first=group.offerings[0]
       const expanded=expandedTopics[group.id]??false
@@ -636,12 +632,6 @@ export default function ModuleScheduleEditor({
         </div>
         <div className="module-fast-topic-foot">
           <button className="module-fast-add-alt" onClick={()=>addAlternative(first)}><Plus size={16}/> Alternative hinzufügen</button>
-          <details className="module-fast-link"><summary>Bestehende Gruppe zuordnen</summary>
-            <div>{own.filter(o=>!group.offerings.some(g=>g.id===o.id)&&o.category===first.category).map(o=>
-              <button key={o.id} onClick={()=>commit(own.map(x=>x.id===o.id?{...x,contentId:first.contentId||first.familyId||first.id,contentLabel:first.contentLabel}:x))}>
-                {o.contentLabel||o.category} · {o.from}–{o.to}
-              </button>)}</div>
-          </details>
         </div></>}
       </section>
     })}

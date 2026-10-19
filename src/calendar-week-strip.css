@@ -436,6 +436,16 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
   background:var(--uf-page-background,#080808);
   overflow: visible;
 }
+.calendar-sticky-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -15px;
+  height: 15px;
+  background: var(--uf-page-background,#080808);
+  pointer-events: none;
+}
 .calendar-sticky-header > .calendar-compact-toolbar {
   position: relative;
   z-index: 3;
@@ -459,6 +469,7 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
 }
 @media (min-width: 901px) {
   .calendar-sticky-header { top: 30px; }
+  .calendar-sticky-header::before { top: -30px; height: 30px; }
 }
 @media (max-width: 720px) {
   .calendar-sticky-header {
@@ -467,6 +478,7 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
     width: calc(100% + 20px);
     padding-inline: 10px;
   }
+  .calendar-sticky-header::before { top: -13px; height: 13px; }
 }
 
 /* Keep the existing view-switch styling. Only the 1/2 glyphs reveal their

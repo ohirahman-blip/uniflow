@@ -105,6 +105,48 @@
   .module-fast-fields { grid-template-columns:minmax(0,1fr); }
 }
 
+/* Module detail hierarchy: edit first, quick entry second, learning history
+   underneath, then assessments and events. */
+.module-detail-screen.module-fast { display:flex; flex-direction:column; }
+.module-detail-screen.module-fast > .text-back { order:0; }
+.module-detail-screen.module-fast > .module-detail-heading { order:1; }
+.module-detail-screen.module-fast > .module-fast-journey { order:2; }
+.module-detail-screen.module-fast > .module-fast-meta { order:3; }
+.module-detail-screen.module-fast > .module-fast-quick { order:4; }
+.module-detail-screen.module-fast > .module-learning-history { order:5; }
+.module-detail-screen.module-fast > .module-assessments { order:6; }
+.module-detail-screen.module-fast > .module-fast-section-head,
+.module-detail-screen.module-fast > .module-fast-intro,
+.module-detail-screen.module-fast > .module-fast-topic { order:7; }
+.module-detail-screen.module-fast > .module-fast-exceptions { order:8; }
+.module-detail-screen.module-fast .module-learning-history { margin-top:22px; }
+.module-detail-screen.module-fast .module-fast-section-head h2 { font-size:19px; }
+.module-detail-screen.module-fast .module-fast-section-head > button { border-radius:8px; padding:8px 10px; font-size:11px; font-weight:600; }
+.module-inline-add { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; margin-left:auto; border:1px solid var(--uf-border,#3a3a3d); border-radius:8px; background:var(--uf-surface,#2b2b2d); color:inherit; cursor:pointer; }
+.module-group-title.static .module-inline-add { flex:0 0 auto; }
+.module-panel-heading .module-inline-add { margin-left:auto; }
+.module-detail-screen.module-fast .module-homework-heading { margin-top:26px; }
+.module-detail-screen.module-fast .module-fast-topic-inputs input,
+.module-detail-screen.module-fast .module-fast-topic-inputs .uf-picker-trigger { box-sizing:border-box; width:100%; min-width:0; }
+.module-detail-screen.module-fast .module-fast-topic-inputs input { height:44px; padding:0 12px; border:1px solid #333337; border-radius:10px; background:#2b2b2d; font-size:12px; font-weight:500; }
+.module-detail-screen.module-fast .module-fast-topic-inputs { min-width:0; }
+@media(max-width:720px){
+  .module-detail-screen.module-fast .module-fast-topic-head { display:block; }
+  .module-detail-screen.module-fast .module-fast-topic-inputs { grid-template-columns:minmax(0,1fr); gap:9px; }
+  .module-detail-screen.module-fast .module-fast-icon-actions { justify-content:flex-end; margin-top:5px; }
+  .module-detail-screen.module-fast .module-assessment-weight { align-items:flex-end!important; justify-self:end; }
+  .module-detail-screen.module-fast .module-assessment-weight>span:last-child { width:64px; }
+}
+
+/* The section rail is deliberately prominent and transitions as one panel. */
+.module-section-tabs button { font-size:15px; padding:13px 19px; }
+.module-section-tabs button.active { background:#303033; }
+.module-tab-panel { animation:module-tab-enter .28s cubic-bezier(.2,.8,.2,1) both; }
+.module-goal-grid { display:flex; flex-direction:column; gap:9px; }
+.module-goal-card-wrap { animation:module-goal-enter .32s cubic-bezier(.2,.8,.2,1) both; }
+.module-goal-card-wrap:nth-child(2){animation-delay:35ms}.module-goal-card-wrap:nth-child(3){animation-delay:70ms}.module-goal-card-wrap:nth-child(4){animation-delay:105ms}
+@keyframes module-goal-enter { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
 /* uniflow module refresh — intentionally scoped; calendar CSS unchanged. */
 .module-hub .page-title-row{margin-bottom:30px}
 .module-hub .page-title-row h1{margin:10px 0}
