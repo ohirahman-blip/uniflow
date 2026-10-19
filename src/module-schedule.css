@@ -591,3 +591,18 @@ html[data-theme='light'] .module-panel-empty strong{color:#333}
 .module-exception-editor>label:first-child{grid-column:1/-1}.module-exception-editor input,.module-exception-editor select{height:40px;background:#242426;border:0}
 .module-exception-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px}.module-exception-actions button{border:0;border-radius:9px;padding:9px 12px;background:#29292c;color:#ccc}.module-exception-actions button.primary{background:#eee;color:#161616;font-weight:700}
 @media(max-width:500px){.module-assessment-head{grid-template-columns:auto minmax(0,1fr)}.module-assessment-weight{grid-column:2;align-items:flex-start!important}.module-exam-attempts button{grid-template-columns:minmax(62px,.7fr) 1fr 22px}.module-exam-attempts button small{display:none}.module-exception-editor{grid-template-columns:minmax(0,1fr)}.module-exception-editor>label:first-child,.module-exception-actions{grid-column:1}}
+
+/* Assessment controls use the same dimensions and neutral selection state. */
+.module-assessment-weight>span:last-child { min-height:var(--uf-editor-control-height,44px); height:var(--uf-editor-control-height,44px); background:var(--uf-editor-control-bg,#2b2b2d); border:1px solid transparent; border-radius:var(--uf-editor-control-radius,10px); }
+.module-assessment-weight input { height:100%!important; font-size:var(--uf-editor-control-font,12px)!important; }
+.module-exam-attempts button { min-height:var(--uf-editor-control-height,44px); background:var(--uf-editor-control-bg,#2b2b2d); border-color:#3b3b40; font-size:var(--uf-editor-control-font,12px); }
+.module-exam-attempts button.selected { background:var(--uf-editor-control-selected,#4a4a4d); border-color:var(--uf-editor-control-border,#68686d); }
+.module-exam-attempts button i { background:#68686d; color:#fff; }
+.module-fast .module-fast-alternatives-toggle>span,
+.module-fast .module-fast-add-alt { color:#d4d4d7; }
+html[data-theme='light'] .module-assessment-weight>span:last-child,
+html[data-theme='light'] .module-exam-attempts button { background:#f0f0f1; color:#333338; border-color:#dedee1; }
+html[data-theme='light'] .module-exam-attempts button.selected { background:#d9d9dc; color:#202024; border-color:#a7a7ad; }
+html[data-theme='light'] .module-exam-attempts button i { background:#a7a7ad; color:#202024; }
+html[data-theme='light'] .module-fast .module-fast-alternatives-toggle>span,
+html[data-theme='light'] .module-fast .module-fast-add-alt { color:#4b4b50; }

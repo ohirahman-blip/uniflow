@@ -2415,6 +2415,9 @@ html[data-theme='light'] .sheet .alternative-option { background:#efefef; color:
 html[data-theme='light'] .sheet .alternative-option small { color:#656565; }
 html[data-theme='light'] .sheet .alternative-option-actions .alternative-secondary { color:#555; }
 html[data-theme='light'] .sheet .alternative-add,html[data-theme='light'] .sheet .dismiss-action { color:#333; }
+html[data-theme='light'] .sheet .alternative-option-actions button,
+html[data-theme='light'] .sheet .alternative-add { background:#f0f0f1; color:#333338; border-color:#dedee1; }
+html[data-theme='light'] .sheet .alternative-option-actions .alternative-remove { color:#555; }
 html[data-theme='light'] .settings-section .setting-line,html[data-theme='light'] .settings-action,html[data-theme='light'] .semester-manage-row { border-color:#e2e2e2; color:#252525; }
 html[data-theme='light'] .settings-section .setting-line strong,html[data-theme='light'] .settings-section .setting-line span { color:#222; }
 html[data-theme='light'] .settings-screen .inline-toggle { background:#e5e5e5; }

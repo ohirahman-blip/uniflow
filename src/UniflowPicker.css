@@ -174,3 +174,17 @@ html[data-theme='light'] .uf-wheel-selected-area {background:#dcdce0;border-colo
 html[data-theme='light'] .uf-wheel-option {color:#777781;}
 html[data-theme='light'] .uf-wheel-option.is-selected {color:#212125;}
 @media(prefers-reduced-motion:reduce){.uf-wheel-option{transition:none;}}
+
+/* Picker controls follow the shared gray editor language. */
+.uf-picker-trigger { height:var(--uf-editor-control-height,44px); min-height:var(--uf-editor-control-height,44px); font-size:var(--uf-editor-control-font,12px); border-radius:var(--uf-editor-control-radius,10px); }
+.uf-picker-option.selected,
+.uf-picker-scroll button.selected,
+.uf-picker-preset-grid button.selected,
+.uf-picker-calendar button.selected,
+.uf-picker-confirm { background:var(--uf-editor-control-selected,#4a4a4d)!important; border-color:var(--uf-editor-control-border,#68686d)!important; color:#fff!important; }
+html[data-theme='light'] .uf-picker-dialog { background:#fff; }
+html[data-theme='light'] .uf-picker-option.selected,
+html[data-theme='light'] .uf-picker-scroll button.selected,
+html[data-theme='light'] .uf-picker-preset-grid button.selected,
+html[data-theme='light'] .uf-picker-calendar button.selected,
+html[data-theme='light'] .uf-picker-confirm { background:#d9d9dc!important; color:#202024!important; }
