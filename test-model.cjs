@@ -31,4 +31,6 @@ const move=m.moveOccurrence([o],'main','2026-10-12','2026-10-16','14:00','16:00'
 assert.equal(m.occurrencesOn(move,'2026-10-05').length,1);
 assert.equal(m.occurrencesOn(move,'2026-10-16').length,1);
 assert.equal(m.occurrencesOn(move,'2026-10-23').length,1);
-console.log('✔ 18 tests: recurrence, alternatives, replacements, future moves');
+assert.equal(m.addMonths('2027-03-31',1),'2027-04-30');
+assert.equal(m.examVisibilityEnd({end:'2027-03-31'}),'2027-04-30');
+console.log('✔ 20 tests: recurrence, alternatives, replacements, future moves, exam buffer');

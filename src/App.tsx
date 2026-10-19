@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, Mail, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
-import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, rebalanceAssessmentWeights, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
+import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, rebalanceAssessmentWeights, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, examVisibilityEnd, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
@@ -373,7 +373,7 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
       {picker&&<div className="module-dropdown"><div className="module-pick-list"><button onClick={()=>{setModuleId('');setPicker(false)}}>Ohne Modul</button>
         {modules.map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}</div></div>}
     </div>
-    <div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={semester.end} onChange={setDate}/></div>
+    <div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={type==='exam'?examVisibilityEnd(semester):semester.end} onChange={setDate}/>{type==='exam'&&<small className="setting-hint">Prüfungen können noch bis einen Monat nach Semesterende stattfinden.</small>}</div>
     <div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>
     {hasTime&&<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>}
     <div className="editor-field"><span className="field-label">Gewichtung in Prozent <span className="optional">wird automatisch ausgeglichen</span></span><input className="line-input plain-number-input" type="number" inputMode="decimal" min="0" max="100" step="0.1" value={weight} placeholder="Automatisch" onChange={e=>setWeight(e.target.value)}/></div>
@@ -651,7 +651,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   useEffect(() => {
     try { localStorage.setItem(`uniflow-calendar-view-${userId}`, mode) } catch { /* Storage may be disabled. */ }
   }, [mode, userId])
-  const [anchor,setAnchor]=useState(()=>today()<semester.start?semester.start:today()>semester.end?semester.end:today())
+  const [anchor,setAnchor]=useState(()=>today()<semester.start?semester.start:today()>examVisibilityEnd(semester)?examVisibilityEnd(semester):today())
   const [monthOpen,setMonthOpen]=useState(false)
   const [monthTransition,setMonthTransition]=useState<{from:string;direction:'next'|'previous'}|null>(null)
   const monthGesture=useRef<{x:number;y:number}|null>(null)
@@ -739,7 +739,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const ignoreClick=useRef(false),scrollReset=useRef(false)
     useEffect(()=>{const t=window.setInterval(()=>setClockNow(new Date()),30000);return()=>clearInterval(t)},[])
   useEffect(()=>{const blockDrag=(e:TouchEvent)=>{if(gesture.current?.active)e.preventDefault()};document.addEventListener('touchmove',blockDrag,{passive:false,capture:true});return()=>document.removeEventListener('touchmove',blockDrag,true)},[])
-  useEffect(()=>setAnchor(today()<semester.start?semester.start:today()>semester.end?semester.end:today()),[semester.id])
+  useEffect(()=>setAnchor(today()<semester.start?semester.start:today()>examVisibilityEnd(semester)?examVisibilityEnd(semester):today()),[semester.id])
   const visible=(date:string)=>candidateOccurrencesOn(data.offerings,date,false,true).filter(o=>o.offering.semesterId===semester.id&&(!focusModuleId||o.offering.moduleId===focusModuleId))
   const ghosts=(date:string)=>{
     const active=visible(date)
@@ -1684,7 +1684,7 @@ export default function App() {
         })}
         onChangeAssessments={assessments=>mutate(d=>({...d,assessments}))}
         onEditAssessment={setEditingAssessment}
-        onAddAssessment={type=>{const base=today()<semester!.start?semester!.start:today()>semester!.end?semester!.end:today();setAssessmentDraft({date:base,from:'10:00',to:'12:00',type,moduleId:selectedModuleId})}}
+        onAddAssessment={type=>{const examEnd=examVisibilityEnd(semester!);const base=today()<semester!.start?semester!.start:today()>examEnd?examEnd:today();setAssessmentDraft({date:base,from:'10:00',to:'12:00',type,moduleId:selectedModuleId})}}
         onOpenOccurrence={setDetail}
         onClearException={(id,origin)=>mutate(d=>({...d,offerings:d.offerings.map(o=>o.id===id
           ?{...o,overrides:Object.fromEntries(Object.entries(o.overrides||{}).filter(([day])=>day!==origin))}

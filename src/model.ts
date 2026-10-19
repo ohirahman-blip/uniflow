@@ -37,6 +37,16 @@ export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().to
 export const dateString = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 export const fromDate = (iso: string) => new Date(`${iso}T12:00:00`)
 export function addDays(iso: string, n: number) { const d = fromDate(iso); d.setDate(d.getDate() + n); return dateString(d) }
+/** Calendar-month arithmetic used for the short exam period after a semester. */
+export function addMonths(iso: string, n: number) {
+  const d = fromDate(iso)
+  const day = d.getDate()
+  d.setDate(1)
+  d.setMonth(d.getMonth() + n)
+  d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()))
+  return dateString(d)
+}
+export const examVisibilityEnd = (semester: Pick<Semester, 'end'>) => addMonths(semester.end, 1)
 export const today = () => dateString(new Date())
 export const weekStart = (iso: string) => addDays(iso, -((fromDate(iso).getDay() + 6) % 7))
 export const weekday = (iso: string) => (fromDate(iso).getDay() + 6) % 7
