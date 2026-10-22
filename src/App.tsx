@@ -16,7 +16,7 @@ import UniflowPicker from './UniflowPicker'
 import ModuleLearningHome from './ModuleLearningHome'
 import { adviceContext } from './study-advice'
 import { usePremiumAdvice } from './usePremiumAdvice'
-import { journeyFor, pastLessons, lessonForOccurrence, lessonKeyForOccurrence, type Journey, type LearningRating, type LearningSession, type LearningCheckin, type LessonTopic, type StudyTask } from './learning'
+import { journeyFor, pastLessons, lessonForOccurrence, lessonKeyForOccurrence, canRateOccurrence, type Journey, type LearningRating, type LearningSession, type LearningCheckin, type LessonTopic, type StudyTask } from './learning'
 import { SCORE_RULES, attendancePoints, learnedPoints, makeScoreEvent, normalizeBigUpdate, numberedLessons, upsertScoreEvent, type NumberedLesson } from './score'
 import './styles.css'
 import './calendar-week-strip.css'
@@ -1054,7 +1054,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             </div>
             {placeLabel(occ.offering)&&<span className="course-place"><span title={placeLabel(occ.offering)}>{placeLabel(occ.offering)}</span></span>}
             {rateable&&<button type="button" className={'course-rating-star'+(rated?' is-rated':'')}
-              aria-label={rated?'Bewertung ändern':'Termin bewerten'} title={rated?'Bewertet – ändern':'Bewertung hinzufügen'}
+              aria-label={rated?'Besuch ändern':'Als besucht markieren'} title={rated?'Besuch eingetragen – ändern':'Besuch eintragen'}
               onPointerDown={e=>e.stopPropagation()} onPointerUp={e=>e.stopPropagation()}
               onClick={e=>{e.preventDefault();e.stopPropagation();setFan(null);onRateOccurrence(occ)}}>
               <Check size={compact?12:15} strokeWidth={2.3}/>
@@ -1214,7 +1214,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     {walletContext&&createPortal(<div className="wallet-context-menu" role="menu" aria-label="Terminaktionen" style={{left:walletContext.x,top:walletContext.y}}
       onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
       <button role="menuitem" onClick={()=>{onEditOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}><Settings2 size={15}/> Bearbeiten</button>
-      {walletContext.occ.offering.moduleId&&walletContext.occ.offering.category!=='Freies Lernen'&&!isAssessment(walletContext.occ.offering.category)&&
+      {walletContext.occ.offering.moduleId&&walletContext.occ.offering.category!=='Freies Lernen'&&!isAssessment(walletContext.occ.offering.category)&&canRateOccurrence(walletContext.occ)&&
         <button role="menuitem" onClick={()=>{onRateOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}>
           <Check size={15}/> Besuch eintragen
         </button>}
