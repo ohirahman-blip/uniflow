@@ -13,11 +13,11 @@ import CalendarMonthOverview from './CalendarMonthOverview'
 import { shiftCalendarMonth } from './calendar-month'
 import { adjacentCalendarPage, alignCalendarStart, datesForCalendarPage, twoDayRail, weekHeaderDates } from './calendar-navigation'
 import UniflowPicker from './UniflowPicker'
-import LearningDashboard from './LearningDashboard'
+import ModuleLearningHome from './ModuleLearningHome'
 import { adviceContext } from './study-advice'
 import { usePremiumAdvice } from './usePremiumAdvice'
-import LessonFeedback from './LessonFeedback'
-import { journeyFor, pastLessons, lessonForOccurrence, lessonKeyForOccurrence, canRateOccurrence, type Journey, type LearningLesson, type LearningRating, type LearningSession, type LearningPlanTask, type LearningCheckin, type LessonTopic } from './learning'
+import { journeyFor, pastLessons, lessonForOccurrence, lessonKeyForOccurrence, type Journey, type LearningRating, type LearningSession, type LearningCheckin, type LessonTopic, type StudyTask } from './learning'
+import { SCORE_RULES, attendancePoints, learnedPoints, makeScoreEvent, normalizeBigUpdate, numberedLessons, upsertScoreEvent, type NumberedLesson } from './score'
 import './styles.css'
 import './calendar-week-strip.css'
 import './ui-polish.css'
@@ -30,7 +30,7 @@ const pageFromUrl = (userId?: string): Page => {
   let saved: string | null = null
   try { if(userId)saved=localStorage.getItem('uniflow-last-page:'+userId) } catch { /* Storage may be unavailable. */ }
   const requested = new URLSearchParams(window.location.search).get('page') || saved
-  return requested === 'mail' || requested === 'calendar' || requested === 'modules' || requested === 'settings' ? requested : 'dashboard'
+  return requested === 'mail' || requested === 'calendar' || requested === 'settings' ? requested : 'dashboard'
 }
 /** Entitlements are checked elsewhere; this component is only a visual mark. */
 function BrandMark({premium,page,compact=false}:{premium:boolean;page:Page;compact?:boolean}){
@@ -109,8 +109,8 @@ function normalizeWorkspace(value: AppData): AppData {
       overrides: {}, room: a.room, organizer: '', selected: false })
   }
   const theme=value.themePreferenceVersion===1&&value.theme==='dark'?'dark':'light'
-  return separateAssessments({ ...emptyData, ...value, theme, themePreferenceVersion:1, weekEndDay: value.weekEndDay ?? 4,
-    alternatives: [], creditGoals:Array.isArray(value.creditGoals)?value.creditGoals:[], offerings: offers, assessments: Array.isArray(value.assessments) ? value.assessments : [] })
+  return normalizeBigUpdate(separateAssessments({ ...emptyData, ...value, theme, themePreferenceVersion:1, weekEndDay: value.weekEndDay ?? 4,
+    alternatives: [], creditGoals:Array.isArray(value.creditGoals)?value.creditGoals:[], offerings: offers, assessments: Array.isArray(value.assessments) ? value.assessments : [] }))
 }
 const EMAIL_OTP_LENGTH = 8
 
@@ -245,7 +245,7 @@ function Onboarding({ onDone, onInfo, catalog, onSignOut }: { onDone: (data: App
   const suggestedModules = catalog.modules.filter(m => m.degree_catalog_id === catalogDegree?.id && !mods.some(x=>x.name.toLowerCase()===m.name.toLowerCase()))
   const chosenDates = semester === 'current' ? currentSemesterDates() : nextSemesterDates()
   function addMod() { const val = moduleInput.trim(); if (!val) return; if (mods.some(x => x.name.toLowerCase() === val.toLowerCase())) { onInfo('Dieses Modul steht bereits in der Liste.'); return } setMods(s => [...s, { id: uid(), name: val, credits: creditInput }]); setModuleInput(''); setCreditInput('6') }
-  function finish() { const degreeId = uid(), semesterId = uid(); const newDegree: Degree = { id: degreeId, name: degree, level, university, targetCredits: catalogDegree?.target_credits || getDefaultCredits(level) }; const newSem: Semester = { id: semesterId, degreeId, ...chosenDates, archived: false }; const newMods: StudyModule[] = mods.map((m, i) => ({ id: uid(), degreeId, name: m.name, shortName: acronym(m.name), credits: ensureCredits(m.credits), color: colors[i % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: [semesterId] })); onDone({ ...emptyData, profile: name.trim(), degrees: [newDegree], activeDegreeId: degreeId, semesters: [newSem], activeSemesterId: semesterId, modules: newMods, lastUpdate: Date.now() }) }
+  function finish() { const degreeId = uid(), semesterId = uid(); const newDegree: Degree = { id: degreeId, name: degree, level, university, targetCredits: catalogDegree?.target_credits || getDefaultCredits(level) }; const newSem: Semester = { id: semesterId, degreeId, ...chosenDates, archived: false }; const newMods: StudyModule[] = mods.map((m, i) => ({ id: uid(), degreeId, name: m.name, shortName: acronym(m.name), credits: ensureCredits(m.credits), color: colors[i % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: [semesterId] })); const now=new Date().toISOString(); onDone({ ...emptyData, profile: name.trim(), degrees: [newDegree], activeDegreeId: degreeId, semesters: [newSem], activeSemesterId: semesterId, modules: newMods, scoreEvents:newMods.map(module=>makeScoreEvent({id:`module-created:${module.id}`,moduleId:module.id,type:'module-created',basePoints:SCORE_RULES.moduleCreated,occurredAt:now,sourceId:module.id,label:'Startbonus'})), lastUpdate: Date.now() }) }
   function forward() { if (step === 1 && !name.trim()) return; if (step === 2 && (!degree.trim() || !university.trim())) return; if (step === 4) { finish(); return } setStep(s => s + 1) }
   const canGo = step !== 1 || !!name.trim(); const canNext = step !== 2 || !!(degree.trim() && university.trim())
   return <main className="onboarding" key="onboarding"><div className="aurora" aria-hidden="true" /><div className="onboard-stage"><div className="onboard-top"><div className="onboard-brand-row">{step > 1 && step < 5 && <button className="onboard-back inline-back" onClick={() => setStep(s => s - 1)} aria-label="Zurück"><ArrowLeft size={20} /></button>}<div className="wordmark">uniflow<span className="wordmark-dot">.</span></div></div><button className="onboard-signout" onClick={onSignOut}>Abmelden</button></div>
@@ -405,9 +405,8 @@ function AssessmentPreview({item,module,onToggle,onEdit,onClose}:{
     </div>
   </BottomSheet>
 }
-function EventDetails({occ,module,modules,offerings,data,onTopic,onRating,onClose,onDelete,onSuspend,onRestore,onMove,onEdit,onAddAlternative,onSelectAlternative,onInspectAlternative}: {
+function EventDetails({occ,module,modules,offerings,data,onClose,onDelete,onSuspend,onRestore,onMove,onEdit,onAddAlternative,onSelectAlternative,onInspectAlternative}: {
   occ:Occurrence;module?:StudyModule;modules:StudyModule[];offerings:Offering[];data:AppData;
-  onTopic:(lesson:LearningLesson,title:string)=>void;onRating:(lesson:LearningLesson,rating:LearningRating)=>void;
   onClose:()=>void;onDelete:()=>void;onSuspend:()=>void;onRestore:()=>void;onMove:()=>void;onEdit:()=>void;
   onAddAlternative:(kind:'slot'|'group')=>void;onSelectAlternative:(alt:Occurrence)=>void;onInspectAlternative:(alt:Occurrence)=>void;
 }) {
@@ -415,9 +414,8 @@ function EventDetails({occ,module,modules,offerings,data,onTopic,onRating,onClos
   const linked=linkedCandidates(offerings,occ)
   const isLecture=!!occ.offering.moduleId&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'
   const lesson=isLecture?lessonForOccurrence(occ,data):null
-  const lectureRating=lesson?(data.learningCheckins||[]).find(x=>x.key===lesson.key)?.rating:undefined
-  const lectureTopic=lesson?(data.lessonTopics||[]).find(x=>x.key===lesson.key)?.title||'':''
-  const canRate=isLecture&&canRateOccurrence(occ)
+  const lectureCheckin=lesson?(data.learningCheckins||[]).find(x=>x.key===lesson.key):undefined
+  const lectureAttended=!!lectureCheckin&&(lectureCheckin.attended??lectureCheckin.rating!=='absent')
   const groupCount=offerings.filter(o=>o.id!==occ.offering.id && o.semesterId===occ.offering.semesterId && o.moduleId===occ.offering.moduleId && (o.contentId||o.familyId||o.id)===(occ.offering.contentId||occ.offering.familyId||occ.offering.id)).length
   const block=(kind:'slot'|'group',title:string,explanation:string)=>{
     const list=linked.filter(x=>x.kind===kind)
@@ -447,8 +445,7 @@ function EventDetails({occ,module,modules,offerings,data,onTopic,onRating,onClos
     {occ.offering.organizer&&<div className="detail-row"><GraduationCap size={18}/>{occ.offering.organizer}</div>}
     <div className="detail-row"><RotateCcw size={18}/>{occ.offering.recurrence==='weekly'?'Jede Woche':occ.offering.recurrence==='biweekly'?'Alle zwei Wochen':'Einmalig'}</div>
     {singleVisitLabel(occ)==='Ausnahme'&&<div className="detail-row"><Info size={18}/>Einmalige Ausnahme</div>}
-    {lesson&&<LessonFeedback key={lesson.key} lesson={lesson} topic={lectureTopic} rating={lectureRating} canRate={canRate}
-      onTopic={onTopic} onRating={onRating}/>}
+    {lesson&&<div className="detail-row"><Check size={18}/>{lectureAttended?'Als besucht markiert':'Noch nicht als besucht markiert'}</div>}
     <div className="detail-actions"><button onClick={onEdit}><Settings2 size={18}/>Bearbeiten</button><button onClick={onMove}><Grip size={19}/>Verschieben</button><button onClick={onSuspend}><PauseCircle size={18}/>Aussetzen</button><button onClick={onRestore}><RotateCcw size={18}/>Auswahl zurücknehmen</button><button className="danger-link" onClick={onDelete}><Trash2 size={18}/>Gruppe löschen</button></div>
     {block('slot','Andere Veranstaltung zur gleichen Zeit','Auch ein anderes Modul oder Freies Lernen kann hier zur Auswahl stehen.')}
     {block('group',`Gleicher Inhalt · ${groupCount+1} Gruppen`,'Die Gruppen sind gleichberechtigt: Eine auswählen oder mehrere besuchen. Keine Veranstaltung wird beim Wechsel gelöscht.')}
@@ -554,7 +551,7 @@ function ModuleGoalDetail({goal,modules,onEdit,onClose}:{goal:CreditGoal;modules
   return <BottomSheet title={goal.name} onClose={onClose} footer={<button className="primary-action" onClick={onEdit}>Ziel bearbeiten <PenLine size={18}/></button>}><div className="module-goal-detail-progress"><strong>{earned} / {goal.targetCredits} LP</strong><small>{Math.min(100,Math.round(earned/goal.targetCredits*100))}% erreicht</small></div><div className="module-goal-detail-list">{assigned.map(module=><div key={module.id}><span>{module.name}</span><small>{module.credits} LP · {module.status==='passed'||module.status==='recognized'?'Bestanden':module.status==='planned'||module.status==='open'?'Zukunft':'Aktuell'}</small></div>)}{!assigned.length&&<p>Diesem Ziel sind noch keine Module zugeordnet.</p>}</div></BottomSheet>
 }
 
-function ModuleHub({ degree, modules, goals, assessments, journeys: _journeys, learningSessions, learningCheckins, lessonTopics, currentSemesterId: _currentSemesterId, creditsPassed, average, onAdd, onSaveGoal, onDeleteGoal, onReorderGoals, editing, onEdit, newName, setNewName, newCredits, setNewCredits, saveNewModule, cancelNew }: {
+export function ModuleHub({ degree, modules, goals, assessments, journeys: _journeys, learningSessions, learningCheckins, lessonTopics, currentSemesterId: _currentSemesterId, creditsPassed, average, onAdd, onSaveGoal, onDeleteGoal, onReorderGoals, editing, onEdit, newName, setNewName, newCredits, setNewCredits, saveNewModule, cancelNew }: {
   degree?: Degree; modules: StudyModule[]; assessments: Assessment[]; journeys:Record<string,Journey>;learningSessions:LearningSession[];learningCheckins:LearningCheckin[];lessonTopics:LessonTopic[];currentSemesterId:string;creditsPassed:number;average:string;
   goals:CreditGoal[];onAdd:()=>void;onSaveGoal:(goal:CreditGoal)=>void;onDeleteGoal:(id:string)=>void;onReorderGoals:(ids:string[])=>void;editing:boolean;onEdit:(m:StudyModule)=>void;
   newName:string;setNewName:(s:string)=>void;newCredits:string;setNewCredits:(s:string)=>void;saveNewModule:()=>void;cancelNew:()=>void
@@ -1034,8 +1031,9 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const group=[occ,...siblings].sort((a,b)=>a.key.localeCompare(b.key)),ix=group.findIndex(x=>x.key===occ.key),n=group.length
           const numberOfAlternatives=linkedCandidates(data.offerings,occ).length
           const past=date<today()||(date===today()&&minutes(occ.to)<=clockNow.getHours()*60+clockNow.getMinutes())
-          const rateable=!!occ.offering.moduleId&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'
-          const rated=rateable&&(data.learningCheckins||[]).some(checkin=>checkin.key===lessonKeyForOccurrence(occ))
+          const rateable=past&&!!occ.offering.moduleId&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'
+          const checkin=rateable?(data.learningCheckins||[]).find(item=>item.key===lessonKeyForOccurrence(occ)):undefined
+          const rated=!!checkin&&(checkin.attended??checkin.rating!=='absent')
           const style:CSSProperties={top:start+2,height:Math.max(32,end-start-4),background:inactive?'#29292b':module?.color||'#A5A5A5',left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`}
           return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
             className={'course '+(inactive?'course-inactive ':'')+(occ.cancelled?'course-cancelled ':'')+(numberOfAlternatives?'course-stacked ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
@@ -1059,7 +1057,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
               aria-label={rated?'Bewertung ändern':'Termin bewerten'} title={rated?'Bewertet – ändern':'Bewertung hinzufügen'}
               onPointerDown={e=>e.stopPropagation()} onPointerUp={e=>e.stopPropagation()}
               onClick={e=>{e.preventDefault();e.stopPropagation();setFan(null);onRateOccurrence(occ)}}>
-              <Star size={compact?12:15} strokeWidth={2.1} fill={rated?'currentColor':'none'}/>
+              <Check size={compact?12:15} strokeWidth={2.3}/>
             </button>}
           </div>
         })}
@@ -1218,7 +1216,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
       <button role="menuitem" onClick={()=>{onEditOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}><Settings2 size={15}/> Bearbeiten</button>
       {walletContext.occ.offering.moduleId&&walletContext.occ.offering.category!=='Freies Lernen'&&!isAssessment(walletContext.occ.offering.category)&&
         <button role="menuitem" onClick={()=>{onRateOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}>
-          <Star size={15}/> Bewerten
+          <Check size={15}/> Besuch eintragen
         </button>}
       <button role="menuitem" className="wallet-context-danger" onClick={()=>{onRequestDeleteOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}><Trash2 size={15}/> Löschen</button>
     </div>,document.body)}
@@ -1226,9 +1224,10 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
 }
 export default function App() {
   const [choiceAttendance,setChoiceAttendance] = useState<'replace'|'both'>('replace')
-  const [data, setData] = useState<AppData>(() => supabase ? { ...emptyData } : loadData()), [onboarding, setOnboarding] = useState(() => supabase ? true : !loadData().activeDegreeId), [page, setPage] = useState<Page>(pageFromUrl), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
+  const [initialLocal]=useState<AppData>(()=>supabase?{...emptyData}:normalizeBigUpdate(loadData()))
+  const [data, setData] = useState<AppData>(initialLocal), [onboarding, setOnboarding] = useState(() => supabase ? true : !initialLocal.activeDegreeId), [page, setPage] = useState<Page>(pageFromUrl), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
   const [pageDirection,setPageDirection]=useState<'forward'|'backward'>('forward')
-  const [ratingDraftTopic,setRatingDraftTopic]=useState('')
+  const [ratingDraftAttended,setRatingDraftAttended]=useState(true)
   const [ratingDraftValue,setRatingDraftValue]=useState<LearningRating|undefined>()
   const [mailUnread,setMailUnread]=useState(0)
   const [mailAccount,setMailAccount]=useState<MailAccount|null>(null)
@@ -1474,6 +1473,44 @@ export default function App() {
     setToast({ id: uid(), text, action: action||(undoable ? () => setData(d => ({ ...d, offerings: previous!, lastUpdate: Date.now() })) : undefined), actionLabel: action||undoable ? 'Rückgängig' : undefined })
   }
   const mutate = (f: (d: AppData) => AppData) => setData(prev => ({ ...f(prev), lastUpdate: Date.now() }))
+  const addStudyTask=(moduleId:string,title:string,dueDate?:string)=>{
+    const now=new Date().toISOString()
+    const task:StudyTask={id:uid(),moduleId,title,dueDate,points:SCORE_RULES.todoCompleted,createdAt:now,updatedAt:now}
+    mutate(workspace=>({...workspace,studyTasks:[...(workspace.studyTasks||[]),task]}))
+    note('Aufgabe hinzugefügt.')
+  }
+  const toggleStudyTask=(task:StudyTask)=>{
+    const now=new Date().toISOString(),completing=!task.completedAt,eventId=`todo:${task.id}`
+    mutate(workspace=>{
+      const existing=(workspace.scoreEvents||[]).find(event=>event.id===eventId)
+      const event=makeScoreEvent({id:eventId,moduleId:task.moduleId,type:'todo-completed',basePoints:task.points||SCORE_RULES.todoCompleted,occurredAt:completing?now:existing?.occurredAt||now,sourceId:task.id,label:task.title,reversedAt:completing?undefined:now})
+      return {...workspace,
+        studyTasks:(workspace.studyTasks||[]).map(item=>item.id===task.id?{...item,completedAt:completing?now:undefined,updatedAt:now}:item),
+        scoreEvents:upsertScoreEvent(workspace.scoreEvents,event)}
+    })
+    note(completing?`Erledigt · +${task.points||SCORE_RULES.todoCompleted} Punkte`:'Aufgabe wieder geöffnet.')
+  }
+  const saveLearningSession=(session:Omit<LearningSession,'id'|'updatedAt'>)=>{
+    const now=new Date().toISOString(),id=uid(),groupId=`study:${id}`
+    mutate(workspace=>({...workspace,
+      learningSessions:[...(workspace.learningSessions||[]).filter(old=>!session.scheduledKey||old.scheduledKey!==session.scheduledKey),{...session,id,updatedAt:now}],
+      scoreEvents:[...(workspace.scoreEvents||[]),makeScoreEvent({id:`study-minutes:${id}`,moduleId:session.moduleId,type:'study-minutes',basePoints:session.duration*SCORE_RULES.minute,occurredAt:now,sourceId:id,groupId,label:`${session.duration} Min. gelernt`})]
+    }))
+    note(`Lernsession gespeichert · +${session.duration*SCORE_RULES.minute} Punkte`)
+  }
+  const saveLearnedContent=(moduleId:string,lessons:NumberedLesson[],duration:number,rating:Exclude<LearningRating,'absent'>)=>{
+    const now=new Date().toISOString(),id=uid(),groupId=`content-study:${id}`
+    mutate(workspace=>{
+      let events=[...(workspace.scoreEvents||[]),makeScoreEvent({id:`study-minutes:${id}`,moduleId,type:'study-minutes',basePoints:duration*SCORE_RULES.minute,occurredAt:now,sourceId:id,groupId,label:`${lessons.length} Einheiten gelernt`})]
+      for(const lesson of lessons){
+        const eventId=`content-learned:${lesson.key}`
+        if(events.some(event=>event.id===eventId))continue
+        events.push(makeScoreEvent({id:eventId,moduleId,type:'content-learned',basePoints:learnedPoints(lesson.category),occurredAt:now,sourceId:lesson.key,groupId,label:`${lesson.label} gelernt`}))
+      }
+      return {...workspace,learningSessions:[...(workspace.learningSessions||[]),{id,moduleId,date:today(),duration,kind:'review' as const,rating,lessonKeys:lessons.map(lesson=>lesson.key),updatedAt:now}],scoreEvents:events}
+    })
+    note('Lernfortschritt gespeichert.')
+  }
   const setNotificationPreference = async (key:'mail'|'lessonFeedback',enabled:boolean) => {
     const current=data.notificationPreferences||{mail:false,lessonFeedback:false}
     const next={...current,[key]:enabled}
@@ -1495,43 +1532,32 @@ export default function App() {
       note('Postfach getrennt.')
     } catch(reason){note(reason instanceof Error?reason.message:'Postfach konnte nicht getrennt werden.')}
   }
-  const saveLectureTopic=(lesson:LearningLesson,title:string)=>mutate(d=>({
-    ...d,lessonTopics:[
-      ...(d.lessonTopics||[]).filter(t=>t.key!==lesson.key),
-      ...(title.trim()?[{key:lesson.key,moduleId:lesson.moduleId,contentId:lesson.contentId,date:lesson.date,
-        title:title.trim().slice(0,100),updatedAt:new Date().toISOString()}]:[])
-    ]
-  }))
-  const saveLectureRating=(lesson:LearningLesson,rating:LearningRating)=>mutate(d=>({
-    ...d,learningCheckins:[
-      ...(d.learningCheckins||[]).filter(c=>c.key!==lesson.key),
-      {key:lesson.key,moduleId:lesson.moduleId,contentId:lesson.contentId,date:lesson.date,rating,updatedAt:new Date().toISOString()}
-    ]
-  }))
   const ratingLesson=ratingOccurrence?lessonForOccurrence(ratingOccurrence,data):null
   const ratingModule=ratingLesson?data.modules.find(m=>m.id===ratingLesson.moduleId):undefined
+  const ratingNumbered=ratingLesson?numberedLessons(data,data.semesters.find(item=>item.id===ratingOccurrence?.offering.semesterId),ratingLesson.moduleId).find(item=>item.key===ratingLesson.key):undefined
   const openRatingOccurrence=(occurrence:Occurrence)=>{
     const lesson=lessonForOccurrence(occurrence,data)
-    setRatingDraftTopic((data.lessonTopics||[]).find(topic=>topic.key===lesson.key)?.title||'')
-    setRatingDraftValue((data.learningCheckins||[]).find(checkin=>checkin.key===lesson.key)?.rating)
+    const checkin=(data.learningCheckins||[]).find(item=>item.key===lesson.key)
+    setRatingDraftAttended(checkin ? (checkin.attended ?? checkin.rating !== 'absent') : true)
+    setRatingDraftValue(checkin?.rating==='absent'?undefined:checkin?.rating)
     setRatingOccurrence(occurrence)
   }
   const saveRatingDraft=()=>{
-    if(!ratingLesson)return
+    if(!ratingLesson||!ratingOccurrence)return
     const now=new Date().toISOString()
-    mutate(workspace=>({
-      ...workspace,
-      lessonTopics:[
-        ...(workspace.lessonTopics||[]).filter(topic=>topic.key!==ratingLesson.key),
-        ...(ratingDraftTopic.trim()?[{key:ratingLesson.key,moduleId:ratingLesson.moduleId,contentId:ratingLesson.contentId,date:ratingLesson.date,title:ratingDraftTopic.trim().slice(0,100),updatedAt:now}]:[])
-      ],
-      learningCheckins:ratingDraftValue?[
-        ...(workspace.learningCheckins||[]).filter(checkin=>checkin.key!==ratingLesson.key),
-        {key:ratingLesson.key,moduleId:ratingLesson.moduleId,contentId:ratingLesson.contentId,date:ratingLesson.date,rating:ratingDraftValue,updatedAt:now}
-      ]:workspace.learningCheckins
-    }))
+    mutate(workspace=>{
+      let events=workspace.scoreEvents||[]
+      const attendanceId=`attendance:${ratingLesson.key}`,existingAttendance=events.find(event=>event.id===attendanceId)
+      const attendance=makeScoreEvent({id:attendanceId,moduleId:ratingLesson.moduleId,type:'attendance',basePoints:attendancePoints(ratingOccurrence.offering.category),occurredAt:existingAttendance?.occurredAt||now,sourceId:ratingLesson.key,label:`${ratingOccurrence.offering.category} besucht`,reversedAt:ratingDraftAttended?undefined:now})
+      events=upsertScoreEvent(events,attendance)
+      if(ratingDraftValue){
+        const checkinId=`checkin:${ratingLesson.key}`,existing=events.find(event=>event.id===checkinId)
+        events=upsertScoreEvent(events,makeScoreEvent({id:checkinId,moduleId:ratingLesson.moduleId,type:'checkin',basePoints:SCORE_RULES.checkin,occurredAt:existing?.occurredAt||now,sourceId:ratingLesson.key,label:'Verständnis eingetragen'}))
+      }
+      return {...workspace,scoreEvents:events,learningCheckins:[...(workspace.learningCheckins||[]).filter(checkin=>checkin.key!==ratingLesson.key),{key:ratingLesson.key,moduleId:ratingLesson.moduleId,contentId:ratingLesson.contentId,date:ratingLesson.date,rating:ratingDraftValue||(ratingDraftAttended?'partial':'absent'),attended:ratingDraftAttended,updatedAt:now}]}
+    })
     setRatingOccurrence(null)
-    note('Bewertung gespeichert.')
+    note('Check-in gespeichert.')
   }
   const degree = data.degrees.find(d => d.id === data.activeDegreeId)
   const semester = data.semesters.find(s => s.id === data.activeSemesterId)
@@ -1552,12 +1578,8 @@ export default function App() {
     const lessons=pastLessons(data,semester)
     return Object.fromEntries(semesterModules.map(m=>[m.id,journeyFor(data,m,lessons)])) as Record<string,Journey>
   },[data,semester])
-  const creditsPassed = degreeModules.filter(m => ['passed', 'recognized'].includes(m.status) && m.counted).reduce((a, b) => a + b.credits, 0)
-  const graded = degreeModules.filter(m => m.status === 'passed' && m.counted && Number.isFinite(Number(m.grade.replace(',', '.'))) && m.grade.trim() !== '')
-  const gradeTotal = graded.reduce((n, m) => n + Number(m.grade.replace(',', '.')) * m.credits, 0), gradeCredits = graded.reduce((n, m) => n + m.credits, 0)
-  const average = gradeCredits > 0 ? (gradeTotal / gradeCredits).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'
   const updateModules = (mods: StudyModule[]) => mutate(d => ({ ...d, modules: mods }))
-  const saveNewModule = () => { if (!newName.trim() || !degree) return; const m: StudyModule = { id: uid(), degreeId: degree.id, name: newName.trim(), shortName: acronym(newName.trim()), credits: ensureCredits(newCredits), color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }; mutate(d => ({ ...d, modules: [...d.modules, m] })); setNewName(''); setNewCredits('6'); setNewModule(false); note('Modul hinzugefügt.') }
+  const saveNewModule = () => { if (!newName.trim() || !degree) return; const m: StudyModule = { id: uid(), degreeId: degree.id, name: newName.trim(), shortName: acronym(newName.trim()), credits: ensureCredits(newCredits), color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }; const now=new Date().toISOString(); mutate(d => ({ ...d, modules: [...d.modules, m],scoreEvents:[...(d.scoreEvents||[]),makeScoreEvent({id:`module-created:${m.id}`,moduleId:m.id,type:'module-created',basePoints:SCORE_RULES.moduleCreated,occurredAt:now,sourceId:m.id,label:'Startbonus'})] })); setNewName(''); setNewCredits('6'); setNewModule(false); note('Modul hinzugefügt · +100 Startpunkte') }
   const onAddOffer = (offer:Offering) => {
     // Check the whole new series, not only its first week: later clashes must
     // also make the new offering an available alternative, never a forced main.
@@ -1638,22 +1660,15 @@ export default function App() {
     onFinish={finishStartup}/>
   if (!user) return <><AuthScreen/>{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(null)}/>}</>
   if (!cloudReady) return <main className="auth-loading auth-cloud-loading"><div><div className="wordmark">uniflow<span className="wordmark-dot">.</span></div><p>{cloudStatus === 'error' ? cloudError : 'Deine Daten werden sicher geladen …'}</p>{cloudStatus === 'error' && <><button className="primary-action" onClick={() => void loadUserWorkspace(user, authEpoch.current)}>Erneut versuchen</button><button className="auth-secondary" onClick={() => void logOut()}>Abmelden</button></>}</div></main>
-  if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); pageHistory.current=[]; setPage('calendar') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
-  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{ id: 'dashboard' as const, title: 'Übersicht', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'modules', title: 'Module', icon: BookOpen }, { id: 'mail', title: 'Postfach', icon: Mail }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} />{n.id==='mail'&&mailUnread>0&&<em className="mail-nav-badge">{mailUnread>99?'99+':mailUnread}</em>}</span>{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
+  if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); pageHistory.current=[]; setPage('dashboard') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
+  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{ id: 'dashboard' as const, title: 'Lernen', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'mail', title: 'Postfach', icon: Mail }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} />{n.id==='mail'&&mailUnread>0&&<em className="mail-nav-badge">{mailUnread>99?'99+':mailUnread}</em>}</span>{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
     <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
-      {page === 'dashboard' && <LearningDashboard
-        data={data} semester={semester} modules={semesterModules} timerStorageKey={'uniflow-study-timer-v1-'+user.id} aiAdvice={ai.advice} context={currentStudyContext}
-        onCheckin={saveLectureRating} onTopic={saveLectureTopic}
-        onSession={(session:Omit<LearningSession,'id'|'updatedAt'>)=>mutate(d=>({
-          ...d,learningSessions:[...(d.learningSessions||[]).filter(old=>!session.scheduledKey||old.scheduledKey!==session.scheduledKey),{...session,id:uid(),updatedAt:new Date().toISOString()}]
-        }))}
-        onPlan={(task:LearningPlanTask)=>mutate(d=>({...d,learningPlans:[...(d.learningPlans||[]),task]}))}
-        onRemovePlan={id=>mutate(d=>({...d,learningPlans:(d.learningPlans||[]).filter(p=>p.id!==id)}))}
-      />}
+      {page === 'dashboard' && <ModuleLearningHome data={data} semester={semester} modules={semesterModules}
+        onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onSession={saveLearningSession} onLearnContent={saveLearnedContent}
+        onEditModule={moduleId=>{setSelectedModuleId(moduleId);navigatePage('modules')}} onCreateModule={()=>setNewModule(true)} />}
       {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={openRatingOccurrence} onPreviewAssessment={item=>setPreviewAssessmentId(item.id)} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onCancelVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:d.offerings.map(item=>item.id===occ.offering.id?{...item,overrides:{...(item.overrides||{}),[occ.origin]:{date:occ.origin,from:occ.from,to:occ.to,cancelled:true,scope:'single',reason:'removal'}}}:item)}));note('Termin fällt ohne Ersatz aus.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => navigatePage('settings')}>Einstellungen</button></div>}</div>}
       {page === 'mail' && <MailPrototype onUnreadChange={setMailUnread} key={user.id} userId={user.id} onAccountChange={setMailAccount} onNotice={note}/>}
-      {page === 'modules' && !selectedModuleId && <ModuleHub degree={degree} modules={degreeModules} goals={(data.creditGoals||[]).filter(goal=>goal.degreeId===degree?.id)} assessments={data.assessments} journeys={journeysByModule} learningSessions={data.learningSessions||[]} learningCheckins={data.learningCheckins||[]} lessonTopics={data.lessonTopics||[]} currentSemesterId={semester?.id||''} creditsPassed={creditsPassed} average={average} onAdd={()=>setNewModule(true)} onSaveGoal={goal=>mutate(d=>{const exists=(d.creditGoals||[]).some(item=>item.id===goal.id);return {...d,creditGoals:exists?(d.creditGoals||[]).map(item=>item.id===goal.id?goal:item):[...(d.creditGoals||[]),goal]}})} onDeleteGoal={id=>mutate(d=>({...d,creditGoals:(d.creditGoals||[]).filter(goal=>goal.id!==id)}))} onReorderGoals={ids=>mutate(d=>{const selected=new Set(ids),queue=ids.map(id=>(d.creditGoals||[]).find(goal=>goal.id===id)).filter((goal):goal is CreditGoal=>!!goal);return {...d,creditGoals:(d.creditGoals||[]).map(goal=>selected.has(goal.id)?queue.shift()!:goal)}})} editing={newModule} onEdit={m=>setSelectedModuleId(m.id)} newName={newName} setNewName={setNewName} newCredits={newCredits} setNewCredits={setNewCredits} saveNewModule={saveNewModule} cancelNew={()=>setNewModule(false)} />}
       {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleScheduleEditor
         key={selectedModuleId+'-'+(semester?.id||'')}
         module={data.modules.find(m=>m.id===selectedModuleId)!}
@@ -1662,7 +1677,7 @@ export default function App() {
         assessments={data.assessments}
         journey={journeysByModule[selectedModuleId]}
         premium={premium}
-        onBack={()=>setSelectedModuleId(null)}
+        onBack={()=>{setSelectedModuleId(null);navigatePage('dashboard',false)}}
         onUpdateModule={updated=>mutate(d=>({...d,modules:d.modules.map(m=>m.id===updated.id?updated:m)}))}
         onDeleteModule={()=>setConfirmDeleteModule(data.modules.find(m=>m.id===selectedModuleId)||null)}
         onChangeOfferings={updated=>mutate(d=>{
@@ -1692,9 +1707,25 @@ export default function App() {
         learningSessions={data.learningSessions||[]}
         learningCheckins={data.learningCheckins||[]}
         lessonTopics={data.lessonTopics||[]}
-        onChangeLearningSessions={learningSessions=>mutate(d=>({...d,learningSessions}))}
-        onChangeLearningCheckins={learningCheckins=>mutate(d=>({...d,learningCheckins}))}
-        onChangeLessonTopics={lessonTopics=>mutate(d=>({...d,lessonTopics}))}
+        onChangeLearningSessions={learningSessions=>mutate(d=>{
+          const now=new Date().toISOString(),nextById=new Map(learningSessions.map(item=>[item.id,item]))
+          const scoreEvents=(d.scoreEvents||[]).map(event=>{
+            if(event.type!=='study-minutes')return event
+            const previous=(d.learningSessions||[]).find(item=>item.id===event.sourceId)
+            if(!previous)return event
+            const next=nextById.get(previous.id)
+            if(!next)return {...event,reversedAt:now}
+            const basePoints=next.duration*SCORE_RULES.minute
+            return {...event,basePoints,points:Math.round(basePoints*event.multiplier),occurredAt:next.updatedAt,reversedAt:undefined,label:`${next.duration} Min. gelernt`}
+          })
+          return {...d,learningSessions,scoreEvents}
+        })}
+        onChangeLearningCheckins={learningCheckins=>mutate(d=>{
+          const now=new Date().toISOString(),nextKeys=new Set(learningCheckins.map(item=>item.key))
+          return {...d,learningCheckins,scoreEvents:(d.scoreEvents||[]).map(event=>
+            (event.type==='checkin'||event.type==='attendance')&&(d.learningCheckins||[]).some(item=>item.key===event.sourceId)&&!nextKeys.has(event.sourceId)
+              ?{...event,reversedAt:now}:event)}
+        })}
       />}
       {page === 'admin' && user && admin && <AdminPanel user={user} notice={note} onBack={()=>{pageHistory.current.pop();navigatePage('settings',false)}} />}
       {page === 'settings' && <div className="screen secondary-screen settings-screen"><div className="page-title-row"><div><h1>Einstellungen</h1></div></div><section className="settings-section"><h2>Profil</h2><label className="setting-input setting-input-plain"><span>Dein Name</span><input value={data.profile} onChange={e => mutate(d => ({ ...d, profile: e.target.value }))} /></label><div className="setting-line"><span>Studiengang</span><strong>{degree?.name}</strong></div><div className="setting-line"><span>Hochschule</span><strong>{degree?.university || 'Nicht angegeben'}</strong></div><div className="setting-line"><span>LP-Ziel</span><div className="number-setting"><input type="number" min="0" value={degree?.targetCredits || 0} onChange={e => mutate(d => ({ ...d, degrees: d.degrees.map(x => x.id === degree?.id ? { ...x, targetCredits: +e.target.value || 0 } : x) }))} /> LP</div></div></section>{admin && <section className="settings-section admin-settings-link">
@@ -1723,7 +1754,10 @@ export default function App() {
       </section><section className="settings-section"><h2>Stundenplan</h2><div className="setting-line"><span>Erste Stunde</span><div className="small-picker"><button disabled={data.firstHour <= 0} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour - 2 }))}>−</button><strong>{timeString(data.firstHour * 60)}</strong><button disabled={data.firstHour >= data.lastHour - 2} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Letzte Stunde</span><div className="small-picker"><button disabled={data.lastHour <= data.firstHour + 2} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour - 2 }))}>−</button><strong>{timeString(data.lastHour * 60)}</strong><button disabled={data.lastHour >= 24} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Woche anzeigen bis</span><div className="inline-toggle week-end-toggle">{([{v:4,label:'Fr'},{v:5,label:'Sa'},{v:6,label:'So'}] as const).map(x=><button key={x.v} className={(data.weekEndDay??4)===x.v?'selected':''} onClick={()=>mutate(d=>({...d,weekEndDay:x.v}))}>{x.label}</button>)}</div></div><small className="setting-hint">Die Wochenansicht endet am gewählten Tag. Spätere Termine bleiben über die Tages- oder Zwei-Tage-Ansicht erreichbar.</small><small className="setting-hint">Das Raster bleibt in Zwei-Stunden-Schritten. Veranstaltungen können minutengenau beginnen und enden.</small></section><section className="settings-section"><h2>Semester</h2><div className="semester-picker-list">{data.semesters.filter(s => s.degreeId === degree?.id).map(s => <button key={s.id} className={s.id === semester?.id ? 'current' : ''} onClick={() => { mutate(d => ({ ...d, activeSemesterId: s.id })); note(`${s.name} geöffnet.`) }}><span><strong>{s.name}</strong><small>{formDate(s.start)} – {formDate(s.end)}</small></span>{s.id === semester?.id && <Check size={18} />}</button>)}</div>{semester && <label className="setting-input"><span>Letzter Vorlesungstag</span><DateControl value={semester.lectureEnd} min={semester.start} max={semester.end} onChange={v => mutate(d => ({ ...d, semesters: d.semesters.map(s => s.id === semester.id ? { ...s, lectureEnd: v } : s) }))} /></label>}<button className="underlined-link" onClick={() => { if (!degree) return; const recent = data.semesters.filter(s => s.degreeId === degree.id).sort((a, b) => b.end.localeCompare(a.end))[0]; const start = recent ? addDays(recent.end, 1) : currentSemesterDates().start; const next = semesterFromStart(start); if (data.semesters.some(s => s.degreeId === degree.id && overlaps(s.start, s.end, next.start, next.end))) { note('Dieses Semester ist bereits vorhanden.'); return } const newSemester: Semester = { ...next, id: uid(), degreeId: degree.id, archived: false }; mutate(d => ({ ...d, semesters: [...d.semesters, newSemester], activeSemesterId: d.activeSemesterId })); note('Nächstes Semester gespeichert. Das aktuelle bleibt ausgewählt.') }}>Nächstes Semester hinzufügen <Plus size={17} /></button><div className="semester-management"><h3>Semester verwalten</h3>{data.semesters.filter(x=>x.degreeId===degree?.id).map(x=><div key={x.id} className="semester-manage-row"><span><strong>{x.name}</strong><small>{x.id===semester?.id?'Ausgewählt':x.start>today()?'Geplant':x.end<today()?'Vergangen':'Laufend'} · {formDate(x.start)} – {formDate(x.end)}</small></span><button aria-label={`${x.name} löschen`} onClick={()=>setConfirmDeleteSemester(x)}><Trash2 size={18}/></button></div>)}</div></section><section className="settings-section"><h2>Deine Daten</h2>{mailAccount?.connected&&<><div className="cloud-account-state"><div><strong>Mail-Postfach</strong><small>{mailAccount.email} · {mailAccount.status==='error'?'Verbindung prüfen':'Verbunden'}</small></div><Mail size={19}/></div><button className="settings-action settings-danger" onClick={()=>void disconnectMailbox()}><LogOut size={19}/> Postfach abmelden <ArrowRight size={17}/></button></>}<button className="settings-action" onClick={saveBackup}><Download size={19} /> Backup herunterladen <ArrowRight size={17} /></button><button className="settings-action" onClick={() => fileRef.current?.click()}><Upload size={19} /> Backup importieren <ArrowRight size={17} /></button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => { void readBackup(e.target.files?.[0]); e.target.value = '' }} /><button className="settings-action settings-danger" onClick={() => setConfirmReset(true)}><RotateCcw size={19} /> Alles zurücksetzen <ArrowRight size={17} /></button><div className="cloud-account-state"><div><strong>unicloud</strong><small>{cloudStatus === 'synced' ? 'Alle Änderungen gespeichert' : cloudStatus === 'saving' ? 'Synchronisiere …' : cloudStatus === 'error' ? 'Synchronisierung fehlgeschlagen' : 'Verbunden'}</small></div>{cloudStatus === 'synced' ? <Check size={19}/> : <RefreshCw size={19}/>}</div>{cloudStatus === 'error' && <p className="auth-error">{cloudError}</p>}<button className="settings-action" disabled={cloudBusy || cloudStatus === 'saving'} onClick={() => void syncNow()}><RefreshCw size={19}/> Jetzt synchronisieren <ArrowRight size={17}/></button><button className="settings-action" onClick={() => void logOut()}><LogOut size={19}/> uniflow abmelden <ArrowRight size={17}/></button><p className="quiet-copy">Angemeldet als {user.email || user.id.slice(0,8) + '…'}. Deine Daten werden beim Öffnen geladen und bei Änderungen automatisch in unicloud gespeichert. Bei gleichzeitigen Änderungen auf mehreren Geräten kann der zuletzt gespeicherte Stand gewinnen.</p></section></div>}
       </div>
     </div>
-    <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Heute', icon: Layers2 }, { id: 'calendar', name: 'Plan', icon: CalendarDays }, { id: 'modules', name: 'Module', icon: BookOpen }, { id: 'mail', name: 'Postfach', icon: Mail }, { id: 'settings', name: 'Einstellungen', icon: Settings2 }] as const).map(item => <button key={item.id} className={page === item.id || (page === 'admin' && item.id === 'settings') ? 'active' : ''} onClick={() => navigatePage(item.id)}><span className="nav-icon-wrap"><item.icon size={21} />{item.id==='mail'&&mailUnread>0&&<em className="mail-nav-badge">{mailUnread>99?'99+':mailUnread}</em>}</span><span>{item.name}</span></button>)}</nav>
+    <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Lernen', icon: Layers2 }, { id: 'calendar', name: 'Plan', icon: CalendarDays }, { id: 'mail', name: 'Postfach', icon: Mail }, { id: 'settings', name: 'Einstellungen', icon: Settings2 }] as const).map(item => <button key={item.id} className={page === item.id || (page === 'admin' && item.id === 'settings') ? 'active' : ''} onClick={() => navigatePage(item.id)}><span className="nav-icon-wrap"><item.icon size={21} />{item.id==='mail'&&mailUnread>0&&<em className="mail-nav-badge">{mailUnread>99?'99+':mailUnread}</em>}</span><span>{item.name}</span></button>)}</nav>
+    {newModule&&<BottomSheet title="Neues Modul" onClose={()=>setNewModule(false)} footer={<button className="primary-action" onClick={saveNewModule}>Modul erstellen · +100 <Sparkles size={18}/></button>}>
+      <div className="uf-entry-form"><div className="editor-field"><span className="field-label">Modulname</span><input autoFocus className="line-input" value={newName} onChange={event=>setNewName(event.target.value)} placeholder="z. B. Geographie" /></div><div className="editor-field"><span className="field-label">Leistungspunkte</span><input className="line-input" type="number" min="0" step="0.5" value={newCredits} onChange={event=>setNewCredits(event.target.value)} /></div><p className="scope-intro">Dein neues Modul startet sofort mit einem Bonus von 100 Punkten.</p></div>
+    </BottomSheet>}
     {assessmentDraft&&semester&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={semester} modules={semesterModules} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setAssessmentDraft(null);note(assessment.type==='exam'?'Prüfung hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
     {previewAssessment&&<AssessmentPreview item={previewAssessment}
       module={semesterModules.find(m=>m.id===previewAssessment.moduleId)}
@@ -1733,19 +1767,23 @@ export default function App() {
       onEdit={()=>{setEditingAssessment(previewAssessment);setPreviewAssessmentId(null)}}/>}
     {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={semester} modules={semesterModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
     {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Prüfung löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“ am {formDate(deletingAssessment.date)} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>{const remaining=d.assessments.filter(x=>x.id!==deletingAssessment.id);return {...d,assessments:rebalanceAssessmentWeights(remaining,deletingAssessment.moduleId)}});setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
-    {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }] })); note('Modul hinzugefügt.') } return id }} />}
-    {ratingLesson&&ratingOccurrence&&<BottomSheet title="Bewertung" onClose={()=>setRatingOccurrence(null)} compactHeader
+    {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { const now=new Date().toISOString(); mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }],scoreEvents:[...(d.scoreEvents||[]),makeScoreEvent({id:`module-created:${id}`,moduleId:id,type:'module-created',basePoints:SCORE_RULES.moduleCreated,occurredAt:now,sourceId:id,label:'Startbonus'})] })); note('Modul hinzugefügt · +100 Startpunkte') } return id }} />}
+    {ratingLesson&&ratingOccurrence&&<BottomSheet title="Check-in" onClose={()=>setRatingOccurrence(null)} compactHeader
       headerAction={<button type="button" className="sheet-header-save" onClick={saveRatingDraft}>Speichern</button>}>
-      <div className="learn-checkin-heading" aria-label="Bewertung der Veranstaltung">
+      <div className="learn-checkin-heading" aria-label="Check-in zur Veranstaltung">
         <div><strong style={{color:ratingModule?.color||"#ededed"}}>{ratingModule?.name||ratingOccurrence.offering.name}</strong>
-          <span>{ratingLesson.label} · {formatDate(ratingLesson.date,{day:'numeric',month:'short'})}</span></div>
-        <span className="learn-eyebrow">Wie lief's?</span>
+          <span>{ratingNumbered?.label||ratingOccurrence.offering.category} · {formatDate(ratingLesson.date,{day:'numeric',month:'short'})}</span></div>
+        <span className="learn-eyebrow">KURZER CHECK-IN</span>
       </div>
-      <LessonFeedback key={ratingLesson.key} lesson={ratingLesson} topic={ratingDraftTopic} rating={ratingDraftValue}
-        canRate={canRateOccurrence(ratingOccurrence)} onTopic={(_,title)=>setRatingDraftTopic(title)} onRating={(_,rating)=>setRatingDraftValue(rating)}/>
+      <div className="mlh-calendar-checkin">
+        <button type="button" role="checkbox" aria-checked={ratingDraftAttended} className={ratingDraftAttended?'active':''} onClick={()=>setRatingDraftAttended(value=>!value)}><i>{ratingDraftAttended?<Check size={16}/>:null}</i><span><strong>Ich war da</strong><small>Besuch eintragen · +{attendancePoints(ratingOccurrence.offering.category)} Punkte</small></span></button>
+        <div><span>Wie gut hast du den Stoff verstanden?</span>{([
+          {value:'understood',label:'Gut'}, {value:'partial',label:'Teilweise'}, {value:'struggling',label:'Gar nicht'}
+        ] as const).map(option=><button type="button" key={option.value} className={ratingDraftValue===option.value?'active':''} onClick={()=>setRatingDraftValue(option.value)}>{option.label}</button>)}</div>
+        <p>Der Verständnis-Check bringt bewusst nur +5 Punkte. Lernen bleibt wichtiger.</p>
+      </div>
     </BottomSheet>}
     {detail && <EventDetails occ={detail} module={degreeModules.find(m=>m.id===detail.offering.moduleId)} modules={semesterModules} offerings={data.offerings} data={data}
-       onTopic={saveLectureTopic} onRating={saveLectureRating}
       onAddAlternative={kind=>{setAlternativeDraft({occ:detail,kind});setDetail(null)}}
       onSelectAlternative={alt=>chooseAlternative(alt,detail)}
       onInspectAlternative={alt=>setDetail(alt)}

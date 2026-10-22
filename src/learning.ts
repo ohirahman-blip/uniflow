@@ -10,6 +10,8 @@ export type LearningCheckin = {
   contentId: string
   date: string
   rating: LearningRating
+  /** Attendance is separate from the understanding check. */
+  attended?: boolean
   updatedAt: string
 }
 export type LessonTopic = {
@@ -29,9 +31,38 @@ export type LearningSession = {
   kind: 'review' | 'exam'
   rating: Exclude<LearningRating, 'absent'>
   lessonKey?: string
+  /** A learning activity may cover several lecture/exercise units. */
+  lessonKeys?: string[]
   updatedAt: string
   planId?: string
   scheduledKey?: string
+}
+export type StudyTask = {
+  id: string
+  moduleId: string
+  title: string
+  dueDate?: string
+  dueTime?: string
+  note?: string
+  points: number
+  createdAt: string
+  updatedAt: string
+  completedAt?: string
+}
+export type ScoreEventType = 'module-created' | 'todo-completed' | 'attendance' | 'checkin' | 'study-minutes' | 'content-learned'
+export type ScoreEvent = {
+  id: string
+  moduleId: string
+  type: ScoreEventType
+  basePoints: number
+  multiplier: number
+  points: number
+  occurredAt: string
+  sourceId: string
+  groupId?: string
+  reversedAt?: string
+  label?: string
+  metadata?: Record<string, string | number | boolean>
 }
 export type LearningPlanTask = {
   id: string

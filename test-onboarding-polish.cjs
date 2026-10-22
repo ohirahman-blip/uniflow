@@ -36,7 +36,7 @@ assert.match(fs.readFileSync('src/ui-polish.css','utf8'),/display-mode:standalon
 assert.match(fs.readFileSync('src/ui-polish.css','utf8'),/height:calc\(58px \+ env\(safe-area-inset-bottom/,'Mobile bottom nav sits slightly lower')
 assert.doesNotMatch(app,/step === 5/)
 assert.doesNotMatch(app,/onboard-dots/)
-assert.match(app,/onDone=\{d => \{ setData\(d\); setOnboarding\(false\); pageHistory\.current=\[\]; setPage\('calendar'\) \}\}/)
+assert.match(app,/onDone=\{d => \{ setData\(d\); setOnboarding\(false\); pageHistory\.current=\[\]; setPage\('dashboard'\) \}\}/)
 assert.match(app,/className="onboard-step-motion"/)
 assert.match(polish,/@keyframes uf-kinetic-title/)
 assert.match(polish,/prefers-reduced-motion:reduce/)
