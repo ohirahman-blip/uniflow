@@ -109,7 +109,7 @@ function normalizeWorkspace(value: AppData): AppData {
   }
   const theme='dark'
   return normalizeBigUpdate(separateAssessments({ ...emptyData, ...value, theme, themePreferenceVersion:1, weekEndDay: value.weekEndDay ?? 4,
-    alternatives: [], modules:value.modules.map(module=>({...module,color:/^#(?:e6a7bb|d990bf|f94f72)$/i.test(module.color)?'#AEB8C4':module.color})), creditGoals:Array.isArray(value.creditGoals)?value.creditGoals:[], offerings: offers, assessments: Array.isArray(value.assessments) ? value.assessments : [] }))
+    alternatives: [], creditGoals:Array.isArray(value.creditGoals)?value.creditGoals:[], offerings: offers, assessments: Array.isArray(value.assessments) ? value.assessments : [] }))
 }
 const EMAIL_OTP_LENGTH = 8
 

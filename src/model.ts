@@ -31,7 +31,7 @@ export type Occurrence = { key: string; offering: Offering; origin: string; date
 export const STORE = 'uniflow-v2-local'
 export const LEGACY_STORE = 'uniflow-v1-local'
 export const moduleEmojis: string[] = []
-export const colors = ['#EC9A83', '#929DDC', '#7EBBAA', '#E5C47C', '#B5A0C9', '#7EB9D5', '#AEB8C4', '#949DAA']
+export const colors = ['#EC9A83', '#929DDC', '#7EBBAA', '#E5C47C', '#B5A0C9', '#7EB9D5', '#E6A7BB', '#D990BF']
 export const emptyData: AppData = { version: 2, profile: '', degrees: [], activeDegreeId: '', semesters: [], activeSemesterId: '', modules: [], offerings: [], assessments: [], learningCheckins: [], lessonTopics: [], learningSessions: [], learningPlans: [], studyTasks: [], scoreEvents: [], alternatives: [], creditGoals: [], weekEndDay: 4, theme: 'dark', themePreferenceVersion: 1, notificationPreferences: { lessonFeedback: false }, firstHour: 6, lastHour: 20, lastUpdate: 0 }
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
 export const dateString = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`

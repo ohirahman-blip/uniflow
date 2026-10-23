@@ -146,7 +146,7 @@
   font-weight:700;
 }
 .uf-week-strip-button.uf-week-today:not(.uf-week-first) {
-  color:#a6a6a6;
+  color:#f45866;
 }
 .uf-week-strip-button.uf-week-second {
   color:#f6f6f7;
@@ -224,7 +224,7 @@ html[data-theme='light'] .uf-week-range{background:#e0dfe2;border-color:rgba(0,0
 html[data-theme='light'] .uf-week-liquid-core {background:#202023;}
 html[data-theme='light'] .uf-week-strip-button.uf-week-first {color:white;}
 html[data-theme='light'] .uf-week-strip-button.uf-week-second {color:#28282b;}
-html[data-theme='light'] .uf-week-strip-button.uf-week-today:not(.uf-week-first){color:#9c9c9c;}
+html[data-theme='light'] .uf-week-strip-button.uf-week-today:not(.uf-week-first){color:#e94f68;}
 html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > .calendar-today,
 html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria-label="Vorheriger Zeitraum"],
 html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria-label="Nächster Zeitraum"] {color:#555;}
@@ -287,7 +287,7 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
 /* The logo red is the real today's date, independent of the day selection.
    In Week mode the all-week grey pill is deliberately absent. */
 .uf-week-liquid-core.uf-week-liquid-today {
-  background:var(--uniflow-accent,#a4a4a4);
+  background:var(--uniflow-accent,#f94f72);
   box-shadow:0 1px 0 rgba(255,255,255,.10);
 }
 .uf-week-today-marker {
@@ -307,7 +307,7 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
   width:min(36px,calc(100% - 10px));
   height:36px;
   border-radius:50%;
-  background:var(--uniflow-accent,#a4a4a4);
+  background:var(--uniflow-accent,#f94f72);
 }
 .uf-week-strip-button.uf-week-today,
 .uf-week-strip-button.uf-week-today:not(.uf-week-first) {
@@ -315,7 +315,7 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
 }
 html[data-theme='light'] .uf-week-liquid-core.uf-week-liquid-today,
 html[data-theme='light'] .uf-week-today-marker::after {
-  background:var(--uniflow-accent,#a4a4a4);
+  background:var(--uniflow-accent,#f94f72);
 }
 html[data-theme='light'] .uf-week-strip-button.uf-week-today,
 html[data-theme='light'] .uf-week-strip-button.uf-week-today:not(.uf-week-first) {
@@ -357,7 +357,7 @@ html[data-theme='light'] .uf-week-strip-button.uf-week-today:not(.uf-week-first)
   z-index:-1;
   width:min(42px,calc(100% - 6px));
   height:42px;
-  background:var(--uniflow-accent,#a4a4a4);
+  background:var(--uniflow-accent,#f94f72);
   border-radius:50%;
 }
 .uf-week-strip-days.uf-week-slide-in-left {

@@ -1,12 +1,12 @@
 /* Brand mark only. Ordinary UI accents keep the original rose/orange palette. */
 :root,html[data-uniflow-tier='free'],html[data-uniflow-tier='plus']{
-  --uf-primary:#a4a4a4;
+  --uf-primary:#f94f72;
   --uf-secondary:#ffad68;
-  --uf-primary-gradient:linear-gradient(120deg,#ff8c37,#a9a9a9 63%,#969696);
-  --uf-secondary-gradient:linear-gradient(120deg,#ffc483,#ff8b4e,#b0b0b0);
-  --uf-premium-surface:rgba(102,102,102,.36);
+  --uf-primary-gradient:linear-gradient(120deg,#ff8c37,#ff5270 63%,#ec4085);
+  --uf-secondary-gradient:linear-gradient(120deg,#ffc483,#ff8b4e,#ff6172);
+  --uf-premium-surface:rgba(115,79,124,.36);
   --uf-premium-border:#392f38;
-  --uf-premium-text:#d5d5d5;
+  --uf-premium-text:#e6c4d5;
 }
 .uf-brandmark{
   display:inline-flex;align-items:center;gap:0;white-space:nowrap;
