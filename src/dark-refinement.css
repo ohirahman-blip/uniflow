@@ -1,0 +1,55 @@
+:root,html[data-uniflow-tier='free'],html[data-uniflow-tier='plus']{
+  color-scheme:dark;
+  --page:#080808;--panel:#151515;--muted:#929299;
+  --uniflow-accent:#d4d4d8;--uniflow-accent-deep:#a1a1aa;
+  --uf-primary:#d4d4d8;--uf-secondary:#a1a1aa;
+  --uf-primary-gradient:linear-gradient(120deg,#e4e4e7,#a1a1aa);
+  --uf-secondary-gradient:linear-gradient(120deg,#d4d4d8,#71717a);
+  --uf-premium-surface:rgba(180,180,190,.36);
+  --uf-premium-border:#353538;--uf-premium-text:#d4d4d8;
+}
+.app-root .app-top,.app-root .app-brand,.app-root .app-desktop-side,.app-root .mobile-navigation{
+  background:transparent!important;box-shadow:none!important;border-color:transparent!important;
+}
+.app-brand{border:0!important}
+.mobile-navigation{z-index:10}
+body:has(.sheet-backdrop,.mlh-overlay,[role='dialog'],[role='menu'],.mini-popover) .mobile-navigation{
+  z-index:-1!important;pointer-events:none;
+}
+.mobile-navigation button.active::before{background:#ffffff0d}
+.mobile-navigation button.active svg{stroke:#e4e4e7;fill:#ffffff12}
+.onboarding .aurora,.auth-screen .aurora{filter:grayscale(1)}
+.mlh-home{overflow:visible;background:transparent;padding-bottom:110px}
+.mlh-glow{display:none}
+.mlh-module-head>button{background:transparent}
+.mlh-module-head div>i{box-shadow:none;background:#b4b4bd}
+.mlh-score{background:transparent!important;overflow:visible;padding:20px 30px 24px;max-width:100%;min-height:180px;transform:none!important}
+.mlh-score strong{animation:none;line-height:1.15;display:block;overflow:visible;font-size:clamp(4rem,16vw,8.5rem);letter-spacing:-.055em;text-shadow:none;overflow-wrap:anywhere}
+.mlh-actions{display:flex;justify-content:center;align-items:center;gap:12px;margin:0 auto 36px;max-width:100%}
+.mlh-actions>button{min-height:44px;min-width:44px;max-width:190px;flex:0 1 auto;flex-direction:row;gap:0;padding:11px;border:1px solid #ffffff22;border-radius:999px;background:transparent;box-shadow:none;color:#d4d4d8;transform:none;overflow:hidden;transition:border-color 200ms ease,padding 240ms ease}
+.mlh-actions>button>svg{flex:0 0 20px}
+.mlh-actions strong{font-size:12px;font-weight:500;line-height:20px;white-space:nowrap;max-width:0;opacity:0;margin-left:0;overflow:hidden;transition:max-width 260ms cubic-bezier(.2,.8,.2,1),opacity 180ms ease,margin-left 260ms ease}
+.mlh-actions>button:hover,.mlh-actions>button:focus-visible{border-color:#ffffff65;transform:none}
+.mlh-actions>button:hover strong,.mlh-actions>button:focus-visible strong{max-width:125px;opacity:1;margin-left:9px}
+.mlh-tasks>header{align-items:center;margin-bottom:16px}
+.mlh-tasks>header span,.mlh-tasks>header button{color:#aaaab1}
+.mlh-task-row{display:flex;position:relative;min-width:0}
+.mlh-task-row .mlh-task{padding-right:52px;min-width:0}
+.mlh-task span{min-width:0}.mlh-task strong{overflow-wrap:anywhere}
+.mlh-task-delete{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;background:transparent;border:0;border-radius:50%;color:#76767e}
+.mlh-task-delete:hover{background:#ffffff0c;color:#ededf0}
+.mlh-task-delete:active{transform:translateY(-50%)!important}
+.mlh-completed-preview{width:100%;display:grid;gap:0;border:0;background:transparent;color:#8b8b94;text-align:left;padding:14px 0 5px;cursor:pointer}
+.mlh-completed-preview>span{display:flex;gap:13px;align-items:center;padding:13px 18px;opacity:.5;filter:blur(1.2px);transition:filter 180ms ease,opacity 180ms ease;overflow-wrap:anywhere}
+.mlh-completed-preview>span:nth-child(2){opacity:.33;filter:blur(1.8px)}
+.mlh-completed-preview>span:nth-child(3){opacity:.2;filter:blur(2.3px)}
+.mlh-completed-preview:focus-visible{outline:1px solid #888;border-radius:16px}
+.mlh-overlay{z-index:1500;color:#f4f4f5}
+.mlh-sheet{background:#101012}
+.mlh-history-list article{gap:12px}
+.mlh-history-list article>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.mlh-history-actions{display:flex;gap:4px;flex-shrink:0}
+.mlh-history-actions button{display:grid;place-items:center;width:36px;height:36px;border:1px solid #ffffff15;border-radius:50%;background:transparent;color:#a1a1aa}
+.mlh-history-actions button:hover{color:#fff;border-color:#ffffff44}
+@media(max-width:520px){.mlh-actions>button{min-height:44px;border-radius:999px}.mlh-actions strong{font-size:11px}.mlh-score{min-height:160px}}
+@media(prefers-reduced-motion:reduce){.mlh-actions strong,.mlh-actions>button,.mlh-completed-preview>span{transition:none}}

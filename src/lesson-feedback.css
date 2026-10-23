@@ -72,7 +72,7 @@
 .lesson-feedback-options button.lesson-feedback-rating-absent {color:#b5b5be;}
 .lesson-feedback-options button.lesson-feedback-rating-understood.chosen {color:#c5efd0;background:#23402c;border-color:#4a8158;}
 .lesson-feedback-options button.lesson-feedback-rating-partial.chosen {color:#f7e1a2;background:#44391e;border-color:#8d743b;}
-.lesson-feedback-options button.lesson-feedback-rating-struggling.chosen {color:#f5bdc1;background:#46282e;border-color:#975762;}
+.lesson-feedback-options button.lesson-feedback-rating-struggling.chosen {color:#f5bdc1;background:#373737;border-color:#777777;}
 .lesson-feedback-options button.lesson-feedback-rating-absent.chosen {color:#e4e4e9;background:#343438;border-color:#777780;}
 .lesson-feedback-options button.chosen {font-weight:750;}
 .lesson-feedback-options button:disabled {opacity:.42;}

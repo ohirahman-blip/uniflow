@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, Sun, Moon, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, rebalanceAssessmentWeights, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, examVisibilityEnd, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
@@ -22,6 +22,7 @@ import './ui-polish.css'
 import './onboarding-refine.css'
 import './premium-ai.css'
 import './brand-theme.css'
+import './dark-refinement.css'
 
 type Page = 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
 const pageFromUrl = (userId?: string): Page => {
@@ -106,9 +107,9 @@ function normalizeWorkspace(value: AppData): AppData {
       from: a.from, to: a.to, recurrence: a.recurrence || 'once',
       overrides: {}, room: a.room, organizer: '', selected: false })
   }
-  const theme=value.themePreferenceVersion===1&&value.theme==='dark'?'dark':'light'
+  const theme='dark'
   return normalizeBigUpdate(separateAssessments({ ...emptyData, ...value, theme, themePreferenceVersion:1, weekEndDay: value.weekEndDay ?? 4,
-    alternatives: [], creditGoals:Array.isArray(value.creditGoals)?value.creditGoals:[], offerings: offers, assessments: Array.isArray(value.assessments) ? value.assessments : [] }))
+    alternatives: [], modules:value.modules.map(module=>({...module,color:/^#(?:e6a7bb|d990bf|f94f72)$/i.test(module.color)?'#AEB8C4':module.color})), creditGoals:Array.isArray(value.creditGoals)?value.creditGoals:[], offerings: offers, assessments: Array.isArray(value.assessments) ? value.assessments : [] }))
 }
 const EMAIL_OTP_LENGTH = 8
 
@@ -1301,7 +1302,7 @@ export default function App() {
     window.addEventListener('touchend',onTouchEnd,{passive:true})
     return()=>{window.removeEventListener('touchstart',onTouchStart);window.removeEventListener('touchend',onTouchEnd)}
   },[user,onboarding])
-  useEffect(() => { document.documentElement.dataset.theme = data.theme || 'light' }, [data.theme])
+  useEffect(() => { document.documentElement.dataset.theme = 'dark' }, [])
   useEffect(()=>{
     document.documentElement.dataset.uniflowTier=premium?'plus':'free'
     return ()=>{delete document.documentElement.dataset.uniflowTier}
@@ -1472,7 +1473,28 @@ export default function App() {
         studyTasks:(workspace.studyTasks||[]).map(item=>item.id===task.id?{...item,completedAt:completing?now:undefined,updatedAt:now}:item),
         scoreEvents:upsertScoreEvent(workspace.scoreEvents,event)}
     })
-    note(completing?`Erledigt · +${task.points||SCORE_RULES.todoCompleted} Punkte`:'Aufgabe wieder geöffnet.')
+    note(completing?`Erledigt · +${task.points||SCORE_RULES.todoCompleted} Punkte`:'Aufgabe wieder geöffnet.',()=>toggleStudyTask({...task,completedAt:completing?now:undefined}))
+  }
+  const deleteStudyTask=(task:StudyTask)=>{
+    const previousEvents=(data.scoreEvents||[]).filter(event=>event.type==='todo-completed'&&event.sourceId===task.id)
+    const now=new Date().toISOString()
+    mutate(workspace=>({...workspace,studyTasks:(workspace.studyTasks||[]).filter(item=>item.id!==task.id),scoreEvents:(workspace.scoreEvents||[]).map(event=>event.type==='todo-completed'&&event.sourceId===task.id?{...event,reversedAt:now}:event)}))
+    note('Aufgabe gelöscht.',()=>mutate(workspace=>({...workspace,studyTasks:[...(workspace.studyTasks||[]).filter(item=>item.id!==task.id),task],scoreEvents:[...(workspace.scoreEvents||[]).filter(event=>!previousEvents.some(previous=>previous.id===event.id)),...previousEvents]})))
+  }
+  const deleteActivity=(events:NonNullable<AppData['scoreEvents']>)=>{
+    const ids=new Set(events.map(event=>event.id)),now=new Date().toISOString()
+    const sessions=(data.learningSessions||[]).filter(session=>events.some(event=>event.type==='study-minutes'&&event.sourceId===session.id))
+    const checkins=(data.learningCheckins||[]).filter(checkin=>events.some(event=>(event.type==='checkin'||event.type==='attendance')&&event.sourceId===checkin.key))
+    mutate(workspace=>({...workspace,
+      scoreEvents:(workspace.scoreEvents||[]).map(event=>ids.has(event.id)?{...event,reversedAt:now}:event),
+      learningSessions:(workspace.learningSessions||[]).filter(session=>!sessions.some(old=>old.id===session.id)),
+      learningCheckins:(workspace.learningCheckins||[]).map(checkin=>events.some(event=>event.type==='attendance'&&event.sourceId===checkin.key)?{...checkin,attended:false,updatedAt:now}:checkin)
+    }))
+    note('Aktivität gelöscht.',()=>mutate(workspace=>({...workspace,
+      scoreEvents:(workspace.scoreEvents||[]).map(event=>events.find(old=>old.id===event.id)||event),
+      learningSessions:[...(workspace.learningSessions||[]).filter(session=>!sessions.some(old=>old.id===session.id)),...sessions],
+      learningCheckins:(workspace.learningCheckins||[]).map(checkin=>checkins.find(old=>old.key===checkin.key)||checkin)
+    })))
   }
   const saveLearningSession=(session:Omit<LearningSession,'id'|'updatedAt'>)=>{
     const now=new Date().toISOString(),id=uid(),groupId=`study:${id}`
@@ -1488,8 +1510,8 @@ export default function App() {
       let events=[...(workspace.scoreEvents||[]),makeScoreEvent({id:`study-minutes:${id}`,moduleId,type:'study-minutes',basePoints:duration*SCORE_RULES.minute,occurredAt:now,sourceId:id,groupId,label:`${lessons.length} Einheiten gelernt`})]
       for(const lesson of lessons){
         const eventId=`content-learned:${lesson.key}`
-        if(events.some(event=>event.id===eventId))continue
-        events.push(makeScoreEvent({id:eventId,moduleId,type:'content-learned',basePoints:learnedPoints(lesson.category),occurredAt:now,sourceId:lesson.key,groupId,label:`${lesson.label} gelernt`}))
+        if(events.some(event=>event.id===eventId&&!event.reversedAt))continue
+        events=upsertScoreEvent(events,makeScoreEvent({id:eventId,moduleId,type:'content-learned',basePoints:learnedPoints(lesson.category),occurredAt:now,sourceId:lesson.key,groupId,label:`${lesson.label} gelernt`}))
       }
       return {...workspace,learningSessions:[...(workspace.learningSessions||[]),{id,moduleId,date:today(),duration,kind:'review' as const,rating,lessonKeys:lessons.map(lesson=>lesson.key),updatedAt:now}],scoreEvents:events}
     })
@@ -1633,9 +1655,10 @@ export default function App() {
   if (!cloudReady) return <main className="auth-loading auth-cloud-loading"><div><div className="wordmark">uniflow<span className="wordmark-dot">.</span></div><p>{cloudStatus === 'error' ? cloudError : 'Deine Daten werden sicher geladen …'}</p>{cloudStatus === 'error' && <><button className="primary-action" onClick={() => void loadUserWorkspace(user, authEpoch.current)}>Erneut versuchen</button><button className="auth-secondary" onClick={() => void logOut()}>Abmelden</button></>}</div></main>
   if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); pageHistory.current=[]; setPage('dashboard') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
   return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{ id: 'dashboard' as const, title: 'Lernen', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} /></span>{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
-    <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button><div className="top-right"><span>{semester?.name || 'Kein Semester'}</span></div></header>
+    <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button></header>
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
       {page === 'dashboard' && <ModuleLearningHome data={data} semester={semester} modules={semesterModules}
+        storageKey={'uniflow-last-module:'+user.id} onDeleteTask={deleteStudyTask} onDeleteActivity={deleteActivity}
         onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onSession={saveLearningSession} onLearnContent={saveLearnedContent}
         onEditModule={moduleId=>{setSelectedModuleId(moduleId);navigatePage('modules')}} onCreateModule={()=>setNewModule(true)} />}
       {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={openRatingOccurrence} onPreviewAssessment={item=>setPreviewAssessmentId(item.id)} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onCancelVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:d.offerings.map(item=>item.id===occ.offering.id?{...item,overrides:{...(item.overrides||{}),[occ.origin]:{date:occ.origin,from:occ.from,to:occ.to,cancelled:true,scope:'single',reason:'removal'}}}:item)}));note('Termin fällt ohne Ersatz aus.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => navigatePage('settings')}>Einstellungen</button></div>}</div>}
@@ -1702,7 +1725,7 @@ export default function App() {
         <h2>Administration</h2>
         <button className="settings-action" onClick={()=>navigatePage('admin')}><Settings2 size={19}/> Adminbereich öffnen <ArrowRight size={17}/></button>
         <p className="quiet-copy">Nur für dein Administratorkonto sichtbar.</p>
-      </section>}<section className="settings-section"><h2>Design</h2><div className="setting-line"><span>Darstellung</span><div className="inline-toggle theme-icon-switch"><button className={data.theme==='dark'?'selected':''} aria-label="Dunkler Modus" title="Dunkler Modus" onClick={()=>mutate(d=>({...d,theme:'dark',themePreferenceVersion:1}))}><Moon size={17}/></button><button className={data.theme!=='dark'?'selected':''} aria-label="Heller Modus" title="Heller Modus" onClick={()=>mutate(d=>({...d,theme:'light',themePreferenceVersion:1}))}><Sun size={17}/></button></div></div></section>{premium&&<section className="settings-section settings-ai-section" aria-label="KI-Modus">
+      </section>}{premium&&<section className="settings-section settings-ai-section" aria-label="KI-Modus">
         <div className="settings-ai-inline">
           <span className="settings-ai-label">KI-Modus</span>
           <span className="settings-ai-badge">uniflow+</span>

@@ -37,6 +37,6 @@ assert.match(app,/module-created:\$\{m\.id\}/,'New modules receive the start bon
 assert.match(app,/title: 'Lernen'/,'New learning home replaces the old overview navigation')
 assert.doesNotMatch(app,/title: 'Module', icon:/,'Legacy module hub is not in the main navigation')
 assert.match(home,/onLearnContent/)
-assert.match(home,/Zuletzt erledigt/)
-assert.match(home,/Alle Aktivitäten/)
+assert.match(home,/mlh-completed-preview/)
+assert.match(home,/Letzte Aktivitäten/)
 console.log('✔ bigupdate: score rules, unlimited totals, idempotent migration, numbering, start bonus and new module home')

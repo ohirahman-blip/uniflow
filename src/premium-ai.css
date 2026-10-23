@@ -29,8 +29,8 @@
   padding:3px 7px;
   border-radius:6px;
   border:1px solid var(--uf-premium-border,#392f38);
-  background:var(--uf-premium-surface,rgba(115,79,124,.36));
-  color:var(--uf-premium-text,#e6c4d5);
+  background:var(--uf-premium-surface,rgba(102,102,102,.36));
+  color:var(--uf-premium-text,#d5d5d5);
   font-size:10px;
   line-height:1.25;
   font-weight:650;
@@ -60,21 +60,21 @@
   transition:transform 190ms cubic-bezier(.2,.8,.3,1),background-color 170ms;
 }
 .settings-ai-toggle.is-on{
-  background:#af7a96;
-  border-color:#af7a96;
+  background:#959595;
+  border-color:#959595;
 }
 .settings-ai-toggle.is-on span{
   transform:translateX(18px);
   background:#fff;
 }
 .settings-ai-toggle:focus-visible{
-  outline:2px solid #e6c6d7;
+  outline:2px solid #d6d6d6;
   outline-offset:3px;
 }
 /* The existing KI request result can still be inspected under the row. */
 .settings-ai-status{
   display:flex;align-items:center;gap:9px;
-  margin:13px 0 3px;color:#c7a9ba;font-size:12px;line-height:1.5;
+  margin:13px 0 3px;color:#b8b8b8;font-size:12px;line-height:1.5;
 }
 .settings-ai-result{
   display:flex;flex-direction:column;gap:7px;
@@ -83,7 +83,7 @@
 }
 .settings-ai-result>span{
   display:flex;align-items:center;gap:6px;
-  color:#dab6c8;font-size:11px;font-weight:700;
+  color:#c8c8c8;font-size:11px;font-weight:700;
 }
 .settings-ai-result>strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
 .settings-ai-result>p{

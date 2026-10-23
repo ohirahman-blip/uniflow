@@ -66,7 +66,7 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   width:49px;
   height:37px;
   border-radius:14px;
-  background:color-mix(in srgb,var(--uniflow-accent,#f94f72) 19%,transparent);
+  background:color-mix(in srgb,var(--uniflow-accent,#a4a4a4) 19%,transparent);
   transform:translateX(-50%) scale(.6);
   opacity:0;
   transition:transform 270ms cubic-bezier(.2,1.15,.28,1),opacity 245ms ease,background-color 245ms;
@@ -82,8 +82,8 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   transition:fill 240ms ease,stroke 240ms ease,transform 270ms cubic-bezier(.2,1,.3,1);
 }
 .mobile-navigation button.active svg {
-  stroke:var(--uniflow-accent,#f94f72);
-  fill:color-mix(in srgb,var(--uniflow-accent,#f94f72) 24%,transparent);
+  stroke:var(--uniflow-accent,#a4a4a4);
+  fill:color-mix(in srgb,var(--uniflow-accent,#a4a4a4) 24%,transparent);
   transform:scale(1.055);
 }
 .mobile-navigation button span {
@@ -210,7 +210,7 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
 .uf-entry-advanced[open] > summary svg {transform:rotate(180deg);}
 .uf-entry-advanced .uf-entry-grid {padding:3px 0 7px;}
 /* Custom category entry inside all shared option sheets. */
-.uf-picker-custom-toggle {color:var(--uniflow-accent,#f94f72)!important;}
+.uf-picker-custom-toggle {color:var(--uniflow-accent,#a4a4a4)!important;}
 .uf-picker-custom-toggle > span {display:flex;align-items:center;gap:9px;}
 .uf-picker-custom-entry {padding:8px 0 4px;display:grid;gap:8px;}
 .uf-picker-custom-entry label {font-size:11px;color:#a5a4aa;}
@@ -227,7 +227,7 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   padding:10px;
   font-size:12px;
 }
-.uf-picker-custom-row > button {display:flex;gap:7px;align-items:center;background:var(--uniflow-accent,#f94f72);color:#fff;border:0;border-radius:10px;padding:0 12px;font-size:12px;font-weight:700;}
+.uf-picker-custom-row > button {display:flex;gap:7px;align-items:center;background:var(--uniflow-accent,#a4a4a4);color:#fff;border:0;border-radius:10px;padding:0 12px;font-size:12px;font-weight:700;}
 .uf-picker-custom-row > button:disabled {opacity:.4;}
 /* Match font sizes in the two module fields: Inhalt and Art. */
 .module-fast .module-fast-topic-inputs label {

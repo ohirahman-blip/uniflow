@@ -20,7 +20,7 @@ assert.doesNotMatch(editorSource,/learningTopicDrafts|Thema speichern|Thema entf
 assert.match(editorSource,/automatisch nummeriert/,'The module editor explains automatic numbering')
 assert.doesNotMatch(dashboardSource,/Campusplan|Deinen Raum finden|MapPinned/,'Campus entry is removed from the dashboard')
 assert.doesNotMatch(appSource,/CampusMap|page === 'campus'|campusEnabled/,'Campus page is removed from the app')
-assert.match(appSource,/dataset\.theme = data\.theme \|\| 'light'/,'The saved light theme is applied to the document')
+assert.match(appSource,/dataset\.theme = 'dark'/,'Dark appearance is enforced')
 const {pastLessons,pastFreeStudy,journeyFor}=learning.exports
 const {emptyData}=model.exports
 const moduleA={id:'a',degreeId:'d',name:'A',shortName:'A',credits:6,color:'#fff',status:'current',grade:'',counted:true,hidden:false,semesterIds:['s']}
