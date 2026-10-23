@@ -157,7 +157,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
     </section>
 
     <section className="mlh-tasks">
-      <header><div><span>TO-DOS</span></div><button onClick={() => open('task')}><Plus size={18} /> Aufgabe</button></header>
+      <header><div><h2>To-dos</h2></div><button onClick={() => open('task')}><Plus size={18} /> Aufgabe</button></header>
       <div className="mlh-task-stack">
         {pending.map((task, position) => <div key={task.id} className="mlh-task-row"><button className="mlh-task" onClick={() => onToggleTask(task)} style={{ animationDelay: `${position * 45}ms` }}>
           <i aria-hidden="true" /><span><strong>{task.title}</strong>{task.dueDate&&<small>{formatDate(task.dueDate, { weekday: 'short', day: 'numeric', month: 'short' })}</small>}</span><b>+{task.points}</b>

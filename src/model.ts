@@ -150,9 +150,7 @@ export function upsertAssessment(items:Assessment[],next:Assessment):Assessment[
     const group=result.filter(item=>item.type==='exam'&&assessmentComponentKey(item)===key).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))
     if(!group.some(item=>item.selected))result=result.map(item=>assessmentComponentKey(item)===key?{...item,selected:item.id===group[0]?.id}:item)
   }
-  const key=assessmentComponentKey(inserted)
-  result=rebalanceAssessmentWeights(result,next.moduleId,key,next.weight)
-  return existing&&existing.moduleId!==next.moduleId?rebalanceAssessmentWeights(result,existing.moduleId):result
+  return result
 }
 /** A content group is unique *within* one module, semester and teaching topic. */
 export const sameContent = (a: Offering,b:Offering) => a.semesterId === b.semesterId && a.moduleId === b.moduleId &&

@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { ArrowLeft, BookOpen, Check, ChevronDown, ClipboardList, Copy, GraduationCap, Lock, Pencil, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, ClipboardList, Copy, GraduationCap, Lock, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
 import {
   addDays, assessmentComponentKey, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
   intersects, isAssessment, minutes, occurrenceAtOrigin, timeString, today, uid,
-  rebalanceAssessmentWeights, selectedAssessment, upsertAssessment, weekday, weekStart,
+  selectedAssessment, upsertAssessment, weekday, weekStart,
   type Assessment, type Offering, type Repeat, type Semester, type StudyModule, type Occurrence
 } from './model'
-import type { Journey, LearningCheckin, LearningRating, LearningSession, LessonTopic } from './learning'
+import type { Journey, LearningCheckin, LearningSession, LessonTopic } from './learning'
 import UniflowPicker from './UniflowPicker'
 import { supabase } from './supabase'
 import { describeAiRequestError } from './ai-errors'
@@ -24,9 +24,6 @@ type QuickPreview = AiSchedulePreview
 const prettyLabel = (type:string,n:number) => type+' '+String(n).padStart(2,'0')
 const norm = (value:string) => value.toLocaleLowerCase('de-DE').replace(/[\s_-]/g,'').replace(/0+(\d+)$/, '$1')
 const durationOf = (o:Offering) => Math.max(1,minutes(o.to)-minutes(o.from))
-const ratingLabels:Record<LearningRating,string>={
-  understood:'Verstanden',partial:'Teilweise',struggling:'Nicht verstanden',absent:'Nicht besucht'
-}
 const offeringSentence=(offering:Offering)=>{
   const date=formatDate(offering.date,{day:'numeric',month:'short',year:'numeric'})
   if(offering.recurrence==='once')return `Einmalig am ${date} · ${offering.from}–${offering.to}`
@@ -102,9 +99,8 @@ type Props = {
   onChangeLearningCheckins:(next:LearningCheckin[])=>void;
 }
 export default function ModuleScheduleEditor({
-  module,semester,offerings,assessments,journey,premium,onBack,onUpdateModule,onDeleteModule,
-  onChangeOfferings,onChangeAssessments,onEditAssessment,onAddAssessment,onOpenOccurrence,onClearException,
-  learningSessions,learningCheckins,lessonTopics,onChangeLearningSessions,onChangeLearningCheckins
+  module,semester,offerings,assessments,premium,onBack,onUpdateModule,onDeleteModule,
+  onChangeOfferings,onChangeAssessments,onEditAssessment,onAddAssessment,onOpenOccurrence,onClearException
 }:Props) {
   const [quickText,setQuickText]=useState('')
   const quickInputRef=useRef<HTMLTextAreaElement|null>(null)
@@ -127,27 +123,23 @@ export default function ModuleScheduleEditor({
   const [exceptionTo,setExceptionTo]=useState('12:00')
   const [expandedTopics,setExpandedTopics]=useState<Record<string,boolean>>({})
   const [editingSlotId,setEditingSlotId]=useState<string|null>(null)
-  const [editingLearningId,setEditingLearningId]=useState<string|null>(null)
-  const [learningOpen,setLearningOpen]=useState(false)
-  const [learningFilter,setLearningFilter]=useState<'all'|'classes'|'free'|'exam'>('all')
   const [deleted,setDeleted]=useState<Offering[]>([])
   const [warning,setWarning]=useState('')
   const [thinking,setThinking]=useState(false)
   const [quickError,setQuickError]=useState('')
   useEffect(()=>{
-    if(!editingSlotId&&!editingLearningId&&!exceptionEditor&&!preview)return
+    if(!editingSlotId&&!exceptionEditor&&!preview)return
     const onBack=(event:Event)=>{
       const detail=(event as CustomEvent<{handled:boolean}>).detail
       if(detail?.handled)return
       detail.handled=true
       if(preview)setPreview(null)
       else if(exceptionEditor)setExceptionEditor(false)
-      else if(editingLearningId)setEditingLearningId(null)
       else setEditingSlotId(null)
     }
     window.addEventListener('uniflow-back',onBack)
     return()=>window.removeEventListener('uniflow-back',onBack)
-  },[editingLearningId,editingSlotId,exceptionEditor,preview])
+  },[editingSlotId,exceptionEditor,preview])
   const previewRequest=useRef<AbortController|null>(null)
   useEffect(()=>()=>{previewRequest.current?.abort()},[])
   const imported=useRef(false)
@@ -161,32 +153,6 @@ export default function ModuleScheduleEditor({
     for(const item of ownAssessments){const key=assessmentComponentKey(item);result.set(key,[...(result.get(key)||[]),item])}
     return [...result.entries()].map(([key,items])=>({key,items:items.sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))}))
   },[ownAssessments])
-  const learningHistory=useMemo(()=>{
-    const lessons=new Map((journey?.lessons||[]).map(lesson=>[lesson.key,lesson]))
-    const topics=new Map(lessonTopics.filter(topic=>topic.moduleId===module.id).map(topic=>[topic.key,topic.title]))
-    const sessions=learningSessions.filter(item=>item.moduleId===module.id).map(item=>({
-      id:'session:'+item.id,date:item.date,kind:'session' as const,item,
-      title:item.kind==='exam'?'Klausurvorbereitung':item.lessonKey?'Veranstaltung wiederholt':'Freies Lernen',
-      subtitle:`${item.duration} Min. · ${ratingLabels[item.rating]}`
-    }))
-    const checkins=learningCheckins.filter(item=>item.moduleId===module.id&&item.rating!=='absent').map(item=>{
-      const lesson=lessons.get(item.key)
-      return {id:'checkin:'+item.key,date:item.date,kind:'checkin' as const,item,
-        title:topics.get(item.key)||lesson?.label||'Besuchte Veranstaltung',
-        subtitle:`${lesson?lesson.from+'–'+lesson.to+' · ':''}${ratingLabels[item.rating]}`}
-    })
-    return [...sessions,...checkins].sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id))
-  },[journey?.lessons,learningCheckins,learningSessions,lessonTopics,module.id])
-  const filteredLearningHistory=useMemo(()=>learningHistory.filter(entry=>
-    learningFilter==='all'||
-    (learningFilter==='classes'&&entry.kind==='checkin')||
-    (learningFilter==='free'&&entry.kind==='session'&&entry.item.kind==='review')||
-    (learningFilter==='exam'&&entry.kind==='session'&&entry.item.kind==='exam')
-  ),[learningFilter,learningHistory])
-  const toggleLearningEditor=(entry:typeof learningHistory[number])=>{
-    const closing=editingLearningId===entry.id
-    setEditingLearningId(closing?null:entry.id)
-  }
   if(!semester)return <div className="screen secondary-screen"><button className="text-back" onClick={onBack}>← Module</button><p>Bitte zuerst ein Semester auswählen.</p></div>
 
   const commit=(next:Offering[])=>{setWarning('');onChangeOfferings(next)}
@@ -281,7 +247,6 @@ export default function ModuleScheduleEditor({
     commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,contentLabel:label}:o))
   const recategorize=(items:Offering[],category:string)=>
     commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,category}:o))
-  const changeAssessmentWeight=(key:string,value:number)=>onChangeAssessments(rebalanceAssessmentWeights(assessments,module.id,key,value))
   const selectAttempt=(key:string,id:string)=>onChangeAssessments(assessments.map(item=>assessmentComponentKey(item)===key?{...item,selected:item.id===id}:item))
   const toggleHomework=(id:string)=>onChangeAssessments(assessments.map(item=>item.id===id?{...item,completed:!item.completed}:item))
   const openExceptionEditor=()=>{
@@ -405,7 +370,7 @@ export default function ModuleScheduleEditor({
   const renderAssessmentCard=({key,items}:{key:string;items:Assessment[]})=>{
     const first=items[0],exam=first.type==='exam',selected=items.find(item=>selectedAssessment(item,assessments))||first
     return <article className="module-assessment-card" key={key}>
-      <div className="module-assessment-head"><span className="module-assessment-icon">{exam?<GraduationCap size={17}/>:<ClipboardList size={17}/>}</span><button className="module-assessment-title" onClick={()=>onEditAssessment(selected)}><strong>{first.title}</strong><small>{exam?`${items.length} ${items.length===1?'Termin':'Alternativen'}`:first.completed?'Fertig':'Noch abzugeben'}</small></button><label className="module-assessment-weight"><span>Gewichtung</span><span><input className="plain-number-input" type="number" inputMode="decimal" min="0" max="100" step="0.1" value={first.weight??0} onChange={event=>changeAssessmentWeight(key,Number(event.target.value))}/><em>%</em></span></label></div>
+      <div className="module-assessment-head"><span className="module-assessment-icon">{exam?<GraduationCap size={17}/>:<ClipboardList size={17}/>}</span><button className="module-assessment-title" onClick={()=>onEditAssessment(selected)}><strong>{first.title}</strong><small>{exam?`${items.length} ${items.length===1?'Termin':'Alternativen'}`:first.completed?'Fertig':'Noch abzugeben'}</small></button></div>
       {exam?<div className="module-exam-attempts" role="radiogroup" aria-label={'Prüfungstermin für '+first.title}>{items.map((item,index)=><button type="button" role="radio" aria-checked={item.id===selected.id} className={item.id===selected.id?'selected':''} key={item.id} onClick={()=>selectAttempt(key,item.id)}><span>{index===0?'1. Termin':index===1?'2. Termin':`${index+1}. Termin`}</span><strong>{formatDate(item.date,{day:'numeric',month:'short',year:'numeric'})}</strong>{item.from&&<small>{item.from}{item.to?'–'+item.to:''} Uhr</small>}<i>{item.id===selected.id?<Check size={13}/>:null}</i></button>)}</div>
         :<button type="button" role="checkbox" aria-checked={!!first.completed} className={'module-homework-state '+(first.completed?'done':'')} onClick={()=>toggleHomework(first.id)}><span>{first.completed?<Check size={14}/>:null}</span>{first.completed?'Fertig – wieder öffnen':'Als fertig markieren'}<small>{formatDate(first.date,{day:'numeric',month:'short'})}</small></button>}
     </article>
@@ -414,45 +379,8 @@ export default function ModuleScheduleEditor({
   return <div className="screen secondary-screen module-detail-screen module-fast" style={{'--module-accent':module.color,'--mlh-accent':module.color} as CSSProperties}>
     <button className="text-back" onClick={onBack}><ArrowLeft size={18}/> Alle Module</button>
     <div className="module-detail-heading">
-      <span className="module-emoji" style={{background:module.color}}>{module.emoji||<BookOpen size={20}/>}</span>
-      <div><span className="overline">MODUL</span><h1>{module.name}</h1></div>
+      <div><h1>{module.name}</h1></div>
     </div>
-    {journey&&journey.total>0&&<div className="module-fast-journey">
-      <div className="module-fast-journey-head"><strong>{journey.status}</strong><span>{journey.rated}/{journey.total} bewertet</span></div>
-      <p>{journey.message}</p>
-      <div className="module-fast-journey-stats"><span>Verständnis <b>{journey.understanding===null?'—':journey.understanding+' %'}</b></span><span>Wiederholung <b>{journey.repetition} %</b></span><span>Prüfungstraining <b>{journey.training} %</b></span></div>
-    </div>}
-    <details className="module-learning-history" open={learningOpen} onToggle={event=>setLearningOpen(event.currentTarget.open)}>
-      <summary className="module-learning-summary"><div><h2>Lernverlauf <small>{learningHistory.length}</small></h2></div><ChevronDown size={18}/></summary>
-      <div className="module-learning-body">
-      {learningHistory.length>0&&<div className="module-learning-filters" role="group" aria-label="Lernverlauf filtern">
-        {([['all','Alle'],['classes','Veranstaltungen'],['free','Freies Lernen'],['exam','Prüfung']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={learningFilter===value} className={learningFilter===value?'active':''} onClick={()=>{setLearningFilter(value);setEditingLearningId(null)}}>{label}</button>)}
-      </div>}
-      {!learningHistory.length&&<p className="module-learning-empty">Noch keine bewerteten Veranstaltungen oder Lerneinheiten.</p>}
-      {learningHistory.length>0&&!filteredLearningHistory.length&&<p className="module-learning-empty">Für diesen Filter gibt es noch keine Einträge.</p>}
-      <div className="module-learning-list">{filteredLearningHistory.map(entry=>{
-        const editing=editingLearningId===entry.id
-        return <div className={'module-learning-row '+(editing?'is-editing':'')} key={entry.id}>
-          <button type="button" className="module-learning-preview" aria-expanded={editing} onClick={()=>toggleLearningEditor(entry)}>
-            <span><strong>{entry.title}</strong><small>{formatDate(entry.date,{day:'numeric',month:'short',year:'numeric'})} · {entry.subtitle}</small></span>
-            <Pencil size={15}/>
-          </button>
-          {editing&&entry.kind==='session'&&<div className="module-learning-editor">
-            <label>Datum<UniflowPicker kind="date" label="Datum" value={entry.item.date} onChange={value=>onChangeLearningSessions(learningSessions.map(item=>item.id===entry.item.id?{...item,date:value,updatedAt:new Date().toISOString()}:item))}/></label>
-            <label>Art<UniflowPicker label="Lernart" value={entry.item.kind} options={[{value:'review',label:'Freies Lernen'},{value:'exam',label:'Klausurvorbereitung'}]} onChange={value=>onChangeLearningSessions(learningSessions.map(item=>item.id===entry.item.id?{...item,kind:value as LearningSession['kind'],updatedAt:new Date().toISOString()}:item))}/></label>
-            <label>Dauer<UniflowPicker kind="duration" label="Dauer" value={String(entry.item.duration)} maxMinutes={360} onChange={value=>onChangeLearningSessions(learningSessions.map(item=>item.id===entry.item.id?{...item,duration:Number(value),updatedAt:new Date().toISOString()}:item))}/></label>
-            <label>Bewertung<UniflowPicker label="Bewertung" value={entry.item.rating} options={Object.entries(ratingLabels).filter(([value])=>value!=='absent').map(([value,label])=>({value,label}))} onChange={value=>onChangeLearningSessions(learningSessions.map(item=>item.id===entry.item.id?{...item,rating:value as LearningSession['rating'],updatedAt:new Date().toISOString()}:item))}/></label>
-            <button type="button" className="module-learning-delete" onClick={()=>{onChangeLearningSessions(learningSessions.filter(item=>item.id!==entry.item.id));setEditingLearningId(null)}}><Trash2 size={15}/> Lerneinheit löschen</button>
-          </div>}
-          {editing&&entry.kind==='checkin'&&<div className="module-learning-editor">
-            <p className="module-learning-static-topic">Die Veranstaltungstitel werden jetzt automatisch nummeriert und können nicht mehr geändert werden.</p>
-            <label>Verständnis<UniflowPicker label="Verständnis" value={entry.item.rating} options={Object.entries(ratingLabels).filter(([value])=>value!=='absent').map(([value,label])=>({value,label}))} onChange={value=>onChangeLearningCheckins(learningCheckins.map(item=>item.key===entry.item.key?{...item,rating:value as LearningRating,updatedAt:new Date().toISOString()}:item))}/></label>
-            <button type="button" className="module-learning-delete" onClick={()=>{onChangeLearningCheckins(learningCheckins.filter(item=>item.key!==entry.item.key));setEditingLearningId(null)}}><Trash2 size={15}/> Check-in löschen</button>
-          </div>}
-        </div>
-      })}</div>
-      </div>
-    </details>
     <details className="module-fast-meta" open={advanced} onToggle={e=>setAdvanced(e.currentTarget.open)}>
       <summary><span>Modulangaben bearbeiten</span><ChevronDown size={17}/></summary>
       <div className="module-fast-meta-grid">
@@ -537,7 +465,7 @@ export default function ModuleScheduleEditor({
                 </div>
               </div>)}
             </div>)}
-            {preview.assessments.length>0&&<div className="module-fast-ai-summary"><strong>Prüfungsbestandteile</strong>{preview.assessments.map((item,index)=><span key={index}>{item.type==='exam'?'Prüfung':'Hausaufgabe'} · {item.title}<small>{formatDate(item.date,{day:'numeric',month:'short',year:'numeric'})}{item.weight!==undefined?` · ${item.weight} %`:''}</small></span>)}</div>}
+            {preview.assessments.length>0&&<div className="module-fast-ai-summary"><strong>Prüfungsbestandteile</strong>{preview.assessments.map((item,index)=><span key={index}>{item.type==='exam'?'Prüfung':'Hausaufgabe'} · {item.title}<small>{formatDate(item.date,{day:'numeric',month:'short',year:'numeric'})}</small></span>)}</div>}
             {preview.exceptions.length>0&&<div className="module-fast-ai-summary"><strong>Ausnahmen</strong>{preview.exceptions.map((item,index)=><span key={index}>{item.topicLabel}<small>{formatDate(item.date,{day:'numeric',month:'short'})} · {item.action==='cancel'?'Fällt aus':'Verschoben'}</small></span>)}</div>}
             {preview.errors.map((message,i)=><p className="module-fast-warning" key={i}>{message}</p>)}
             <div className="module-fast-preview-actions"><button onClick={()=>setPreview(null)}>Zurück</button>

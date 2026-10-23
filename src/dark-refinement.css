@@ -132,3 +132,38 @@ svg.lucide-plus{stroke:#d4d4d8}
 .mlh-phase-legend{display:flex;flex-wrap:wrap;gap:13px;margin:16px 0;font-size:9px;color:#92929b}.mlh-phase-legend span{display:flex;gap:5px;align-items:center}.mlh-phase-legend i{width:6px;height:6px;border-radius:50%;background:#66666f}.mlh-phase-legend span:nth-child(2) i{background:color-mix(in srgb,var(--mlh-accent) 38%,#202024)}.mlh-phase-legend span:nth-child(3) i{background:var(--mlh-accent)}
 @media(max-width:520px){.settings-screen .settings-section{padding:16px}.module-detail-screen.module-fast{padding-inline:18px}.mlh-timeline-month button{display:grid;gap:2px}}
 @media(prefers-reduced-motion:reduce){.mlh-score>.mlh-score-number,.mlh-score-number>i{transition:none}.mlh-current-banner,.mlh-current-banner i,.settings-screen .settings-section,.module-fast :is(.module-detail-heading,.module-fast-journey,.module-assessment-card,.module-fast-slot,.module-learning-history,.module-fast-meta,.module-fast-exceptions){animation:none}}
+
+/* Transparent top chrome and a floating glass navigation capsule. */
+.app-root{background:radial-gradient(ellipse 65% 420px at 50% 0,color-mix(in srgb,var(--module-accent) 10%,transparent),transparent 80%),#080808!important}
+.app-root .app-main{background:transparent!important}
+.app-root .app-top,.app-root .app-brand{background:transparent!important;background-image:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;border:0!important}
+.app-top::before,.app-top::after{content:none!important}
+.mlh-glow{top:-245px}
+.mlh-score>.mlh-score-number{display:inline-flex;align-items:center;justify-content:center;transform-origin:50% 50%;transform:scale(1);transition:transform 520ms cubic-bezier(.22,.8,.2,1),color 600ms ease,filter 700ms ease}
+.mlh-score>.mlh-score-number.is-rising{transform:scale(1.055)}
+.mlh-tasks>header h2,.mlh-exams h2{font-size:12px;font-weight:550;line-height:1.4;letter-spacing:.09em;text-transform:uppercase;color:var(--mlh-accent);margin:0}
+.settings-screen .page-title-row h1{text-transform:none;letter-spacing:-.045em}
+.module-fast .module-detail-heading{margin:20px 0 25px}
+.module-fast :is(.module-fast-meta,.module-fast-exceptions){padding:0 14px;border-radius:15px;background:transparent;margin-bottom:13px}
+.module-fast :is(.module-fast-meta,.module-fast-exceptions)>summary{min-height:40px;padding:9px 0;font-size:12px;line-height:20px}
+.module-fast :is(.module-fast-meta,.module-fast-exceptions)>summary svg{width:14px;height:14px}
+.module-fast .module-fast-meta-grid{gap:10px}
+.module-fast :is(.module-fast-section-head>button,.module-assessment-add button,.module-fast-add-exception){min-height:34px;padding:7px 11px;border-radius:999px;color:#fff;border-color:#ffffff24;gap:7px}
+.module-fast :is(.module-fast-section-head>button,.module-assessment-add button,.module-fast-add-exception) svg{stroke:#fff;width:15px;height:15px;stroke-linecap:round;stroke-linejoin:round}
+.module-fast .module-fast-icon-actions button{border-radius:50%}
+.module-fast .module-assessment-head{grid-template-columns:auto minmax(0,1fr);gap:10px}
+.mlh-timeline-phases{height:100%}
+.mlh-timeline-phases>i{flex:none;display:block;min-height:0}
+.mlh-timeline-month.is-gap{align-items:center}
+.mlh-timeline-month.is-gap>time{font-size:8px;line-height:1.4}
+.mlh-timeline-month.is-gap>i{height:12px;width:5px;margin-top:0;border-radius:0;background:repeating-linear-gradient(180deg,#080808 0 2px,#909098 2px 3px);box-shadow:0 0 0 2px #080808}
+.mlh-timeline-break{color:#676770;font-size:15px;letter-spacing:4px;line-height:1}
+@media(max-width:720px){
+  .app-root nav.mobile-navigation{left:16px;right:16px;bottom:max(12px,env(safe-area-inset-bottom,0px));width:auto;max-width:470px;margin:0 auto;height:62px;padding:3px 8px;box-sizing:border-box;border:1px solid #ffffff24!important;border-radius:29px;background:linear-gradient(145deg,#ffffff15,#ffffff06 55%,#ffffff0b)!important;backdrop-filter:blur(26px) saturate(165%);-webkit-backdrop-filter:blur(26px) saturate(165%);box-shadow:inset 0 1px 0 #ffffff18,inset 0 -1px 0 #ffffff07,0 8px 32px #00000038!important;overflow:visible}
+  .app-root nav.mobile-navigation button{border-radius:22px;gap:4px;background:transparent}
+  .app-root nav.mobile-navigation button::before{top:5px;height:38px;border-radius:16px;background:#ffffff0a}
+  .app-root nav.mobile-navigation button.active::before{background:#ffffff14}
+  .app-root nav.mobile-navigation button>span:last-child{font-size:10px}
+  .app-main{padding-bottom:100px}
+}
+@media(prefers-reduced-motion:reduce){.mlh-score>.mlh-score-number{transition:none}}
