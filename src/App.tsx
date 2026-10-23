@@ -12,6 +12,9 @@ import { shiftCalendarMonth } from './calendar-month'
 import { adjacentCalendarPage, alignCalendarStart, datesForCalendarPage, twoDayRail, weekHeaderDates } from './calendar-navigation'
 import UniflowPicker from './UniflowPicker'
 import ModuleLearningHome from './ModuleLearningHome'
+import ProfileOverlay from './ProfileOverlay'
+import StreakCelebration from './StreakCelebration'
+import {applyScoreAwards,streakCount} from './streaks'
 import { adviceContext } from './study-advice'
 import { usePremiumAdvice } from './usePremiumAdvice'
 import { journeyFor, pastLessons, lessonForOccurrence, lessonKeyForOccurrence, canRateOccurrence, type Journey, type LearningRating, type LearningSession, type LearningCheckin, type LessonTopic, type StudyTask } from './learning'
@@ -24,13 +27,14 @@ import './premium-ai.css'
 import './brand-theme.css'
 import './dark-refinement.css'
 import './form-controls.css'
+import './bigupdate-social.css'
 
 type Page = 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
 const pageFromUrl = (userId?: string): Page => {
   let saved: string | null = null
   try { if(userId)saved=localStorage.getItem('uniflow-last-page:'+userId) } catch { /* Storage may be unavailable. */ }
   const requested = new URLSearchParams(window.location.search).get('page') || saved
-  return requested === 'calendar' || requested === 'settings' ? requested : 'dashboard'
+  return requested === 'calendar' ? requested : 'dashboard'
 }
 /** Entitlements are checked elsewhere; this component is only a visual mark. */
 function BrandMark({premium,page,compact=false}:{premium:boolean;page:Page;compact?:boolean}){
@@ -109,7 +113,7 @@ function normalizeWorkspace(value: AppData): AppData {
       overrides: {}, room: a.room, organizer: '', selected: false })
   }
   const theme='dark'
-  return normalizeBigUpdate(separateAssessments({ ...emptyData, ...value, theme, themePreferenceVersion:1, weekEndDay: value.weekEndDay ?? 4,
+  return normalizeBigUpdate(separateAssessments({ ...emptyData, ...value, firstHour:0,lastHour:24,theme, themePreferenceVersion:1, weekEndDay: value.weekEndDay ?? 4,
     alternatives: [], creditGoals:Array.isArray(value.creditGoals)?value.creditGoals:[], offerings: offers, assessments: Array.isArray(value.assessments) ? value.assessments : [] }))
 }
 const EMAIL_OTP_LENGTH = 8
@@ -647,6 +651,17 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   }, [mode, userId])
   const [anchor,setAnchor]=useState(()=>today()<semester.start?semester.start:today()>examVisibilityEnd(semester)?examVisibilityEnd(semester):today())
   const [monthOpen,setMonthOpen]=useState(false)
+  useLayoutEffect(()=>{
+    if(monthOpen)return
+    const key='uniflow-calendar-scroll:'+userId+':'+semester.id
+    let frame=0,leaving=false
+    try{const saved=Number(localStorage.getItem(key)||0);frame=requestAnimationFrame(()=>window.scrollTo({top:saved,behavior:'instant' as ScrollBehavior}))}catch{/* Storage unavailable. */}
+    const save=()=>{if(leaving)return;try{localStorage.setItem(key,String(window.scrollY))}catch{/* Storage unavailable. */}}
+    const leave=()=>{save();leaving=true}
+    window.addEventListener('scroll',save,{passive:true})
+    window.addEventListener('uniflow-calendar-leave',leave)
+    return()=>{cancelAnimationFrame(frame);window.removeEventListener('scroll',save);window.removeEventListener('uniflow-calendar-leave',leave)}
+  },[userId,semester.id,monthOpen])
   const [monthTransition,setMonthTransition]=useState<{from:string;direction:'next'|'previous'}|null>(null)
   const monthGesture=useRef<{x:number;y:number}|null>(null)
   const suppressMonthTap=useRef(0)
@@ -688,33 +703,12 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     document.addEventListener('keydown',esc,true)
     return()=>{document.removeEventListener('pointerdown',dismiss);document.removeEventListener('keydown',esc,true)}
   },[walletContext])
-  const [walletTop,setWalletTop]=useState<number|null>(null)
-  useLayoutEffect(()=>{
-    if(!fan)return
-    const position=()=>{
-      const wallet=walletRef.current
-      if(!wallet)return
-      const viewport=window.visualViewport
-      const viewportTop=viewport?.offsetTop||0
-      const viewportHeight=viewport?.height||window.innerHeight
-      const topMin=viewportTop+12
-      const topMax=Math.max(topMin,viewportTop+viewportHeight-wallet.offsetHeight-12)
-      const top=Math.round(Math.max(topMin,Math.min(fan.rect.top,topMax)))
-      setWalletTop(previous=>previous===top?previous:top)
-    }
-    position()
-    const observer=new ResizeObserver(position)
-    if(walletRef.current)observer.observe(walletRef.current)
-    window.addEventListener('resize',position)
-    window.visualViewport?.addEventListener('resize',position)
-    return()=>{observer.disconnect();window.removeEventListener('resize',position);window.visualViewport?.removeEventListener('resize',position)}
-  },[fan,fanPicked])
   const [fanBoth,setFanBoth] = useState(false)
   const lastCardTap=useRef<{key:string;at:number}|null>(null)
   const openFan=(occ:Occurrence,el:HTMLElement)=>{
     const r=el.getBoundingClientRect()
-    setWalletTop(null)
-    setFan({occ,rect:{left:r.left,top:r.top,width:r.width,height:r.height},openedAt:Date.now()})
+    const parent=el.closest('.calendar-page')!.getBoundingClientRect()
+    setFan({occ,rect:{left:r.left-parent.left,top:r.top-parent.top,width:r.width,height:r.height},openedAt:Date.now()})
     setFanPicked(null);setFanBoth(false);setWalletContext(null)
   }
   useEffect(()=>{
@@ -789,10 +783,10 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const snapTarget=(slot:0|1|2,width:number)=>mode==='two'
     ?dayRail.offsets[slot]*width/2
     :slot*width
-  const times=Array.from({length:Math.max(1,Math.floor((data.lastHour-data.firstHour)/2))},(_,i)=>data.firstHour+i*2)
+  const times=Array.from({length:12},(_,i)=>i*2)
   const heightPerSlot=mode==='week'?82:114
   const height=times.length*heightPerSlot
-  const offsetY=(time:string)=>(minutes(time)-data.firstHour*60)/120*heightPerSlot
+  const offsetY=(time:string)=>minutes(time)/120*heightPerSlot
   const nowY=offsetY(timeString(clockNow.getHours()*60+clockNow.getMinutes()))
   // Reset to the center window before the browser paints the new anchor.
   useLayoutEffect(()=>{
@@ -951,8 +945,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     const rect=column.getBoundingClientRect()
     const relative=Math.max(0,Math.min(rect.height-1,y-rect.top))
     const rowIndex=Math.floor(relative/heightPerSlot)
-    const from=timeString((data.firstHour+rowIndex*2)*60)
-    return {date,from,to:timeString((data.firstHour+rowIndex*2+2)*60)}
+    const from=timeString((rowIndex*2)*60)
+    return {date,from,to:timeString((rowIndex*2+2)*60)}
   }
   const onMove=(e:ReactPointerEvent)=>{
     const g=gesture.current;if(!g)return
@@ -1031,7 +1025,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const rateable=past&&!!occ.offering.moduleId&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'
           const checkin=rateable?(data.learningCheckins||[]).find(item=>item.key===lessonKeyForOccurrence(occ)):undefined
           const rated=!!checkin&&(checkin.attended??checkin.rating!=='absent')
-          const style:CSSProperties={top:start+2,height:Math.max(32,end-start-4),background:inactive?'#29292b':module?.color||'#A5A5A5',left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`}
+          const style:CSSProperties={top:start,height:Math.max(2,end-start),background:inactive?'#29292b':module?.color||'#A5A5A5',left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`}
           return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
             className={'course '+(inactive?'course-inactive ':'')+(occ.cancelled?'course-cancelled ':'')+(numberOfAlternatives?'course-stacked ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
             style={style} onPointerDown={e=>{e.stopPropagation();if(!inactive&&!occ.cancelled)onDown(e,occ)}} onPointerMove={onMove}
@@ -1151,7 +1145,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     </div>
     :<div className={"calendar-lanes calendar-lanes-"+mode+" calendar-motion-"+motion}>
       <div className="time-ruler"><button className="ruler-head" title="Heute" onClick={()=>setAnchor(today())}>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'})}</button>
-        <div className="ruler-track" style={{height}}>{times.map((h,i)=><span key={h} style={{top:i*heightPerSlot}}>{String(h).padStart(2,'0')}:00</span>)}
+        <div className="ruler-track" style={{height}}>{times.map((h,i)=><span key={h} style={{top:i*heightPerSlot}}>{String(h).padStart(2,'0')}:00</span>)}<span style={{top:height}}>24:00</span>
           {visibleDays(pages[1]).includes(today())&&nowY>=0&&nowY<=height&&<div className="now-ruler-line" style={{top:nowY}} aria-hidden="true"/>}
         </div>
       </div>
@@ -1169,13 +1163,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     </div>}
     {dragUI&&createPortal(<div className="drag-overlay wallet-drag-badge"><Grip size={16}/>{dragUI.occ.offering.name} · {dragUI.from}</div>,document.body)}
     {proposal&&<MoveScope proposal={proposal} onClose={()=>setProposal(null)} onConfirm={confirmScope} mode="move"/>}
-    {fan && createPortal(<div className={'wallet-shade '+(dragUI?'wallet-drag-active':'')} onPointerDown={e=>{if(e.target===e.currentTarget)setFan(null)}}>
-      <div ref={walletRef} className="wallet-fan" role="dialog" aria-modal="true" aria-label="Veranstaltungsgruppen" style={{
-        left:`${Math.max(9,Math.min(window.innerWidth-Math.min(280,Math.max(175,fan.rect.width))-9,fan.rect.left))}px`,
-        top:`${walletTop??fan.rect.top}px`,
-        transition:fanPicked?'top 240ms cubic-bezier(.22,1,.36,1)':'none',
-        width:`${Math.min(window.innerWidth-18,Math.min(280,Math.max(175,fan.rect.width)))}px`
-      }}>
+    {fan && <div className="calendar-inline-wallet" style={{top:fan.rect.top,left:Math.max(0,Math.min(fan.rect.left,Math.max(0,document.documentElement.clientWidth-370)))}}>
+      <div ref={walletRef} className="wallet-fan" role="region" aria-label="Veranstaltungsgruppen">
         <div className="wallet-fan-head"><span>Veranstaltungen · {fanItems.length}</span><button aria-label="Stapel schließen" onClick={()=>setFan(null)}><X size={17}/></button></div>
         <div className="wallet-cards">
         {fanItems.map((item,i)=>{
@@ -1184,7 +1173,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const equivalent=sameContent(item.offering,fan.occ.offering)
           return <div role="button" tabIndex={0} key={item.key}
             className={'wallet-card '+(selected?'wallet-card-active':'wallet-card-inactive')+(item.cancelled?' wallet-card-cancelled':'')+(fanPicked?.key===item.key?' wallet-card-picked':'')}
-            style={{background:selected?(module?.color||'#5c5964'):undefined,animationDelay:`${i*38}ms`,zIndex:fanItems.length-i}}
+            style={{'--wallet-accent':module?.color||'#9b8cff',minHeight:Math.max(76,(minutes(item.to)-minutes(item.from))/120*heightPerSlot),animationDelay:`${i*38}ms`,zIndex:fanItems.length-i} as CSSProperties}
             onPointerDown={e=>{if(i===0&&selected){e.stopPropagation();onDown(e,item)}}}
             onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancelGesture}
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;onFanTap(item)}}
@@ -1206,7 +1195,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           <button className="wallet-edit" onClick={()=>{setFan(null);onEditOccurrence(fanPicked)}}><Settings2 size={14}/> Bearbeiten</button>
         </div>}
       </div>
-    </div>,document.body)}
+    </div>}
     {walletMove&&<MoveVisitEditor occ={walletMove} onClose={()=>setWalletMove(null)} onConfirm={next=>{setWalletMove(null);setProposal(next)}}/>}
     {walletContext&&createPortal(<div className="wallet-context-menu" role="menu" aria-label="Terminaktionen" style={{left:walletContext.x,top:walletContext.y}}
       onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
@@ -1223,13 +1212,20 @@ export default function App() {
   const [choiceAttendance,setChoiceAttendance] = useState<'replace'|'both'>('replace')
   const [initialLocal]=useState<AppData>(()=>supabase?{...emptyData}:normalizeBigUpdate(loadData()))
   const [data, setData] = useState<AppData>(initialLocal), [onboarding, setOnboarding] = useState(() => supabase ? true : !initialLocal.activeDegreeId), [page, setPage] = useState<Page>(pageFromUrl), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
+  const [profileOpen,setProfileOpen]=useState(false)
+  const closeProfile=useCallback(()=>setProfileOpen(false),[])
+  const [streakCelebration,setStreakCelebration]=useState<number|null>(null)
+  const closeStreak=useCallback(()=>setStreakCelebration(null),[])
   const [pageDirection,setPageDirection]=useState<'forward'|'backward'>('forward')
   const [ratingDraftAttended,setRatingDraftAttended]=useState(true)
   const [activeLearningModuleId,setActiveLearningModuleId]=useState('')
   const [ratingDraftValue,setRatingDraftValue]=useState<LearningRating|undefined>()
   const pageHistory=useRef<Page[]>([])
   const navigatePage=(next:Page,remember=true)=>{
+    if(next==='settings'){setProfileOpen(true);return}
+    setProfileOpen(false)
     if(page===next)return
+    if(page==='calendar')window.dispatchEvent(new Event('uniflow-calendar-leave'))
     if(remember)pageHistory.current.push(page)
     const order:Page[]=['dashboard','calendar','modules','settings','admin']
     setPageDirection(order.indexOf(next)>order.indexOf(page)?'forward':'backward')
@@ -1245,6 +1241,12 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [cloudReady, setCloudReady] = useState(false)
+  useEffect(()=>{
+    if(!cloudReady||!user||!data.streakDays?.includes(today()))return
+    const key='uniflow-streak-celebrated:'+user.id
+    try{if(localStorage.getItem(key)===today())return;localStorage.setItem(key,today())}catch{/* Animation still works without storage. */}
+    setStreakCelebration(streakCount(data.streakDays))
+  },[cloudReady,user?.id,data.streakDays])
   const [cloudStatus, setCloudStatus] = useState<'loading' | 'saving' | 'synced' | 'error'>('loading')
   const [cloudError, setCloudError] = useState('')
   const [admin, setAdmin] = useState(false)
@@ -1258,6 +1260,7 @@ export default function App() {
   const [cloudBusy, setCloudBusy] = useState(false)
   const backActionRef=useRef<()=>void>(()=>{})
   backActionRef.current=()=>{
+    if(profileOpen)return setProfileOpen(false)
     if(pendingBackup)return setPendingBackup(null)
     if(confirmDeleteSemester){setConfirmDeleteSemester(null);setSemesterDeleteText('');return}
     if(confirmDeleteModule)return setConfirmDeleteModule(null)
@@ -1456,7 +1459,7 @@ export default function App() {
     if (undoable) undoOfferings.current = null
     setToast({ id: uid(), text, action: action||(undoable ? () => setData(d => ({ ...d, offerings: previous!, lastUpdate: Date.now() })) : undefined), actionLabel: action||undoable ? 'Rückgängig' : undefined })
   }
-  const mutate = (f: (d: AppData) => AppData) => setData(prev => ({ ...f(prev), lastUpdate: Date.now() }))
+  const mutate = (f: (d: AppData) => AppData) => setData(prev => ({ ...applyScoreAwards(prev,f(prev)), lastUpdate: Date.now() }))
   const addStudyTask=(moduleId:string,title:string,dueDate?:string)=>{
     const now=new Date().toISOString()
     const task:StudyTask={id:uid(),moduleId,title,dueDate,points:SCORE_RULES.todoCompleted,createdAt:now,updatedAt:now}
@@ -1678,11 +1681,34 @@ export default function App() {
     onFinish={finishStartup}/>
   if (!user) return <><AuthScreen/>{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(null)}/>}</>
   if (!cloudReady) return <main className="auth-loading auth-cloud-loading"><div><div className="wordmark">uniflow<span className="wordmark-dot">.</span></div><p>{cloudStatus === 'error' ? cloudError : 'Deine Daten werden sicher geladen …'}</p>{cloudStatus === 'error' && <><button className="primary-action" onClick={() => void loadUserWorkspace(user, authEpoch.current)}>Erneut versuchen</button><button className="auth-secondary" onClick={() => void logOut()}>Abmelden</button></>}</div></main>
-  if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); pageHistory.current=[]; setPage('dashboard') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
-  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{ id: 'dashboard' as const, title: 'Lernen', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} /></span>{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
+  if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(applyScoreAwards(emptyData,d)); setOnboarding(false); pageHistory.current=[]; setPage('dashboard') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
+  const settingsContent=(<div className="screen secondary-screen settings-screen"><section className="settings-section"><h2>Studium</h2><div className="setting-line"><span>Studiengang</span><strong>{degree?.name}</strong></div><div className="setting-line"><span>Hochschule</span><strong>{degree?.university || 'Nicht angegeben'}</strong></div><div className="setting-line"><span>LP-Ziel</span><div className="number-setting"><input type="number" min="0" value={degree?.targetCredits || 0} onChange={e => mutate(d => ({ ...d, degrees: d.degrees.map(x => x.id === degree?.id ? { ...x, targetCredits: +e.target.value || 0 } : x) }))} /> LP</div></div></section>{admin && <section className="settings-section admin-settings-link">
+        <h2>Administration</h2>
+        <button className="settings-action" onClick={()=>navigatePage('admin')}><Settings2 size={19}/> Adminbereich öffnen <ArrowRight size={17}/></button>
+        <p className="quiet-copy">Nur für dein Administratorkonto sichtbar.</p>
+      </section>}{premium&&<section className="settings-section settings-ai-section" aria-label="KI-Modus">
+        <div className="settings-ai-inline">
+          <span className="settings-ai-label">KI-Modus</span>
+          <span className="settings-ai-badge">uniflow+</span>
+          <button type="button" role="switch" aria-label="KI-Modus aktivieren" aria-checked={ai.consent}
+            aria-describedby="settings-ai-data-note"
+            className={'settings-ai-toggle'+(ai.consent?' is-on':'')}
+            onClick={()=>ai.setConsent(!ai.consent)}><span/></button>
+        </div>
+        <span className="uf-visually-hidden" id="settings-ai-data-note">Bei Aktivierung werden relevante Modulnamen, Themen, Bewertungen und Prüfungstermine über unicloud an DeepSeek übermittelt.</span>
+        {ai.consent&&ai.working&&<p className="settings-ai-status" role="status"><Sparkles size={14}/> Deine KI-Empfehlung wird erstellt …</p>}
+        {ai.consent&&!ai.working&&ai.advice&&<div className="settings-ai-result" role="status">
+          <span><Sparkles size={14}/> uniflow+</span><strong>{ai.advice.title}</strong><p>{ai.advice.message}</p>
+        </div>}
+        {ai.consent&&ai.errorMessage&&<p className="auth-error" role="alert">{ai.errorMessage}</p>}
+      </section>}<section className="settings-section notification-settings"><h2>Mitteilungen</h2>
+        <div className="setting-line"><span><strong>Feedback nach Terminen</strong><small>Fragt nach dem Ende einer Veranstaltung kurz nach.</small></span><button type="button" role="switch" aria-checked={data.notificationPreferences?.lessonFeedback||false} className={'settings-switch'+(data.notificationPreferences?.lessonFeedback?' is-on':'')} onClick={()=>void setNotificationPreference(!(data.notificationPreferences?.lessonFeedback||false))}><span/></button></div>
+        <p className="quiet-copy">Auf iPhone und iPad funktioniert Push, wenn uniflow zum Home-Bildschirm hinzugefügt wurde.</p>
+      </section><section className="settings-section"><h2>Stundenplan</h2><div className="setting-line"><span>Zeitraum</span><strong>00:00–24:00</strong></div><div className="setting-line"><span>Woche anzeigen bis</span><div className="inline-toggle week-end-toggle">{([{v:4,label:'Fr'},{v:5,label:'Sa'},{v:6,label:'So'}] as const).map(x=><button key={x.v} className={(data.weekEndDay??4)===x.v?'selected':''} onClick={()=>mutate(d=>({...d,weekEndDay:x.v}))}>{x.label}</button>)}</div></div><small className="setting-hint">Die Wochenansicht endet am gewählten Tag. Spätere Termine bleiben über die Tages- oder Zwei-Tage-Ansicht erreichbar.</small><small className="setting-hint">Der Zeitraum bleibt fest. Veranstaltungen werden minutengenau dargestellt.</small></section><section className="settings-section"><h2>Semester</h2><div className="semester-picker-list">{data.semesters.filter(s => s.degreeId === degree?.id).map(s => <button key={s.id} className={s.id === semester?.id ? 'current' : ''} onClick={() => { mutate(d => ({ ...d, activeSemesterId: s.id })); note(`${s.name} geöffnet.`) }}><span><strong>{s.name}</strong><small>{formDate(s.start)} – {formDate(s.end)}</small></span>{s.id === semester?.id && <Check size={18} />}</button>)}</div>{semester && <label className="setting-input"><span>Letzter Vorlesungstag</span><DateControl value={semester.lectureEnd} min={semester.start} max={semester.end} onChange={v => mutate(d => ({ ...d, semesters: d.semesters.map(s => s.id === semester.id ? { ...s, lectureEnd: v } : s) }))} /></label>}<button className="underlined-link" onClick={() => { if (!degree) return; const recent = data.semesters.filter(s => s.degreeId === degree.id).sort((a, b) => b.end.localeCompare(a.end))[0]; const start = recent ? addDays(recent.end, 1) : currentSemesterDates().start; const next = semesterFromStart(start); if (data.semesters.some(s => s.degreeId === degree.id && overlaps(s.start, s.end, next.start, next.end))) { note('Dieses Semester ist bereits vorhanden.'); return } const newSemester: Semester = { ...next, id: uid(), degreeId: degree.id, archived: false }; mutate(d => ({ ...d, semesters: [...d.semesters, newSemester], activeSemesterId: d.activeSemesterId })); note('Nächstes Semester gespeichert. Das aktuelle bleibt ausgewählt.') }}>Nächstes Semester hinzufügen <Plus size={17} /></button><div className="semester-management"><h3>Semester verwalten</h3>{data.semesters.filter(x=>x.degreeId===degree?.id).map(x=><div key={x.id} className="semester-manage-row"><span><strong>{x.name}</strong><small>{x.id===semester?.id?'Ausgewählt':x.start>today()?'Geplant':x.end<today()?'Vergangen':'Laufend'} · {formDate(x.start)} – {formDate(x.end)}</small></span><button aria-label={`${x.name} löschen`} onClick={()=>setConfirmDeleteSemester(x)}><Trash2 size={18}/></button></div>)}</div></section><section className="settings-section"><h2>Deine Daten</h2><button className="settings-action" onClick={saveBackup}><Download size={19} /> Backup herunterladen <ArrowRight size={17} /></button><button className="settings-action" onClick={() => fileRef.current?.click()}><Upload size={19} /> Backup importieren <ArrowRight size={17} /></button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => { void readBackup(e.target.files?.[0]); e.target.value = '' }} /><button className="settings-action settings-danger" onClick={() => setConfirmReset(true)}><RotateCcw size={19} /> Alles zurücksetzen <ArrowRight size={17} /></button><div className="cloud-account-state"><div><strong>unicloud</strong><small>{cloudStatus === 'synced' ? 'Alle Änderungen gespeichert' : cloudStatus === 'saving' ? 'Synchronisiere …' : cloudStatus === 'error' ? 'Synchronisierung fehlgeschlagen' : 'Verbunden'}</small></div>{cloudStatus === 'synced' ? <Check size={19}/> : <RefreshCw size={19}/>}</div>{cloudStatus === 'error' && <p className="auth-error">{cloudError}</p>}<button className="settings-action" disabled={cloudBusy || cloudStatus === 'saving'} onClick={() => void syncNow()}><RefreshCw size={19}/> Jetzt synchronisieren <ArrowRight size={17}/></button><button className="settings-action" onClick={() => void logOut()}><LogOut size={19}/> uniflow abmelden <ArrowRight size={17}/></button><p className="quiet-copy">Angemeldet als {user.email || user.id.slice(0,8) + '…'}. Deine Daten werden beim Öffnen geladen und bei Änderungen automatisch in unicloud gespeichert. Bei gleichzeitigen Änderungen auf mehreren Geräten kann der zuletzt gespeicherte Stand gewinnen.</p></section></div>)
+  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{ id: 'dashboard' as const, title: 'Lernen', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} /></span>{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
     <div className="app-main">{page!=='dashboard'&&<header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button></header>}
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
-      {page === 'dashboard' && <ModuleLearningHome data={data} semester={semester} modules={semesterModules}
+      {page === 'dashboard' && <ModuleLearningHome onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} data={data} semester={semester} modules={semesterModules}
         currentModuleId={currentModuleId}
         onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
         onToggleHomework={item=>{
@@ -1755,33 +1781,13 @@ export default function App() {
               ?{...event,reversedAt:now}:event)}
         })}
       />}
-      {page === 'admin' && user && admin && <AdminPanel user={user} notice={note} onBack={()=>{pageHistory.current.pop();navigatePage('settings',false)}} />}
-      {page === 'settings' && <div className="screen secondary-screen settings-screen"><div className="page-title-row"><div><h1>Einstellungen</h1></div></div><section className="settings-section"><h2>Profil</h2><label className="setting-input setting-input-plain"><span>Dein Name</span><input value={data.profile} onChange={e => mutate(d => ({ ...d, profile: e.target.value }))} /></label><div className="setting-line"><span>Studiengang</span><strong>{degree?.name}</strong></div><div className="setting-line"><span>Hochschule</span><strong>{degree?.university || 'Nicht angegeben'}</strong></div><div className="setting-line"><span>LP-Ziel</span><div className="number-setting"><input type="number" min="0" value={degree?.targetCredits || 0} onChange={e => mutate(d => ({ ...d, degrees: d.degrees.map(x => x.id === degree?.id ? { ...x, targetCredits: +e.target.value || 0 } : x) }))} /> LP</div></div></section>{admin && <section className="settings-section admin-settings-link">
-        <h2>Administration</h2>
-        <button className="settings-action" onClick={()=>navigatePage('admin')}><Settings2 size={19}/> Adminbereich öffnen <ArrowRight size={17}/></button>
-        <p className="quiet-copy">Nur für dein Administratorkonto sichtbar.</p>
-      </section>}{premium&&<section className="settings-section settings-ai-section" aria-label="KI-Modus">
-        <div className="settings-ai-inline">
-          <span className="settings-ai-label">KI-Modus</span>
-          <span className="settings-ai-badge">uniflow+</span>
-          <button type="button" role="switch" aria-label="KI-Modus aktivieren" aria-checked={ai.consent}
-            aria-describedby="settings-ai-data-note"
-            className={'settings-ai-toggle'+(ai.consent?' is-on':'')}
-            onClick={()=>ai.setConsent(!ai.consent)}><span/></button>
-        </div>
-        <span className="uf-visually-hidden" id="settings-ai-data-note">Bei Aktivierung werden relevante Modulnamen, Themen, Bewertungen und Prüfungstermine über unicloud an DeepSeek übermittelt.</span>
-        {ai.consent&&ai.working&&<p className="settings-ai-status" role="status"><Sparkles size={14}/> Deine KI-Empfehlung wird erstellt …</p>}
-        {ai.consent&&!ai.working&&ai.advice&&<div className="settings-ai-result" role="status">
-          <span><Sparkles size={14}/> uniflow+</span><strong>{ai.advice.title}</strong><p>{ai.advice.message}</p>
-        </div>}
-        {ai.consent&&ai.errorMessage&&<p className="auth-error" role="alert">{ai.errorMessage}</p>}
-      </section>}<section className="settings-section notification-settings"><h2>Mitteilungen</h2>
-        <div className="setting-line"><span><strong>Feedback nach Terminen</strong><small>Fragt nach dem Ende einer Veranstaltung kurz nach.</small></span><button type="button" role="switch" aria-checked={data.notificationPreferences?.lessonFeedback||false} className={'settings-switch'+(data.notificationPreferences?.lessonFeedback?' is-on':'')} onClick={()=>void setNotificationPreference(!(data.notificationPreferences?.lessonFeedback||false))}><span/></button></div>
-        <p className="quiet-copy">Auf iPhone und iPad funktioniert Push, wenn uniflow zum Home-Bildschirm hinzugefügt wurde.</p>
-      </section><section className="settings-section"><h2>Stundenplan</h2><div className="setting-line"><span>Erste Stunde</span><div className="small-picker"><button disabled={data.firstHour <= 0} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour - 2 }))}>−</button><strong>{timeString(data.firstHour * 60)}</strong><button disabled={data.firstHour >= data.lastHour - 2} onClick={() => mutate(d => ({ ...d, firstHour: d.firstHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Letzte Stunde</span><div className="small-picker"><button disabled={data.lastHour <= data.firstHour + 2} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour - 2 }))}>−</button><strong>{timeString(data.lastHour * 60)}</strong><button disabled={data.lastHour >= 24} onClick={() => mutate(d => ({ ...d, lastHour: d.lastHour + 2 }))}>+</button></div></div><div className="setting-line"><span>Woche anzeigen bis</span><div className="inline-toggle week-end-toggle">{([{v:4,label:'Fr'},{v:5,label:'Sa'},{v:6,label:'So'}] as const).map(x=><button key={x.v} className={(data.weekEndDay??4)===x.v?'selected':''} onClick={()=>mutate(d=>({...d,weekEndDay:x.v}))}>{x.label}</button>)}</div></div><small className="setting-hint">Die Wochenansicht endet am gewählten Tag. Spätere Termine bleiben über die Tages- oder Zwei-Tage-Ansicht erreichbar.</small><small className="setting-hint">Das Raster bleibt in Zwei-Stunden-Schritten. Veranstaltungen können minutengenau beginnen und enden.</small></section><section className="settings-section"><h2>Semester</h2><div className="semester-picker-list">{data.semesters.filter(s => s.degreeId === degree?.id).map(s => <button key={s.id} className={s.id === semester?.id ? 'current' : ''} onClick={() => { mutate(d => ({ ...d, activeSemesterId: s.id })); note(`${s.name} geöffnet.`) }}><span><strong>{s.name}</strong><small>{formDate(s.start)} – {formDate(s.end)}</small></span>{s.id === semester?.id && <Check size={18} />}</button>)}</div>{semester && <label className="setting-input"><span>Letzter Vorlesungstag</span><DateControl value={semester.lectureEnd} min={semester.start} max={semester.end} onChange={v => mutate(d => ({ ...d, semesters: d.semesters.map(s => s.id === semester.id ? { ...s, lectureEnd: v } : s) }))} /></label>}<button className="underlined-link" onClick={() => { if (!degree) return; const recent = data.semesters.filter(s => s.degreeId === degree.id).sort((a, b) => b.end.localeCompare(a.end))[0]; const start = recent ? addDays(recent.end, 1) : currentSemesterDates().start; const next = semesterFromStart(start); if (data.semesters.some(s => s.degreeId === degree.id && overlaps(s.start, s.end, next.start, next.end))) { note('Dieses Semester ist bereits vorhanden.'); return } const newSemester: Semester = { ...next, id: uid(), degreeId: degree.id, archived: false }; mutate(d => ({ ...d, semesters: [...d.semesters, newSemester], activeSemesterId: d.activeSemesterId })); note('Nächstes Semester gespeichert. Das aktuelle bleibt ausgewählt.') }}>Nächstes Semester hinzufügen <Plus size={17} /></button><div className="semester-management"><h3>Semester verwalten</h3>{data.semesters.filter(x=>x.degreeId===degree?.id).map(x=><div key={x.id} className="semester-manage-row"><span><strong>{x.name}</strong><small>{x.id===semester?.id?'Ausgewählt':x.start>today()?'Geplant':x.end<today()?'Vergangen':'Laufend'} · {formDate(x.start)} – {formDate(x.end)}</small></span><button aria-label={`${x.name} löschen`} onClick={()=>setConfirmDeleteSemester(x)}><Trash2 size={18}/></button></div>)}</div></section><section className="settings-section"><h2>Deine Daten</h2><button className="settings-action" onClick={saveBackup}><Download size={19} /> Backup herunterladen <ArrowRight size={17} /></button><button className="settings-action" onClick={() => fileRef.current?.click()}><Upload size={19} /> Backup importieren <ArrowRight size={17} /></button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => { void readBackup(e.target.files?.[0]); e.target.value = '' }} /><button className="settings-action settings-danger" onClick={() => setConfirmReset(true)}><RotateCcw size={19} /> Alles zurücksetzen <ArrowRight size={17} /></button><div className="cloud-account-state"><div><strong>unicloud</strong><small>{cloudStatus === 'synced' ? 'Alle Änderungen gespeichert' : cloudStatus === 'saving' ? 'Synchronisiere …' : cloudStatus === 'error' ? 'Synchronisierung fehlgeschlagen' : 'Verbunden'}</small></div>{cloudStatus === 'synced' ? <Check size={19}/> : <RefreshCw size={19}/>}</div>{cloudStatus === 'error' && <p className="auth-error">{cloudError}</p>}<button className="settings-action" disabled={cloudBusy || cloudStatus === 'saving'} onClick={() => void syncNow()}><RefreshCw size={19}/> Jetzt synchronisieren <ArrowRight size={17}/></button><button className="settings-action" onClick={() => void logOut()}><LogOut size={19}/> uniflow abmelden <ArrowRight size={17}/></button><p className="quiet-copy">Angemeldet als {user.email || user.id.slice(0,8) + '…'}. Deine Daten werden beim Öffnen geladen und bei Änderungen automatisch in unicloud gespeichert. Bei gleichzeitigen Änderungen auf mehreren Geräten kann der zuletzt gespeicherte Stand gewinnen.</p></section></div>}
+      {page === 'admin' && user && admin && <AdminPanel user={user} notice={note} onBack={()=>{pageHistory.current.pop();navigatePage('dashboard',false);setProfileOpen(true)}} />}
+
       </div>
     </div>
-    <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Lernen', icon: Layers2 }, { id: 'calendar', name: 'Stundenplan', icon: CalendarDays }, { id: 'settings', name: 'Einstellungen', icon: Settings2 }] as const).map(item => <button key={item.id} className={page === item.id || (page === 'admin' && item.id === 'settings') ? 'active' : ''} onClick={() => navigatePage(item.id)}><span className="nav-icon-wrap"><item.icon size={21} /></span><span>{item.name}</span></button>)}</nav>
+    <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Lernen', icon: Layers2 }, { id: 'calendar', name: 'Stundenplan', icon: CalendarDays }] as const).map(item => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => navigatePage(item.id)}><span className="nav-icon-wrap"><item.icon size={21} /></span><span>{item.name}</span></button>)}</nav>
+    {profileOpen&&<ProfileOverlay data={data} settings={settingsContent} onClose={closeProfile} onProfileChange={name=>mutate(d=>({...d,profile:name}))} onModule={module=>{const target=data.semesters.find(s=>s.id===data.activeSemesterId&&module.semesterIds.includes(s.id))||data.semesters.filter(s=>module.semesterIds.includes(s.id)).sort((a,b)=>b.start.localeCompare(a.start))[0];mutate(d=>({...d,activeDegreeId:module.degreeId,activeSemesterId:target?.id||d.activeSemesterId}));setSelectedModuleId(module.id);navigatePage('modules')}}/>}
+    {streakCelebration!==null&&<StreakCelebration count={streakCelebration} onClose={closeStreak}/>}
     {newModule&&<BottomSheet title="Neues Modul" onClose={()=>setNewModule(false)} footer={<button className="primary-action" onClick={saveNewModule}>Modul erstellen · +100 <Sparkles size={18}/></button>}>
       <div className="uf-entry-form"><div className="editor-field"><span className="field-label">Modulname</span><input autoFocus className="line-input" value={newName} onChange={event=>setNewName(event.target.value)} placeholder="z. B. Geographie" /></div><div className="editor-field"><span className="field-label">Leistungspunkte</span><input className="line-input" type="number" min="0" step="0.5" value={newCredits} onChange={event=>setNewCredits(event.target.value)} /></div><p className="scope-intro">Dein neues Modul startet sofort mit einem Bonus von 100 Punkten.</p></div>
     </BottomSheet>}
@@ -1844,7 +1850,7 @@ export default function App() {
       <button className="primary-action" disabled={semesterDeleteText.trim()!==semesterDeletePhrase} onClick={()=>{const id=confirmDeleteSemester.id;const removedOfferingIds=new Set(data.offerings.filter(o=>o.semesterId===id).map(o=>o.id));mutate(d=>({...d, semesters:d.semesters.filter(s=>s.id!==id), activeSemesterId:d.activeSemesterId===id?(d.semesters.find(s=>s.id!==id&&s.degreeId===confirmDeleteSemester.degreeId)?.id||''):d.activeSemesterId, offerings:d.offerings.filter(o=>o.semesterId!==id), assessments:d.assessments.filter(a=>a.semesterId!==id), alternatives:(d.alternatives||[]).filter(a=>!removedOfferingIds.has(a.parentOfferingId)), modules:d.modules.map(m=>({...m,semesterIds:m.semesterIds.filter(x=>x!==id)}))}));setConfirmDeleteSemester(null);setSemesterDeleteText('');note('Semester gelöscht.')}}>Semester und Termine löschen</button>
       <button className="dismiss-action" onClick={()=>{setConfirmDeleteSemester(null);setSemesterDeleteText('')}}>Abbrechen</button>
     </BottomSheet>}
-    {confirmDeleteModule && <BottomSheet title="Modul löschen?" onClose={() => setConfirmDeleteModule(null)}><p className="scope-intro">„{confirmDeleteModule.name}“ und alle zugehörigen Termine werden gelöscht. Das lässt sich nicht rückgängig machen.</p><button className="primary-action" onClick={() => { mutate(d => ({ ...d, modules: d.modules.filter(m => m.id !== confirmDeleteModule.id), offerings: d.offerings.filter(o => o.moduleId !== confirmDeleteModule.id), assessments:d.assessments.filter(a=>a.moduleId!==confirmDeleteModule.id), alternatives: (d.alternatives || []).filter(a => a.moduleId !== confirmDeleteModule.id && !d.offerings.some(o => o.moduleId === confirmDeleteModule.id && o.id === a.parentOfferingId)) })); setConfirmDeleteModule(null);setSelectedModuleId(null); note('Modul gelöscht.') }}>Modul und Termine löschen</button><button className="dismiss-action" onClick={() => setConfirmDeleteModule(null)}>Abbrechen</button></BottomSheet>}
+    {confirmDeleteModule && <BottomSheet title="Modul löschen?" onClose={() => setConfirmDeleteModule(null)}><p className="scope-intro">„{confirmDeleteModule.name}“ und alle zugehörigen Termine werden gelöscht. Das lässt sich nicht rückgängig machen.</p><button className="primary-action" onClick={() => { mutate(d => ({ ...d, modules: d.modules.filter(m => m.id !== confirmDeleteModule.id), offerings: d.offerings.filter(o => o.moduleId !== confirmDeleteModule.id), assessments:d.assessments.filter(a=>a.moduleId!==confirmDeleteModule.id), alternatives: (d.alternatives || []).filter(a => a.moduleId !== confirmDeleteModule.id && !d.offerings.some(o => o.moduleId === confirmDeleteModule.id && o.id === a.parentOfferingId)) })); setConfirmDeleteModule(null);setSelectedModuleId(null);navigatePage('dashboard',false); note('Modul gelöscht.') }}>Modul und Termine löschen</button><button className="dismiss-action" onClick={() => setConfirmDeleteModule(null)}>Abbrechen</button></BottomSheet>}
     {pendingBackup && <BottomSheet title="Backup importieren?" onClose={() => setPendingBackup(null)}><p className="scope-intro">Das Backup ersetzt die derzeitigen lokalen uniflow-Daten auf diesem Gerät.</p><button className="primary-action" onClick={() => { setData(pendingBackup); setOnboarding(!pendingBackup.activeDegreeId); setPendingBackup(null); note('Backup wiederhergestellt.') }}>Backup wiederherstellen</button><button className="dismiss-action" onClick={() => setPendingBackup(null)}>Abbrechen</button></BottomSheet>}
     {confirmReset && <BottomSheet title="Neu anfangen?" onClose={() => setConfirmReset(false)}><p className="scope-intro">Dein uniflow-Stundenplan, deine Module und Semester werden auch in unicloud auf einen leeren Stand zurückgesetzt. Speichere vorher ein Backup, wenn du sie behalten möchtest.</p><button className="primary-action" onClick={() => void doReset()} disabled={cloudBusy}>Alle Daten löschen</button><button className="dismiss-action" onClick={() => setConfirmReset(false)}>Abbrechen</button></BottomSheet>}
     {toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}
