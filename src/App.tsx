@@ -1042,7 +1042,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             <div className="course-head"><strong className="course-title">{isAssessment(occ.offering.category)?<span className="course-kind-icon">{/klausur|prüfung/i.test(occ.offering.category)?<GraduationCap size={compact?12:16}/>:<ClipboardList size={compact?12:16}/>}</span>:null}{module?.emoji?<span className="course-emoji">{module.emoji}</span>:null}{compact?module?.shortName||acronym(occ.offering.name):module?.name||occ.offering.name}</strong>
               {(singleVisitLabel(occ)||numberOfAlternatives>0)&&<span className="course-head-badges">
                 {singleVisitLabel(occ)&&<span className="course-recurrence" title={singleVisitLabel(occ)==='Einmalig'?'Nur einmaliger Termin':'Einmalige Ausnahme'}>{compact?'x1':singleVisitLabel(occ)}</span>}
-                {numberOfAlternatives>0&&<span className="stack-indicator" title={`${numberOfAlternatives} Alternativen`}><Layers2 size={compact?8:12}/>{!compact&&<span>{numberOfAlternatives}</span>}</span>}
+                {numberOfAlternatives>0&&!compact&&<span className="stack-indicator" title={`${numberOfAlternatives} Alternativen`}><Layers2 size={12}/><span>{numberOfAlternatives}</span></span>}
               </span>}
             </div>
             <div className="course-meta">
@@ -1499,11 +1499,20 @@ export default function App() {
   }
   const saveLearningSession=(session:Omit<LearningSession,'id'|'updatedAt'>)=>{
     const now=new Date().toISOString(),id=uid(),groupId=`study:${id}`
-    mutate(workspace=>({...workspace,
+    mutate(workspace=>session.timerId&&(workspace.learningSessions||[]).some(old=>old.timerId===session.timerId)?workspace:({...workspace,
+      studyTimer:session.timerId&&workspace.studyTimer?.id===session.timerId?undefined:workspace.studyTimer,
       learningSessions:[...(workspace.learningSessions||[]).filter(old=>!session.scheduledKey||old.scheduledKey!==session.scheduledKey),{...session,id,updatedAt:now}],
       scoreEvents:[...(workspace.scoreEvents||[]),makeScoreEvent({id:`study-minutes:${id}`,moduleId:session.moduleId,type:'study-minutes',basePoints:session.duration*SCORE_RULES.minute,occurredAt:now,sourceId:id,groupId,label:`${session.duration} Min. gelernt`})]
     }))
-    note(`Lernsession gespeichert · +${session.duration*SCORE_RULES.minute} Punkte`)
+    note(`Lernsession gespeichert · +${Math.round(session.duration*SCORE_RULES.minute)} Punkte`)
+  }
+  const updateLearningSession=(session:LearningSession)=>{
+    const now=new Date().toISOString()
+    mutate(workspace=>({...workspace,
+      learningSessions:(workspace.learningSessions||[]).map(old=>old.id===session.id?{...session,updatedAt:now}:old),
+      scoreEvents:(workspace.scoreEvents||[]).map(event=>event.type==='study-minutes'&&event.sourceId===session.id?{...event,basePoints:session.duration*SCORE_RULES.minute,points:Math.round(session.duration*SCORE_RULES.minute*event.multiplier),label:`${session.duration} Min. gelernt`}:event)
+    }))
+    note('Lernsession aktualisiert.')
   }
   const saveLearnedContent=(moduleId:string,lessons:NumberedLesson[],duration:number,rating:Exclude<LearningRating,'absent'>)=>{
     const now=new Date().toISOString(),id=uid(),groupId=`content-study:${id}`
@@ -1682,6 +1691,8 @@ export default function App() {
           note(completed?'Hausaufgabe erledigt.':'Hausaufgabe wieder geöffnet.',()=>mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed:!!item.completed}:old)})))
         }}
         onActiveModuleChange={setActiveLearningModuleId}
+        onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))}
+        onUpdateSession={updateLearningSession}
         storageKey={'uniflow-last-module:'+user.id} onDeleteTask={deleteStudyTask} onDeleteActivity={deleteActivity}
         onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onSession={saveLearningSession} onLearnContent={saveLearnedContent}
         onEditModule={moduleId=>{setSelectedModuleId(moduleId);navigatePage('modules')}} onCreateModule={()=>setNewModule(true)} />}

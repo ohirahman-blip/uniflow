@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ClipboardList, History, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
-import { formatDate, today, type AppData, type Assessment, type Semester, type StudyModule } from './model'
+import { dateString, formatDate, today, uid, type AppData, type Assessment, type Semester, type StudyModule } from './model'
 import ExamTimeline from './ExamTimeline'
 import UniflowPicker from './UniflowPicker'
+import LearningSessionForm,{type SessionValues} from './LearningSessionForm'
+import StudyTimerCard from './StudyTimerCard'
+import {timerElapsed,type StudyTimerState} from './study-timer'
 import { numberedLessons, scoreTotal, type NumberedLesson } from './score'
 import type { LearningRating, LearningSession, ScoreEvent, StudyTask } from './learning'
 import './module-learning-home.css'
@@ -22,6 +25,8 @@ type Props = {
   onToggleHomework:(homework:Assessment)=>void
   onActiveModuleChange:(moduleId:string)=>void
   onSession: (session: Omit<LearningSession, 'id' | 'updatedAt'>) => void
+  onTimerChange:(timer:StudyTimerState|undefined)=>void
+  onUpdateSession:(session:LearningSession)=>void
   onLearnContent: (moduleId: string, lessons: NumberedLesson[], duration: number, rating: Exclude<LearningRating, 'absent'>) => void
   onEditModule: (moduleId: string) => void
   onCreateModule: () => void
@@ -53,7 +58,7 @@ function Overlay({ title, onClose, children }: { title: string; onClose: () => v
   </div>, document.body)
 }
 
-function ActivityHistory({ events, tasks, onToggleTask, onDeleteTask, onDeleteActivity }: { events: ScoreEvent[]; tasks: StudyTask[]; onToggleTask: Props['onToggleTask']; onDeleteTask: Props['onDeleteTask']; onDeleteActivity: Props['onDeleteActivity'] }) {
+function ActivityHistory({ events, tasks, sessions, onEditSession, onToggleTask, onDeleteTask, onDeleteActivity }: { events: ScoreEvent[]; tasks: StudyTask[]; sessions:LearningSession[];onEditSession:(session:LearningSession)=>void;onToggleTask: Props['onToggleTask']; onDeleteTask: Props['onDeleteTask']; onDeleteActivity: Props['onDeleteActivity'] }) {
   const grouped = useMemo(() => {
     const groups = new Map<string, { key: string; occurredAt: string; points: number; title: string; items: ScoreEvent[] }>()
     for (const event of events.filter(item => !item.reversedAt).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))) {
@@ -69,6 +74,7 @@ function ActivityHistory({ events, tasks, onToggleTask, onDeleteTask, onDeleteAc
   return <div className="mlh-history-list">{grouped.map(group => <article key={group.key}>
     <span><strong>{group.title}</strong><small>{new Date(group.occurredAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' })}</small></span>
     <b>+{group.points}</b><div className="mlh-history-actions">
+      {group.items.some(event=>event.type==='study-minutes'&&sessions.some(session=>session.id===event.sourceId))&&<button aria-label="Lernzeit bearbeiten" title="Lernzeit bearbeiten" onClick={()=>{const event=group.items.find(item=>item.type==='study-minutes'),session=sessions.find(item=>item.id===event?.sourceId);if(session)onEditSession(session)}}><PenLine size={17}/></button>}
       {group.items[0]?.type === 'todo-completed' && tasks.find(task=>task.id===group.items[0].sourceId) && <button aria-label="Aufgabe wieder öffnen" title="Rückgängig" onClick={()=>onToggleTask(tasks.find(task=>task.id===group.items[0].sourceId)!)}><RotateCcw size={17}/></button>}
       {!group.items.some(event=>event.type==='module-created')&&<button aria-label={`${group.title} löschen`} title="Löschen" onClick={()=>{const task=group.items[0]?.type==='todo-completed'?tasks.find(task=>task.id===group.items[0].sourceId):undefined;if(task)onDeleteTask(task);else onDeleteActivity(group.items)}}><Trash2 size={17}/></button>}
     </div>
@@ -99,10 +105,12 @@ function AnimatedScore({value,storageKey}:{value:number;storageKey:string}){
   return <span className={'mlh-score-number'+(rising?' is-rising':'')}><i aria-hidden="true">+</i><strong>{display.toLocaleString('de-DE')}</strong></span>
 }
 
-export default function ModuleLearningHome({ data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onToggleHomework, onActiveModuleChange, onSession, onLearnContent, onEditModule, onCreateModule }: Props) {
+export default function ModuleLearningHome({ data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
   const visible = modules.filter(module => !module.hidden && module.status !== 'passed')
   const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
   const [modal, setModal] = useState<Modal>(null)
+  const [finishingTimer,setFinishingTimer]=useState<StudyTimerState|null>(null)
+  const [editingSession,setEditingSession]=useState<LearningSession|null>(null)
   const [duration, setDuration] = useState(45)
   const [rating, setRating] = useState<Exclude<LearningRating, 'absent'>>('understood')
   const [selectedLessons, setSelectedLessons] = useState<string[]>([])
@@ -137,7 +145,19 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
     drag.current = null
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.2) { suppressScoreClick.current=true;switchTo(safeIndex + (dx < 0 ? 1 : -1)) }
   }
-  const open = (next: Modal) => { setModal(next); setDuration(45); setRating('understood'); if (next === 'content') setSelectedLessons([]) }
+  const open = (next: Modal) => { setModal(next); setDuration(45); setRating('understood'); if(next==='session'){setFinishingTimer(null);setEditingSession(null)} if (next === 'content') setSelectedLessons([]) }
+  const startTimer=(minutes:number)=>{
+    if(data.studyTimer||!active)return
+    const now=Date.now()
+    onTimerChange({id:uid(),moduleId:active.id,startedAt:new Date(now).toISOString(),runningSince:now,elapsedMs:0,targetMinutes:minutes})
+    setModal(null)
+  }
+  const saveSessionValues=(values:SessionValues)=>{
+    if(editingSession)onUpdateSession({...editingSession,...values})
+    else if(finishingTimer)onSession({...values,moduleId:finishingTimer.moduleId,kind:'review',timerId:finishingTimer.id,startedAt:finishingTimer.startedAt,endedAt:new Date().toISOString(),elapsedSeconds:Math.round(timerElapsed(finishingTimer)/1000)})
+    else onSession({...values,moduleId:active.id,kind:'review'})
+    setModal(null);setFinishingTimer(null);setEditingSession(null)
+  }
   if (!visible.length) return <main className="screen mlh-empty"><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className="screen mlh-home" style={accent} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
@@ -160,6 +180,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
       <button aria-label="Modul bearbeiten" onClick={() => onEditModule(active.id)}><PenLine size={20} /><strong>Bearbeiten</strong></button>
     </section>
 
+    {data.studyTimer&&<StudyTimerCard timer={data.studyTimer} moduleName={data.modules.find(module=>module.id===data.studyTimer?.moduleId)?.name||'Lernsession'} color={data.modules.find(module=>module.id===data.studyTimer?.moduleId)?.color||active.color} onChange={onTimerChange} onFinish={timer=>{onTimerChange(timer);setFinishingTimer(timer);setEditingSession(null);setModal('session')}}/>}
     <section className="mlh-tasks">
       <header><div className="mlh-task-heading"><ClipboardList size={17}/><h2>To-dos</h2></div><button onClick={() => open('task')}><Plus size={18} /> Aufgabe</button></header>
       <div className="mlh-task-stack">
@@ -179,12 +200,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
       <p><Sparkles size={15} /> Erledigen bringt automatisch +20 Punkte.</p><button className="mlh-primary" type="submit">Aufgabe hinzufügen <ArrowRight size={18} /></button>
     </form></Overlay>}
 
-    {modal === 'session' && <Overlay title="Lernsession" onClose={() => setModal(null)}><div className="mlh-form">
-      <label><span>Dauer in Minuten</span><input type="number" min="5" max="360" step="5" value={duration} onChange={event => setDuration(Math.max(5, Math.min(360, Number(event.target.value) || 5)))} /></label>
-      <div className="mlh-rating"><span>Wie lief es?</span>{ratings.map(option => <button key={option.value} className={rating === option.value ? 'active' : ''} onClick={() => setRating(option.value)}>{option.label}</button>)}</div>
-      <p><Sparkles size={15} /> Diese Session bringt +{duration * 2} Punkte.</p>
-      <button className="mlh-primary" onClick={() => { onSession({ moduleId: active.id, date: today(), duration, kind: 'review', rating }); setModal(null) }}>Session speichern <ArrowRight size={18} /></button>
-    </div></Overlay>}
+    {modal === 'session' && <Overlay title={editingSession?'Lernsession bearbeiten':finishingTimer?'Lernsession beenden':'Lernsession'} onClose={() => setModal(null)}><LearningSessionForm key={editingSession?.id||finishingTimer?.id||'new'} initialMinutes={editingSession?.duration??(finishingTimer?Math.max(.01,Math.round(timerElapsed(finishingTimer)/600)/100):45)} initialRating={editingSession?.rating} initialDate={editingSession?.date||(finishingTimer?dateString(new Date(finishingTimer.startedAt)):today())} onSave={saveSessionValues} onStart={!editingSession&&!finishingTimer?startTimer:undefined} timerExists={!!data.studyTimer} finishing={!!finishingTimer}/></Overlay>}
 
     {modal === 'content' && <Overlay title="Stoff gelernt" onClose={() => setModal(null)}><div className="mlh-form mlh-content-form">
       <p className="mlh-content-intro">Wähle Vorlesungen oder Übungen – unabhängig davon, ob du sie besucht hast.</p>
@@ -201,7 +217,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
       <button className="mlh-primary" disabled={!selectedLessons.length} onClick={() => { onLearnContent(active.id, allLessons.filter(lesson => selectedLessons.includes(lesson.key)), duration, rating); setModal(null) }}>Lernen speichern <ArrowRight size={18} /></button>
     </div></Overlay>}
 
-    {modal === 'history' && <Overlay title="Letzte Aktivitäten" onClose={() => setModal(null)}><ActivityHistory events={events} tasks={tasks} onToggleTask={onToggleTask} onDeleteTask={onDeleteTask} onDeleteActivity={onDeleteActivity}/></Overlay>}
+    {modal === 'history' && <Overlay title="Letzte Aktivitäten" onClose={() => setModal(null)}><ActivityHistory events={events} tasks={tasks} sessions={data.learningSessions||[]} onEditSession={session=>{setEditingSession(session);setFinishingTimer(null);setModal('session')}} onToggleTask={onToggleTask} onDeleteTask={onDeleteTask} onDeleteActivity={onDeleteActivity}/></Overlay>}
     {modal === 'tasks' && <Overlay title="Erledigte Aufgaben" onClose={() => setModal(null)}><div className="mlh-history-list">{completed.map(task=><article key={task.id}><span><s>{task.title}</s><small>{task.completedAt?new Date(task.completedAt).toLocaleDateString('de-DE'):''}</small></span><div className="mlh-history-actions"><button aria-label={`${task.title} wieder öffnen`} title="Rückgängig" onClick={()=>onToggleTask(task)}><RotateCcw size={17}/></button><button aria-label={`${task.title} löschen`} title="Löschen" onClick={()=>onDeleteTask(task)}><Trash2 size={17}/></button></div></article>)}</div></Overlay>}
   </main>
 }

@@ -267,3 +267,19 @@ body:has([role='dialog']) .app-root nav.mobile-navigation{visibility:hidden;poin
 .sheet .learn-checkin-heading>div{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
 .sheet .learn-checkin-heading strong{display:block;font-size:20px;font-weight:550;line-height:1.3}
 .sheet .learn-checkin-heading>div>span{display:block;font-size:12px;line-height:1.5;color:var(--muted)}
+
+.mlh-running-timer{max-width:720px;margin:0 auto 28px;padding:18px;border:1px solid color-mix(in srgb,var(--timer-accent) 30%,transparent);border-radius:21px;background:color-mix(in srgb,var(--timer-accent) 5%,transparent);animation:mlh-row .35s ease both}
+.mlh-running-timer>header{display:flex;align-items:center;gap:8px;color:var(--timer-accent);font-size:11px}
+.mlh-running-timer>header>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mlh-running-timer>header>small{color:var(--muted);font-size:10px;flex:0 0 auto}
+.mlh-timer-clock{font-size:clamp(36px,9vw,56px);font-variant-numeric:tabular-nums;font-weight:450;letter-spacing:-.04em;text-align:center;line-height:1.25;margin:15px 0 4px;color:#eeeeF2}
+.mlh-running-timer>p{text-align:center;font-size:10px;color:var(--muted);margin:0 0 16px;font-variant-numeric:tabular-nums}
+.mlh-running-timer.is-overtime .mlh-timer-clock{color:var(--timer-accent)}
+.mlh-timer-progress{height:3px;border-radius:99px;background:#ffffff0b;overflow:hidden}
+.mlh-timer-progress>i{display:block;height:100%;border-radius:99px;background:var(--timer-accent);transition:width 900ms linear}
+.mlh-timer-controls{display:flex;justify-content:center;gap:10px;margin-top:17px}
+.mlh-timer-controls>button,.mlh-start-timer{display:flex;align-items:center;justify-content:center;gap:7px;min-height:39px;padding:9px 16px;border:1px solid #ffffff24;border-radius:999px;background:transparent;color:#dddde5;font:inherit;font-size:12px;transition:background 180ms ease,border-color 180ms ease}
+.mlh-timer-controls>button:hover{border-color:var(--timer-accent);background:color-mix(in srgb,var(--timer-accent) 8%,transparent)}
+.mlh-start-timer{width:100%;min-height:44px;border-color:color-mix(in srgb,var(--module-accent) 40%,transparent);color:var(--module-accent)}
+.mlh-start-timer:disabled{opacity:.35;cursor:not-allowed}
+@media(prefers-reduced-motion:reduce){.mlh-running-timer{animation:none}.mlh-timer-progress>i{transition:none}}

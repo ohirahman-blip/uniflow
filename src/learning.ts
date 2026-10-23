@@ -38,6 +38,10 @@ export type LearningSession = {
   updatedAt: string
   planId?: string
   scheduledKey?: string
+  timerId?: string
+  startedAt?: string
+  endedAt?: string
+  elapsedSeconds?: number
 }
 export type StudyTask = {
   id: string

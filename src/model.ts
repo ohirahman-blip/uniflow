@@ -1,4 +1,5 @@
 import type { LearningCheckin, LearningSession, LearningPlanTask, LessonTopic, ScoreEvent, StudyTask } from './learning'
+import type { StudyTimerState } from './study-timer'
 export type Repeat = 'once' | 'weekly' | 'biweekly'
 export type CalendarView = 'day' | 'two' | 'week'
 export type ModuleStatus = 'open' | 'planned' | 'current' | 'passed' | 'failed' | 'recognized'
@@ -26,7 +27,7 @@ export type Assessment = {
   selected?: boolean
 }
 export type Alternative = { recurrence?: Repeat; endDate?: string; id: string; parentOfferingId: string; parentOrigin?: string; kind: 'slot' | 'group'; moduleId: string; category: string; name: string; date: string; from: string; to: string; room: string }
-export type AppData = { alternatives?: Alternative[]; creditGoals?: CreditGoal[]; weekEndDay?: 4 | 5 | 6; theme?: 'dark' | 'light'; themePreferenceVersion?: 1; notificationPreferences?: { mail?: boolean; lessonFeedback: boolean }; version: 2; profile: string; degrees: Degree[]; activeDegreeId: string; semesters: Semester[]; activeSemesterId: string; modules: StudyModule[]; offerings: Offering[]; assessments: Assessment[]; learningCheckins?: LearningCheckin[]; lessonTopics?: LessonTopic[]; learningSessions?: LearningSession[]; learningPlans?: LearningPlanTask[]; studyTasks?: StudyTask[]; scoreEvents?: ScoreEvent[]; firstHour: number; lastHour: number; lastUpdate: number }
+export type AppData = { studyTimer?: StudyTimerState; alternatives?: Alternative[]; creditGoals?: CreditGoal[]; weekEndDay?: 4 | 5 | 6; theme?: 'dark' | 'light'; themePreferenceVersion?: 1; notificationPreferences?: { mail?: boolean; lessonFeedback: boolean }; version: 2; profile: string; degrees: Degree[]; activeDegreeId: string; semesters: Semester[]; activeSemesterId: string; modules: StudyModule[]; offerings: Offering[]; assessments: Assessment[]; learningCheckins?: LearningCheckin[]; lessonTopics?: LessonTopic[]; learningSessions?: LearningSession[]; learningPlans?: LearningPlanTask[]; studyTasks?: StudyTask[]; scoreEvents?: ScoreEvent[]; firstHour: number; lastHour: number; lastUpdate: number }
 export type Occurrence = { key: string; offering: Offering; origin: string; date: string; from: string; to: string; isOverride: boolean; cancelled?: boolean }
 export const STORE = 'uniflow-v2-local'
 export const LEGACY_STORE = 'uniflow-v1-local'
