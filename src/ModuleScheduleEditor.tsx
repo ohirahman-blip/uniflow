@@ -508,10 +508,6 @@ export default function ModuleScheduleEditor({
             <label>Art<UniflowPicker label="Veranstaltungsart" value={first.category} allowCustom onChange={value=>recategorize(group.offerings,value)}
               options={[...(!['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].includes(first.category)?[first.category]:[]),'Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].map(value=>({value,label:value}))}/></label>
           </div>
-          <div className="module-fast-icon-actions">
-            <button title="Veranstaltung duplizieren" aria-label="Veranstaltung duplizieren" onClick={()=>duplicateTopic(group.offerings)}><Copy size={17}/></button>
-            <button title="Veranstaltung löschen" aria-label="Veranstaltung löschen" onClick={()=>remove(group.offerings)}><Trash2 size={17}/></button>
-          </div>
         </div>
         <div className="module-fast-slot-list">
           {group.offerings.map((o,i)=>{
@@ -539,7 +535,11 @@ export default function ModuleScheduleEditor({
           })}
         </div>
         <div className="module-fast-topic-foot">
-          <button className="module-fast-add-alt" onClick={()=>addAlternative(first)}><Plus size={16}/> Alternative hinzufügen</button>
+          <button className="module-fast-add-alt" onClick={()=>addAlternative(first)}><Plus size={16}/> Alternative</button>
+          <div className="module-fast-icon-actions">
+            <button title="Veranstaltung duplizieren" aria-label="Veranstaltung duplizieren" onClick={()=>duplicateTopic(group.offerings)}><Copy size={17}/></button>
+            <button title="Veranstaltung löschen" aria-label="Veranstaltung löschen" onClick={()=>remove(group.offerings)}><Trash2 size={17}/></button>
+          </div>
         </div></>}
       </section>
     })}

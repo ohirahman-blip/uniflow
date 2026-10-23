@@ -216,3 +216,20 @@ body:has([role='dialog']) .app-root nav.mobile-navigation{visibility:hidden;poin
   .calendar-page .calendar-compact-toolbar .view-switch .calendar-view-count.active{width:49px}
   .calendar-page .calendar-compact-toolbar .view-switch .calendar-view-count-two.active{width:55px}
 }
+
+/* More breathing room around teaching groups and one shared action row. */
+.module-fast .module-fast-topic-bar{margin-bottom:12px}
+.module-fast .module-fast-topic-head{padding-top:10px;padding-bottom:22px;margin-bottom:8px}
+.module-fast .module-fast-topic-inputs{width:100%;gap:14px}
+.module-fast .module-fast-slot-preview{padding-top:18px;padding-bottom:18px}
+.module-fast .module-slot-edit-form{margin-top:16px;padding-top:24px;border-top:1px solid #ffffff12}
+.module-fast .module-fast-topic-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;margin-top:8px}
+.module-fast .module-fast-add-alt{display:flex;align-items:center;justify-content:center;gap:8px;flex:1;min-width:0;min-height:40px;padding:10px 16px;border:1px solid #ffffff20;border-radius:999px;background:#ffffff06;color:#fff;font-size:12px;font-weight:500;transition:background 180ms ease,border-color 180ms ease}
+.module-fast .module-fast-add-alt:hover{background:#ffffff0c;border-color:#ffffff38}
+.module-fast .module-fast-topic-foot .module-fast-icon-actions{display:flex;gap:7px;flex:0 0 auto}
+.module-fast .module-fast-topic-foot .module-fast-icon-actions button{width:40px;height:40px;border:1px solid #ffffff18;border-radius:50%;background:#ffffff03;color:#d4d4dc}
+.module-fast .module-fast-topic-foot .module-fast-icon-actions button:hover{background:#ffffff0a;color:#fff}
+.app-root:has(.screen-calendar) .app-main::before{display:none}
+.app-root .screen-calendar{background:#080808!important}
+.screen-calendar,.screen-calendar *,.screen-calendar *::before,.screen-calendar *::after{box-shadow:none!important;text-shadow:none!important}
+@media(max-width:600px){.module-fast .module-fast-topic-head{padding:10px 12px 22px}.module-fast .module-fast-topic-foot{padding:17px 12px}.module-fast .module-slot-edit-form{padding-top:22px}}
