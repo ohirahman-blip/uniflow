@@ -13,7 +13,7 @@ type Props =
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const toMinutes = (s: string) => { const match = /^(\d{1,2}):(\d{2})$/.exec(s); return match ? Number(match[1]) * 60 + Number(match[2]) : 0 }
-const parseDate = (s: string) => { const parts = s.split('-').map(Number); return new Date(parts[0] || 2026, (parts[1] || 1) - 1, parts[2] || 1) }
+const parseDate = (s: string) => { if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return new Date();const parts = s.split('-').map(Number); return new Date(parts[0], parts[1] - 1, parts[2]) }
 const isoDay = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`
 const dateLabel = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso)
   ? new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short', year: 'numeric' }).format(parseDate(iso))
@@ -114,7 +114,11 @@ export default function UniflowPicker(props: Props) {
     setCreatingCustom(false)
     setCustomLabel('')
     if (kind === 'date') {
-      const d = parseDate(props.value)
+      const now=new Date()
+      let value=props.value||isoDay(now.getFullYear(),now.getMonth(),now.getDate())
+      if('min' in props&&props.min&&value<props.min)value=props.min
+      if('max' in props&&props.max&&value>props.max)value=props.max
+      const d = parseDate(value)
       setMonth(new Date(d.getFullYear(), d.getMonth(), 1))
     }
     setOpen(true)

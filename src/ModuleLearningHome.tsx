@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, ArrowRight, BookOpenCheck, Check, History, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ClipboardList, History, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
 import { formatDate, today, type AppData, type Assessment, type Semester, type StudyModule } from './model'
 import ExamTimeline from './ExamTimeline'
 import UniflowPicker from './UniflowPicker'
@@ -19,6 +19,7 @@ type Props = {
   storageKey: string
   currentModuleId?:string
   onPreviewAssessment:(exam:Assessment)=>void
+  onToggleHomework:(homework:Assessment)=>void
   onActiveModuleChange:(moduleId:string)=>void
   onSession: (session: Omit<LearningSession, 'id' | 'updatedAt'>) => void
   onLearnContent: (moduleId: string, lessons: NumberedLesson[], duration: number, rating: Exclude<LearningRating, 'absent'>) => void
@@ -98,7 +99,7 @@ function AnimatedScore({value,storageKey}:{value:number;storageKey:string}){
   return <span className={'mlh-score-number'+(rising?' is-rising':'')}><i aria-hidden="true">+</i><strong>{display.toLocaleString('de-DE')}</strong></span>
 }
 
-export default function ModuleLearningHome({ data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onActiveModuleChange, onSession, onLearnContent, onEditModule, onCreateModule }: Props) {
+export default function ModuleLearningHome({ data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onToggleHomework, onActiveModuleChange, onSession, onLearnContent, onEditModule, onCreateModule }: Props) {
   const visible = modules.filter(module => !module.hidden && module.status !== 'passed')
   const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
   const [modal, setModal] = useState<Modal>(null)
@@ -127,6 +128,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
   const pending = tasks.filter(task => !task.completedAt).sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999') || a.createdAt.localeCompare(b.createdAt))
   const completed = tasks.filter(task => !!task.completedAt).sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''))
   const events = (data.scoreEvents || []).filter(event => event.moduleId === active?.id)
+  const homework=data.assessments.filter(item=>item.moduleId===active?.id&&item.semesterId===semester?.id&&item.type==='homework'&&!item.completed).sort((a,b)=>a.date.localeCompare(b.date))
   const switchTo = (next: number) => { setSelectedModule(visible[Math.max(0, Math.min(visible.length - 1, next))]?.id||''); setModal(null); setSelectedLessons([]) }
   const onPointerDown = (event: ReactPointerEvent) => { if(modal)return;const target=event.target as HTMLElement;if(target.closest('button,input')&&!target.closest('.mlh-score'))return;suppressScoreClick.current=false;drag.current = { x: event.clientX, y: event.clientY } }
   const onPointerUp = (event: ReactPointerEvent) => {
@@ -159,7 +161,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
     </section>
 
     <section className="mlh-tasks">
-      <header><div><h2>To-dos</h2></div><button onClick={() => open('task')}><Plus size={18} /> Aufgabe</button></header>
+      <header><div className="mlh-task-heading"><ClipboardList size={17}/><h2>To-dos</h2></div><button onClick={() => open('task')}><Plus size={18} /> Aufgabe</button></header>
       <div className="mlh-task-stack">
         {pending.map((task, position) => <div key={task.id} className="mlh-task-row"><button className="mlh-task" onClick={() => onToggleTask(task)} style={{ animationDelay: `${position * 45}ms` }}>
           <i aria-hidden="true" /><span><strong>{task.title}</strong>{task.dueDate&&<small>{formatDate(task.dueDate, { weekday: 'short', day: 'numeric', month: 'short' })}</small>}</span><b>+{task.points}</b>
@@ -167,6 +169,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
       </div>
       {completed.length>0 && <button className="mlh-completed-preview" aria-label="Erledigte Aufgaben im Verlauf öffnen" onClick={()=>open('tasks')}>{completed.slice(0,3).map(task=><span key={task.id}><Check size={16}/><s>{task.title}</s></span>)}</button>}
     </section>
+    {homework.length>0&&<section className="mlh-homework" aria-label="Offene Hausaufgaben"><header><BookOpenCheck size={17}/><h2>Hausaufgaben</h2></header><div className="mlh-task-stack">{homework.map(item=><article className="mlh-homework-row" key={item.id}><button className="mlh-homework-check" aria-label={`${item.title} als erledigt markieren`} onClick={()=>onToggleHomework(item)}><i aria-hidden="true"/></button><button className="mlh-homework-open" onClick={()=>onPreviewAssessment(item)}><strong>{item.title}</strong><small>{formatDate(item.date,{weekday:'short',day:'numeric',month:'short'})}{item.from?` · ${item.from}`:''}</small></button></article>)}</div></section>}
     <ExamTimeline data={data} semester={semester} module={active} onOpen={onPreviewAssessment}/>
 
     {modal === 'modules' && <Overlay title="Deine Module" onClose={() => setModal(null)}><div className="mlh-module-overview">{visible.map((module,position)=><button key={module.id} className={position===safeIndex?'is-current':''} aria-current={position===safeIndex?'true':undefined} style={{'--module-color':module.color} as CSSProperties} onClick={()=>switchTo(position)}><i aria-hidden="true"/><span><strong>{module.name}</strong><small>{module.credits} LP</small></span><b>{scoreTotal(data.scoreEvents,module.id).toLocaleString('de-DE')}</b>{position===safeIndex?<Check size={18}/>:<ArrowRight size={18}/>}</button>)}</div><button className="mlh-overview-history" onClick={()=>open('history')}><History size={16}/> Aktivitäten von {active.name}</button></Overlay>}

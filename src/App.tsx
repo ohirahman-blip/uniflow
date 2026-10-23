@@ -1674,6 +1674,10 @@ export default function App() {
       {page === 'dashboard' && <ModuleLearningHome data={data} semester={semester} modules={semesterModules}
         currentModuleId={currentModuleId}
         onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
+        onToggleHomework={item=>{
+          mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed:true}:old)}))
+          note('Hausaufgabe erledigt.',()=>mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed:false}:old)})))
+        }}
         onActiveModuleChange={setActiveLearningModuleId}
         storageKey={'uniflow-last-module:'+user.id} onDeleteTask={deleteStudyTask} onDeleteActivity={deleteActivity}
         onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onSession={saveLearningSession} onLearnContent={saveLearnedContent}

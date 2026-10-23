@@ -243,3 +243,14 @@ body:has([role='dialog']) .app-root nav.mobile-navigation{visibility:hidden;poin
 .settings-screen .setting-input-plain>input{--uf-field-height:36px;width:min(210px,62%)!important;flex:0 1 210px;text-align:left}
 @media(prefers-reduced-motion:no-preference){.mlh-current-banner i{animation:mlh-live-blink 1.6s ease-in-out infinite}}
 @keyframes mlh-live-blink{0%,100%{opacity:1;box-shadow:0 0 10px currentColor}50%{opacity:.2;box-shadow:0 0 2px currentColor}}
+
+.mlh-task-heading,.mlh-homework>header{display:flex;align-items:center;gap:9px;color:var(--mlh-accent)}
+.mlh-homework{max-width:720px;margin:28px auto 0}
+.mlh-homework>header{margin-bottom:16px}
+.mlh-homework h2{font-size:12px;font-weight:550;line-height:1.4;letter-spacing:.09em;text-transform:uppercase;margin:0}
+.mlh-homework-row{display:flex;align-items:center;gap:10px;min-height:49px;border:1px solid #ffffff17;border-radius:14px;padding:10px 13px;background:transparent}
+.mlh-homework-check{display:grid;place-items:center;flex:0 0 24px;width:24px;height:30px;padding:0;border:0;background:transparent;color:inherit}
+.mlh-homework-check>i{display:block;width:18px;height:18px;border:1.5px solid #ffffff99;border-radius:50%;transition:background 180ms ease,border-color 180ms ease}
+.mlh-homework-check:hover>i{background:color-mix(in srgb,var(--mlh-accent) 20%,transparent);border-color:var(--mlh-accent)}
+.mlh-homework-open{display:grid;gap:3px;flex:1;min-width:0;text-align:left;padding:0;border:0;background:transparent;color:inherit}
+.mlh-homework-open strong{font-size:13px;font-weight:500;overflow-wrap:anywhere}.mlh-homework-open small{font-size:10px;color:var(--muted)}
