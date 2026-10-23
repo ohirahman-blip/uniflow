@@ -23,6 +23,7 @@ import './onboarding-refine.css'
 import './premium-ai.css'
 import './brand-theme.css'
 import './dark-refinement.css'
+import './form-controls.css'
 
 type Page = 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
 const pageFromUrl = (userId?: string): Page => {

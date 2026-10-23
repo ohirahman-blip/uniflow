@@ -563,9 +563,9 @@ input.line-input.room-input {font-family:inherit;font-size:12px;font-weight:500;
 
 @media(max-width:720px){
   :root {
-    --uf-editor-control-height:40px;
-    --uf-editor-control-font:11px;
-    --uf-editor-control-radius:9px;
+    --uf-editor-control-height:46px;
+    --uf-editor-control-font:16px;
+    --uf-editor-control-radius:14px;
   }
   .sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger),
   .sheet .editor-field > .uf-entry-module-choice,
