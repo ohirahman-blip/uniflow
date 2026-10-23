@@ -15,6 +15,7 @@ export const SCORE_RULES = {
 export const isLectureCategory = (category: string) => category.trim().toLocaleLowerCase('de-DE').includes('vorles')
 export const attendancePoints = (category: string) => isLectureCategory(category) ? SCORE_RULES.lectureAttendance : SCORE_RULES.exerciseAttendance
 export const learnedPoints = (category: string) => isLectureCategory(category) ? SCORE_RULES.lectureLearned : SCORE_RULES.exerciseLearned
+export const understandingPoints = (rating?: string) => rating === 'understood' ? 50 : rating === 'partial' ? SCORE_RULES.checkin : 0
 
 export function makeScoreEvent(input: Omit<ScoreEvent, 'basePoints' | 'multiplier' | 'points'> & { basePoints: number; multiplier?: number }): ScoreEvent {
   const multiplier = input.multiplier ?? 1
@@ -88,8 +89,8 @@ export function normalizeBigUpdate(data: AppData): AppData {
   }
   for (const checkin of data.learningCheckins || []) {
     const id = `checkin:${checkin.key}`
-    if (!has(id)) scoreEvents.push(makeScoreEvent({
-      id, moduleId: checkin.moduleId, type: 'checkin', basePoints: SCORE_RULES.checkin,
+    if (!has(id) && checkin.understandingSelected !== false && understandingPoints(checkin.rating)>0) scoreEvents.push(makeScoreEvent({
+      id, moduleId: checkin.moduleId, type: 'checkin', basePoints: understandingPoints(checkin.rating),
       occurredAt: checkin.updatedAt, sourceId: checkin.key, label: 'Verständnis eingetragen'
     }))
     const attended = checkin.attended ?? checkin.rating !== 'absent'

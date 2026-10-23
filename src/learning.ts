@@ -12,6 +12,8 @@ export type LearningCheckin = {
   rating: LearningRating
   /** Attendance is separate from the understanding check. */
   attended?: boolean
+  /** False when only attendance was saved without an understanding choice. */
+  understandingSelected?: boolean
   updatedAt: string
 }
 export type LessonTopic = {

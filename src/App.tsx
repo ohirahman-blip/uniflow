@@ -15,7 +15,7 @@ import ModuleLearningHome from './ModuleLearningHome'
 import { adviceContext } from './study-advice'
 import { usePremiumAdvice } from './usePremiumAdvice'
 import { journeyFor, pastLessons, lessonForOccurrence, lessonKeyForOccurrence, canRateOccurrence, type Journey, type LearningRating, type LearningSession, type LearningCheckin, type LessonTopic, type StudyTask } from './learning'
-import { SCORE_RULES, attendancePoints, learnedPoints, makeScoreEvent, normalizeBigUpdate, numberedLessons, upsertScoreEvent, type NumberedLesson } from './score'
+import { SCORE_RULES, attendancePoints, learnedPoints, understandingPoints, makeScoreEvent, normalizeBigUpdate, numberedLessons, upsertScoreEvent, type NumberedLesson } from './score'
 import './styles.css'
 import './calendar-week-strip.css'
 import './ui-polish.css'
@@ -1533,7 +1533,7 @@ export default function App() {
     const lesson=lessonForOccurrence(occurrence,data)
     const checkin=(data.learningCheckins||[]).find(item=>item.key===lesson.key)
     setRatingDraftAttended(checkin ? (checkin.attended ?? checkin.rating !== 'absent') : true)
-    setRatingDraftValue(checkin?.rating==='absent'?undefined:checkin?.rating)
+    setRatingDraftValue(checkin?.understandingSelected===false||checkin?.rating==='absent'?undefined:checkin?.rating)
     setRatingOccurrence(occurrence)
   }
   const saveRatingDraft=()=>{
@@ -1546,9 +1546,11 @@ export default function App() {
       events=upsertScoreEvent(events,attendance)
       if(ratingDraftValue){
         const checkinId=`checkin:${ratingLesson.key}`,existing=events.find(event=>event.id===checkinId)
-        events=upsertScoreEvent(events,makeScoreEvent({id:checkinId,moduleId:ratingLesson.moduleId,type:'checkin',basePoints:SCORE_RULES.checkin,occurredAt:existing?.occurredAt||now,sourceId:ratingLesson.key,label:'Verständnis eingetragen'}))
+        const points=understandingPoints(ratingDraftValue)
+        if(points>0)events=upsertScoreEvent(events,makeScoreEvent({id:checkinId,moduleId:ratingLesson.moduleId,type:'checkin',basePoints:points,occurredAt:existing?.occurredAt||now,sourceId:ratingLesson.key,label:'Verständnis eingetragen'}))
+        else if(existing)events=upsertScoreEvent(events,{...existing,reversedAt:now})
       }
-      return {...workspace,scoreEvents:events,learningCheckins:[...(workspace.learningCheckins||[]).filter(checkin=>checkin.key!==ratingLesson.key),{key:ratingLesson.key,moduleId:ratingLesson.moduleId,contentId:ratingLesson.contentId,date:ratingLesson.date,rating:ratingDraftValue||(ratingDraftAttended?'partial':'absent'),attended:ratingDraftAttended,updatedAt:now}]}
+      return {...workspace,scoreEvents:events,learningCheckins:[...(workspace.learningCheckins||[]).filter(checkin=>checkin.key!==ratingLesson.key),{key:ratingLesson.key,moduleId:ratingLesson.moduleId,contentId:ratingLesson.contentId,date:ratingLesson.date,rating:ratingDraftValue||(ratingDraftAttended?'partial':'absent'),attended:ratingDraftAttended,understandingSelected:!!ratingDraftValue,updatedAt:now}]}
     })
     setRatingOccurrence(null)
     note('Check-in gespeichert.')
@@ -1784,17 +1786,15 @@ export default function App() {
     {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { const now=new Date().toISOString(); mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }],scoreEvents:[...(d.scoreEvents||[]),makeScoreEvent({id:`module-created:${id}`,moduleId:id,type:'module-created',basePoints:SCORE_RULES.moduleCreated,occurredAt:now,sourceId:id,label:'Startbonus'})] })); note('Modul hinzugefügt · +100 Startpunkte') } return id }} />}
     {ratingLesson&&ratingOccurrence&&<BottomSheet title="Check-in" onClose={()=>setRatingOccurrence(null)} compactHeader
       headerAction={<button type="button" className="sheet-header-save" onClick={saveRatingDraft}>Speichern</button>}>
-      <div className="learn-checkin-heading" aria-label="Check-in zur Veranstaltung">
+      <div className="learn-checkin-heading" aria-label="Besuch und Verständnis zur Veranstaltung">
         <div><strong style={{color:ratingModule?.color||"#ededed"}}>{ratingModule?.name||ratingOccurrence.offering.name}</strong>
           <span>{ratingNumbered?.label||ratingOccurrence.offering.category} · {formatDate(ratingLesson.date,{day:'numeric',month:'short'})}</span></div>
-        <span className="learn-eyebrow">KURZER CHECK-IN</span>
       </div>
       <div className="mlh-calendar-checkin">
         <button type="button" role="checkbox" aria-checked={ratingDraftAttended} className={ratingDraftAttended?'active':''} onClick={()=>setRatingDraftAttended(value=>!value)}><i>{ratingDraftAttended?<Check size={16}/>:null}</i><span><strong>Ich war da</strong><small>Besuch eintragen · +{attendancePoints(ratingOccurrence.offering.category)} Punkte</small></span></button>
         <div><span>Wie gut hast du den Stoff verstanden?</span>{([
           {value:'understood',label:'Gut'}, {value:'partial',label:'Teilweise'}, {value:'struggling',label:'Gar nicht'}
         ] as const).map(option=><button type="button" key={option.value} className={ratingDraftValue===option.value?'active':''} onClick={()=>setRatingDraftValue(option.value)}>{option.label}</button>)}</div>
-        <p>Der Verständnis-Check bringt bewusst nur +5 Punkte. Lernen bleibt wichtiger.</p>
       </div>
     </BottomSheet>}
     {detail && <EventDetails occ={detail} module={degreeModules.find(m=>m.id===detail.offering.moduleId)} modules={semesterModules} offerings={data.offerings} data={data}
