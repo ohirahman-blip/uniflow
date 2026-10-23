@@ -134,11 +134,14 @@ svg.lucide-plus{stroke:#d4d4d8}
 @media(prefers-reduced-motion:reduce){.mlh-score>.mlh-score-number,.mlh-score-number>i{transition:none}.mlh-current-banner,.mlh-current-banner i,.settings-screen .settings-section,.module-fast :is(.module-detail-heading,.module-fast-journey,.module-assessment-card,.module-fast-slot,.module-learning-history,.module-fast-meta,.module-fast-exceptions){animation:none}}
 
 /* Transparent top chrome and a floating glass navigation capsule. */
-.app-root{background:radial-gradient(ellipse 65% 420px at 50% 0,color-mix(in srgb,var(--module-accent) 10%,transparent),transparent 80%),#080808!important}
-.app-root .app-main{background:transparent!important}
+.app-root{background:#080808!important}
+.app-root .app-main{position:relative;isolation:isolate;background:transparent!important}
+.app-root .app-main::before{content:'';position:absolute;z-index:-1;top:0;left:0;right:0;height:480px;pointer-events:none;background:radial-gradient(ellipse 65% 75% at 50% 0,color-mix(in srgb,var(--module-accent) 22%,transparent),transparent 78%);filter:blur(22px)}
+.mlh-home,.settings-screen,.screen-calendar,.module-detail-screen{background:transparent}
+.mlh-glow{display:none}
+.settings-screen::before,.screen-calendar::before,.module-detail-screen::before{content:none}
 .app-root .app-top,.app-root .app-brand{background:transparent!important;background-image:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;border:0!important}
 .app-top::before,.app-top::after{content:none!important}
-.mlh-glow{top:-245px}
 .mlh-score>.mlh-score-number{display:inline-flex;align-items:center;justify-content:center;transform-origin:50% 50%;transform:scale(1);transition:transform 520ms cubic-bezier(.22,.8,.2,1),color 600ms ease,filter 700ms ease}
 .mlh-score>.mlh-score-number.is-rising{transform:scale(1.055)}
 .mlh-tasks>header h2,.mlh-exams h2{font-size:12px;font-weight:550;line-height:1.4;letter-spacing:.09em;text-transform:uppercase;color:var(--mlh-accent);margin:0}
