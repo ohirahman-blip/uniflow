@@ -1227,6 +1227,7 @@ export default function App() {
   const [data, setData] = useState<AppData>(initialLocal), [onboarding, setOnboarding] = useState(() => supabase ? true : !initialLocal.activeDegreeId), [page, setPage] = useState<Page>(pageFromUrl), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
   const [pageDirection,setPageDirection]=useState<'forward'|'backward'>('forward')
   const [ratingDraftAttended,setRatingDraftAttended]=useState(true)
+  const [activeLearningModuleId,setActiveLearningModuleId]=useState('')
   const [ratingDraftValue,setRatingDraftValue]=useState<LearningRating|undefined>()
   const pageHistory=useRef<Page[]>([])
   const navigatePage=(next:Page,remember=true)=>{
@@ -1482,6 +1483,8 @@ export default function App() {
     note('Aufgabe gelöscht.',()=>mutate(workspace=>({...workspace,studyTasks:[...(workspace.studyTasks||[]).filter(item=>item.id!==task.id),task],scoreEvents:[...(workspace.scoreEvents||[]).filter(event=>!previousEvents.some(previous=>previous.id===event.id)),...previousEvents]})))
   }
   const deleteActivity=(events:NonNullable<AppData['scoreEvents']>)=>{
+    events=events.filter(event=>event.type!=='module-created')
+    if(!events.length)return
     const ids=new Set(events.map(event=>event.id)),now=new Date().toISOString()
     const sessions=(data.learningSessions||[]).filter(session=>events.some(event=>event.type==='study-minutes'&&event.sourceId===session.id))
     const checkins=(data.learningCheckins||[]).filter(checkin=>events.some(event=>(event.type==='checkin'||event.type==='attendance')&&event.sourceId===checkin.key))
@@ -1566,6 +1569,14 @@ export default function App() {
     return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh);window.removeEventListener('focus',refresh)}
   },[user?.id,cloudReady,onboarding])
   const currentStudyContext=useMemo(()=>adviceContext(data,semester,semesterModules,new Date()),[data,semester,adviceClock])
+  const currentModuleId=useMemo(()=>{
+    const now=new Date(),clock=now.getHours()*60+now.getMinutes()
+    return occurrencesOn(data.offerings,today()).filter(occ=>occ.offering.semesterId===semester?.id&&semesterModules.some(module=>module.id===occ.offering.moduleId)&&!isAssessment(occ.offering.category)&&minutes(occ.from)<=clock&&clock<minutes(occ.to)).sort((a,b)=>b.from.localeCompare(a.from))[0]?.offering.moduleId
+  },[data.offerings,semester?.id,adviceClock,semesterModules])
+  const contextualColor=data.modules.find(module=>module.id===(page==='modules'?selectedModuleId:page==='calendar'?(focusModuleId||currentModuleId):activeLearningModuleId))?.color||'#d4d4d8'
+  useEffect(()=>{
+    for(const property of ['--module-accent','--mlh-accent','--uniflow-accent','--uf-primary'])document.documentElement.style.setProperty(property,contextualColor)
+  },[contextualColor])
   const ai=usePremiumAdvice(user?.id||'',premium,currentStudyContext,!!user&&cloudReady&&!onboarding)
   const journeysByModule = useMemo(()=>{
     const lessons=pastLessons(data,semester)
@@ -1658,6 +1669,9 @@ export default function App() {
     <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button></header>
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
       {page === 'dashboard' && <ModuleLearningHome data={data} semester={semester} modules={semesterModules}
+        currentModuleId={currentModuleId}
+        onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
+        onActiveModuleChange={setActiveLearningModuleId}
         storageKey={'uniflow-last-module:'+user.id} onDeleteTask={deleteStudyTask} onDeleteActivity={deleteActivity}
         onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onSession={saveLearningSession} onLearnContent={saveLearnedContent}
         onEditModule={moduleId=>{setSelectedModuleId(moduleId);navigatePage('modules')}} onCreateModule={()=>setNewModule(true)} />}

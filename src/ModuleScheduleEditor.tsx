@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ArrowLeft, BookOpen, Check, ChevronDown, ClipboardList, Copy, GraduationCap, Lock, Pencil, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
 import {
   addDays, assessmentComponentKey, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
@@ -411,7 +411,7 @@ export default function ModuleScheduleEditor({
     </article>
   }
 
-  return <div className="screen secondary-screen module-detail-screen module-fast">
+  return <div className="screen secondary-screen module-detail-screen module-fast" style={{'--module-accent':module.color,'--mlh-accent':module.color} as CSSProperties}>
     <button className="text-back" onClick={onBack}><ArrowLeft size={18}/> Alle Module</button>
     <div className="module-detail-heading">
       <span className="module-emoji" style={{background:module.color}}>{module.emoji||<BookOpen size={20}/>}</span>

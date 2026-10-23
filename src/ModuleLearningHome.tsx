@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, BookOpenCheck, Check, History, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
-import { formatDate, today, type AppData, type Semester, type StudyModule } from './model'
+import { formatDate, today, type AppData, type Assessment, type Semester, type StudyModule } from './model'
+import ExamTimeline from './ExamTimeline'
 import { numberedLessons, scoreTotal, type NumberedLesson } from './score'
 import type { LearningRating, LearningSession, ScoreEvent, StudyTask } from './learning'
 import './module-learning-home.css'
@@ -15,6 +16,9 @@ type Props = {
   onDeleteTask: (task: StudyTask) => void
   onDeleteActivity: (events: ScoreEvent[]) => void
   storageKey: string
+  currentModuleId?:string
+  onPreviewAssessment:(exam:Assessment)=>void
+  onActiveModuleChange:(moduleId:string)=>void
   onSession: (session: Omit<LearningSession, 'id' | 'updatedAt'>) => void
   onLearnContent: (moduleId: string, lessons: NumberedLesson[], duration: number, rating: Exclude<LearningRating, 'absent'>) => void
   onEditModule: (moduleId: string) => void
@@ -64,14 +68,38 @@ function ActivityHistory({ events, tasks, onToggleTask, onDeleteTask, onDeleteAc
     <span><strong>{group.title}</strong><small>{new Date(group.occurredAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' })}</small></span>
     <b>+{group.points}</b><div className="mlh-history-actions">
       {group.items[0]?.type === 'todo-completed' && tasks.find(task=>task.id===group.items[0].sourceId) && <button aria-label="Aufgabe wieder öffnen" title="Rückgängig" onClick={()=>onToggleTask(tasks.find(task=>task.id===group.items[0].sourceId)!)}><RotateCcw size={17}/></button>}
-      <button aria-label={`${group.title} löschen`} title="Löschen" onClick={()=>{const task=group.items[0]?.type==='todo-completed'?tasks.find(task=>task.id===group.items[0].sourceId):undefined;if(task)onDeleteTask(task);else onDeleteActivity(group.items)}}><Trash2 size={17}/></button>
+      {!group.items.some(event=>event.type==='module-created')&&<button aria-label={`${group.title} löschen`} title="Löschen" onClick={()=>{const task=group.items[0]?.type==='todo-completed'?tasks.find(task=>task.id===group.items[0].sourceId):undefined;if(task)onDeleteTask(task);else onDeleteActivity(group.items)}}><Trash2 size={17}/></button>}
     </div>
   </article>)}</div>
 }
 
-export default function ModuleLearningHome({ data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, onSession, onLearnContent, onEditModule, onCreateModule }: Props) {
+function AnimatedScore({value,storageKey}:{value:number;storageKey:string}){
+  const [display,setDisplay]=useState(()=>{try{const previous=sessionStorage.getItem(storageKey);return previous===null?value:Number(previous)||value}catch{return value}})
+  const [rising,setRising]=useState(false)
+  const displayRef=useRef(display)
+  useEffect(()=>{
+    const from=displayRef.current
+    try{sessionStorage.setItem(storageKey,String(value))}catch{/* Animation memory is optional. */}
+    if(value<=from||window.matchMedia('(prefers-reduced-motion: reduce)').matches){displayRef.current=value;setDisplay(value);setRising(false);return}
+    let frame=0,start:number|undefined
+    const duration=Math.min(1500,800+Math.log2(value-from+1)*45)
+    setRising(true)
+    const tick=(time:number)=>{
+      if(start===undefined)start=time
+      const progress=Math.min(1,(time-start)/duration),eased=progress<.5?4*progress**3:1-(-2*progress+2)**3/2
+      const next=Math.round(from+(value-from)*eased)
+      displayRef.current=next;setDisplay(next)
+      if(progress<1)frame=requestAnimationFrame(tick);else setRising(false)
+    }
+    frame=requestAnimationFrame(tick)
+    return()=>cancelAnimationFrame(frame)
+  },[value,storageKey])
+  return <span className={'mlh-score-number'+(rising?' is-rising':'')}><i aria-hidden="true">+</i><strong>{display.toLocaleString('de-DE')}</strong></span>
+}
+
+export default function ModuleLearningHome({ data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onActiveModuleChange, onSession, onLearnContent, onEditModule, onCreateModule }: Props) {
   const visible = modules.filter(module => !module.hidden && module.status !== 'passed')
-  const [selectedModule, setSelectedModule] = useState<string>(()=>{try{return localStorage.getItem(storageKey)||''}catch{return ''}})
+  const [selectedModule, setSelectedModule] = useState(currentModuleId||'')
   const [modal, setModal] = useState<Modal>(null)
   const [duration, setDuration] = useState(45)
   const [rating, setRating] = useState<Exclude<LearningRating, 'absent'>>('understood')
@@ -82,7 +110,14 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
   const suppressScoreClick = useRef(false)
   const safeIndex = Math.max(0, visible.findIndex(module=>module.id===selectedModule))
   const active = visible[safeIndex]
-  useEffect(()=>{if(active)try{localStorage.setItem(storageKey,active.id)}catch{/* Storage is optional. */}},[active?.id,storageKey])
+  useEffect(()=>{if(active)onActiveModuleChange(active.id)},[active?.id,onActiveModuleChange])
+  useEffect(()=>{
+    const openCurrent=()=>{if(currentModuleId&&document.visibilityState==='visible')setSelectedModule(currentModuleId)}
+    openCurrent()
+    window.addEventListener('focus',openCurrent)
+    document.addEventListener('visibilitychange',openCurrent)
+    return()=>{window.removeEventListener('focus',openCurrent);document.removeEventListener('visibilitychange',openCurrent)}
+  },[currentModuleId])
   const allLessons = useMemo(() => numberedLessons(data, semester, active?.id), [data.offerings, semester, active?.id])
   const checkins = useMemo(() => new Map((data.learningCheckins || []).map(item => [item.key, item])), [data.learningCheckins])
   const learned = useMemo(() => new Set((data.scoreEvents || []).filter(event => event.type === 'content-learned' && !event.reversedAt).map(event => event.sourceId)), [data.scoreEvents])
@@ -103,6 +138,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className="screen mlh-home" style={accent} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
     <div className="mlh-glow" aria-hidden="true" />
+    {active.id===currentModuleId&&<div className="mlh-current-banner"><i/>Aktuell im Stundenplan</div>}
     <header className="mlh-module-head">
       <button disabled={safeIndex === 0} onClick={() => switchTo(safeIndex - 1)} aria-label="Vorheriges Modul"><ArrowLeft size={21} /></button>
       <div><h1 key={active.id}>{active.name}</h1><i aria-hidden="true" /></div>
@@ -110,8 +146,8 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
     </header>
     <div className="mlh-dots" aria-label={`Modul ${safeIndex + 1} von ${visible.length}`}>{visible.map((module, position) => <button key={module.id} onClick={() => open('modules')} className={position === safeIndex ? 'active' : ''} aria-label={`Modulübersicht öffnen, ${module.name}`} aria-haspopup="dialog" />)}<button className="mlh-add-module" onClick={onCreateModule} aria-label="Modul hinzufügen"><Plus size={13} /></button></div>
 
-    <button className="mlh-score" onClick={() => {if(suppressScoreClick.current){suppressScoreClick.current=false;return}open('modules')}} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Modulübersicht öffnen`}>
-      <span>DEIN SCORE</span><strong>{scoreTotal(data.scoreEvents, active.id).toLocaleString('de-DE')}</strong>
+    <button className="mlh-score" onClick={() => {if(suppressScoreClick.current){suppressScoreClick.current=false;return}open('history')}} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
+      <span>DEIN SCORE</span><AnimatedScore key={active.id} value={scoreTotal(data.scoreEvents,active.id)} storageKey={`${storageKey}:score:${active.id}`}/>
     </button>
 
     <section className="mlh-actions" aria-label="Modulaktionen">
@@ -124,11 +160,12 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
       <header><div><span>TO-DOS</span></div><button onClick={() => open('task')}><Plus size={18} /> Aufgabe</button></header>
       <div className="mlh-task-stack">
         {pending.map((task, position) => <div key={task.id} className="mlh-task-row"><button className="mlh-task" onClick={() => onToggleTask(task)} style={{ animationDelay: `${position * 45}ms` }}>
-          <i aria-hidden="true" /><span><strong>{task.title}</strong><small>{task.dueDate ? formatDate(task.dueDate, { weekday: 'short', day: 'numeric', month: 'short' }) : 'Ohne Termin'}</small></span><b>+{task.points}</b>
+          <i aria-hidden="true" /><span><strong>{task.title}</strong>{task.dueDate&&<small>{formatDate(task.dueDate, { weekday: 'short', day: 'numeric', month: 'short' })}</small>}</span><b>+{task.points}</b>
         </button><button className="mlh-task-delete" aria-label={`${task.title} löschen`} onClick={()=>onDeleteTask(task)}><Trash2 size={17}/></button></div>)}
       </div>
       {completed.length>0 && <button className="mlh-completed-preview" aria-label="Erledigte Aufgaben im Verlauf öffnen" onClick={()=>open('tasks')}>{completed.slice(0,3).map(task=><span key={task.id}><Check size={16}/><s>{task.title}</s></span>)}</button>}
     </section>
+    <ExamTimeline data={data} semester={semester} module={active} onOpen={onPreviewAssessment}/>
 
     {modal === 'modules' && <Overlay title="Deine Module" onClose={() => setModal(null)}><div className="mlh-module-overview">{visible.map((module,position)=><button key={module.id} className={position===safeIndex?'is-current':''} aria-current={position===safeIndex?'true':undefined} style={{'--module-color':module.color} as CSSProperties} onClick={()=>switchTo(position)}><i aria-hidden="true"/><span><strong>{module.name}</strong><small>{module.credits} LP</small></span><b>{scoreTotal(data.scoreEvents,module.id).toLocaleString('de-DE')}</b>{position===safeIndex?<Check size={18}/>:<ArrowRight size={18}/>}</button>)}</div><button className="mlh-overview-history" onClick={()=>open('history')}><History size={16}/> Aktivitäten von {active.name}</button></Overlay>}
     {modal === 'task' && <Overlay title="Neue Aufgabe" onClose={() => setModal(null)}><form className="mlh-form" onSubmit={event => { event.preventDefault(); if (!taskTitle.trim()) return; onAddTask(active.id, taskTitle.trim(), taskDate || undefined); setTaskTitle(''); setTaskDate(''); setModal(null) }}>

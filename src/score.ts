@@ -22,7 +22,7 @@ export function makeScoreEvent(input: Omit<ScoreEvent, 'basePoints' | 'multiplie
 }
 
 export const scoreTotal = (events: ScoreEvent[] | undefined, moduleId: string) =>
-  (events || []).filter(event => event.moduleId === moduleId && !event.reversedAt).reduce((total, event) => total + event.points, 0)
+  SCORE_RULES.moduleCreated + (events || []).filter(event => event.moduleId === moduleId && event.type !== 'module-created' && !event.reversedAt).reduce((total, event) => total + event.points, 0)
 
 export function upsertScoreEvent(events: ScoreEvent[] | undefined, next: ScoreEvent): ScoreEvent[] {
   const current = events || []
@@ -70,7 +70,12 @@ export function numberedLessons(data: AppData, semester: Semester | undefined, m
 
 /** Additive and idempotent; legacy fields remain untouched. */
 export function normalizeBigUpdate(data: AppData): AppData {
-  let scoreEvents = [...(data.scoreEvents || [])]
+  let scoreEvents = [...(data.scoreEvents || []).filter(event=>event.type!=='module-created')]
+  for(const module of data.modules){
+    const existing=(data.scoreEvents||[]).find(event=>event.type==='module-created'&&event.moduleId===module.id)
+    const semester=data.semesters.find(item=>module.semesterIds.includes(item.id))
+    scoreEvents.push(makeScoreEvent({id:`module-created:${module.id}`,moduleId:module.id,type:'module-created',basePoints:SCORE_RULES.moduleCreated,occurredAt:existing?.occurredAt||`${semester?.start||'2026-01-01'}T00:00:00.000Z`,sourceId:module.id,label:'Startbonus'}))
+  }
   const has = (id: string) => scoreEvents.some(event => event.id === id)
   for (const session of data.learningSessions || []) {
     const id = `study-minutes:${session.id}`

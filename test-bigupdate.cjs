@@ -30,7 +30,7 @@ const lessons=numberedLessons(data,semester,'m')
 assert.deepEqual(lessons.map(item=>item.label),['Vorlesung 1','Übung 1','Vorlesung 2'])
 data={...data,learningSessions:[{id:'old-session',moduleId:'m',date:'2026-10-10',duration:30,kind:'review',rating:'understood',updatedAt:'2026-10-10T12:00:00Z'}],learningCheckins:[{key:lessons[0].key,moduleId:'m',contentId:'vl1',date:'2026-10-05',rating:'understood',updatedAt:'2026-10-05T12:00:00Z'}]}
 const migrated=normalizeBigUpdate(data)
-assert.equal(scoreTotal(migrated.scoreEvents,'m'),165,'Legacy session, attendance and check-in are preserved as score events')
+assert.equal(scoreTotal(migrated.scoreEvents,'m'),265,'Legacy activity is preserved and every existing module receives its permanent 100-point bonus')
 assert.deepEqual(normalizeBigUpdate(migrated).scoreEvents,migrated.scoreEvents,'Migration is idempotent')
 const app=fs.readFileSync('src/App.tsx','utf8'),home=fs.readFileSync('src/ModuleLearningHome.tsx','utf8')
 assert.match(app,/module-created:\$\{m\.id\}/,'New modules receive the start bonus')
