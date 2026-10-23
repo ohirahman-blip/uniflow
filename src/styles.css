@@ -1720,7 +1720,7 @@ button {
     z-index: 50;
     background: #0d0d0d;
     display: grid;
-    grid-template-columns: repeat(4,1fr);
+    grid-template-columns: repeat(3,1fr);
     height: calc(65px + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
     border-top: 1px solid #242424;
@@ -2200,7 +2200,7 @@ button:not(:disabled):active { transform: scale(.97); }
 .admin-form input,.admin-form select { flex:1 1 130px; min-width:0; background:#202020; border:0; border-radius:6px; color:#eee; font:inherit; padding:10px; }
 .admin-form button { background:#e7e7e7; color:#151515; }
 @media(max-width:720px) {
-  .mobile-navigation { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .mobile-navigation { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .module-degree-summary strong { font-size:20px; }
   .admin-screen .page-title-row h1 { font-size:34px; }
   .admin-list-row { flex-wrap:wrap; }
@@ -2905,9 +2905,8 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .admin-settings-link .settings-action { display:flex; align-items:center; gap:12px; width:100%; }
 .admin-settings-link .settings-action svg:last-child { margin-left:auto; }
 
-/* Mail unread badges and the two explicit push preferences. */
+/* Centered navigation icons and lesson reminder preferences. */
 .nav-icon-wrap{position:relative;display:inline-grid;place-items:center;flex:0 0 auto}
-.mail-nav-badge{position:absolute;left:12px;top:-8px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;box-sizing:border-box;display:grid;place-items:center;background:var(--uniflow-accent,#f94f72);color:#fff;font-style:normal;font-size:8px;line-height:1;font-weight:800;border:2px solid #080808}
 .notification-settings .setting-line>span{display:flex;flex-direction:column;gap:4px}
 .notification-settings .setting-line>span>strong{font-size:13px;color:#ededf0}
 .notification-settings .setting-line>span>small{font-size:10px;color:#777780;line-height:1.45;max-width:360px}
@@ -2916,11 +2915,10 @@ html[data-theme='light'] .glow-notice { background:#2c2c2c; color:#fff; }
 .settings-switch.is-on{background:var(--uniflow-accent,#f94f72)}
 .settings-switch.is-on>span{transform:translateX(18px);background:#fff}
 .settings-switch:focus-visible{outline:2px solid #fff;outline-offset:3px}
-html[data-theme='light'] .mail-nav-badge{border-color:#fff}
 html[data-theme='light'] .notification-settings .setting-line>span>strong{color:#171717}
 @media(prefers-reduced-motion:reduce){.settings-switch,.settings-switch>span{transition:none}}
 @media (max-width:720px) {
-  .mobile-navigation { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .mobile-navigation { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .mobile-navigation button { min-width:0; }
   .admin-mobile-back {
     display:inline-flex; align-items:center; gap:7px; margin:0 0 20px;

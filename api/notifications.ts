@@ -1,17 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { loadEnvFile } from 'node:process'
 import { createClient } from '@supabase/supabase-js'
-import { createDecipheriv, createHash } from 'node:crypto'
-import { ImapFlow } from 'imapflow'
 import webpush from 'web-push'
 
 type SubscriptionRow = {
   endpoint: string; user_id: string; p256dh: string; auth: string; timezone: string
-  mail_enabled: boolean; lesson_feedback_enabled: boolean
-}
-type MailAccountRow = {
-  user_id: string; email: string; username: string; imap_host: string; imap_port: number
-  imap_secure: boolean; encrypted_password: string; last_notified_uid: number
+  lesson_feedback_enabled: boolean
 }
 
 // vercel dev can start API workers without locally defined variables.
@@ -25,17 +19,7 @@ if (process.env.VERCEL_ENV !== 'production' && process.env.VERCEL_ENV !== 'previ
 
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || ''
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-const credentialSecret = process.env.MAIL_CREDENTIAL_SECRET || ''
 const database = url && serviceKey ? createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } }) : null
-
-function decrypt(value: string) {
-  const [version, iv, tag, encrypted] = value.split(':')
-  if (version !== 'v1') throw new Error('Ungültiges Zugangsdatenformat.')
-  const key = createHash('sha256').update(credentialSecret).digest()
-  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64url'))
-  decipher.setAuthTag(Buffer.from(tag, 'base64url'))
-  return Buffer.concat([decipher.update(Buffer.from(encrypted, 'base64url')), decipher.final()]).toString('utf8')
-}
 function localParts(date: Date, timezone: string) {
   const values = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
@@ -68,42 +52,6 @@ async function deliver(rows: SubscriptionRow[], payload: Record<string, unknown>
   }))
   if (dead.length) await database!.from('push_subscriptions').delete().in('endpoint', dead)
 }
-async function notifyMail(userId: string, rows: SubscriptionRow[]) {
-  const { data } = await database!.from('mail_accounts').select('*').eq('user_id', userId).maybeSingle()
-  const account = data as MailAccountRow | null
-  if (!account) return 0
-  const client = new ImapFlow({ host: account.imap_host, port: account.imap_port, secure: account.imap_secure, auth: { user: account.username, pass: decrypt(account.encrypted_password) }, logger: false, tls: { rejectUnauthorized: true, servername: account.imap_host } })
-  client.on('error', () => { client.close() })
-  try {
-    await client.connect()
-    const lock = await client.getMailboxLock('INBOX')
-    try {
-      const found = await client.search({ seen: false }, { uid: true })
-      const uids = (found || []).filter(uid => uid > Number(account.last_notified_uid || 0))
-      if (!uids.length) return 0
-      const { data: preferences } = await database!.from('mail_thread_preferences').select('correspondent,muted').eq('user_id', userId)
-      const muted = new Set((preferences || []).filter(item => item.muted).map(item => String(item.correspondent).toLowerCase()))
-      const senders: string[] = []
-      for await (const item of client.fetch(uids, { uid: true, envelope: true }, { uid: true })) {
-        const sender = String(item.envelope?.from?.[0]?.address || '').toLowerCase()
-        if (sender && !muted.has(sender)) senders.push(String(item.envelope?.from?.[0]?.name || sender))
-      }
-      const maxUid = Math.max(...uids)
-      await database!.from('mail_accounts').update({ last_notified_uid: maxUid }).eq('user_id', userId)
-      if (!senders.length) return 0
-      await deliver(rows, {
-        title: senders.length === 1 ? `Neue Mail von ${senders[0]}` : `${senders.length} neue Mails`,
-        body: senders.length === 1 ? 'Tippe, um die Unterhaltung zu öffnen.' : `Von ${senders.slice(0, 3).join(', ')}`,
-        tag: 'uniflow-mail', url: '/?page=mail', icon: '/icon.svg'
-      })
-      return senders.length
-    } finally { lock.release() }
-  } finally {
-    if (client.usable) {
-      try { await client.logout() } catch { client.close() }
-    } else client.close()
-  }
-}
 async function notifyLessons(userId: string, rows: SubscriptionRow[]) {
   const { data } = await database!.from('private_workspaces').select('payload').eq('user_id', userId).maybeSingle()
   const payload = data?.payload as { offerings?: Record<string, unknown>[] } | undefined
@@ -122,9 +70,37 @@ async function notifyLessons(userId: string, rows: SubscriptionRow[]) {
   return count
 }
 
+async function saveSubscription(req: VercelRequest, res: VercelResponse) {
+  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '')
+  if (!token) return res.status(401).json({ error: 'Bitte melde dich erneut an.' })
+  const { data: auth, error: authError } = await database!.auth.getUser(token)
+  if (authError || !auth.user) return res.status(401).json({ error: 'Deine Anmeldung ist abgelaufen.' })
+  const subscription = req.body?.subscription
+  const enabled = !!req.body?.lessonFeedback
+  if (!subscription?.endpoint) {
+    if (enabled) return res.status(400).json({ error: 'Die Push-Anmeldung fehlt.' })
+    const { error } = await database!.from('push_subscriptions').delete().eq('user_id', auth.user.id)
+    if (error) throw error
+    return res.json({ ok: true })
+  }
+  const { error } = await database!.from('push_subscriptions').upsert({
+    endpoint: String(subscription.endpoint), user_id: auth.user.id,
+    p256dh: String(subscription.keys?.p256dh || ''), auth: String(subscription.keys?.auth || ''),
+    timezone: String(req.body?.timezone || 'Europe/Berlin').slice(0, 80),
+    mail_enabled: false, lesson_feedback_enabled: enabled, updated_at: new Date().toISOString()
+  }, { onConflict: 'endpoint' })
+  if (error) throw error
+  return res.json({ ok: true })
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Methode nicht erlaubt.' })
+  res.setHeader('cache-control', 'no-store')
   if (!database) return res.status(500).json({ error: 'Supabase ist nicht konfiguriert.' })
+  if (req.method === 'POST') {
+    try { return await saveSubscription(req, res) }
+    catch (reason) { return res.status(500).json({ error: reason instanceof Error ? reason.message : 'Benachrichtigungen konnten nicht gespeichert werden.' }) }
+  }
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Methode nicht erlaubt.' })
   const expected = process.env.CRON_SECRET
   if (!expected) return res.status(500).json({ error: 'CRON_SECRET fehlt.' })
   if (req.headers.authorization !== `Bearer ${expected}`) return res.status(401).json({ error: 'Nicht autorisiert.' })
@@ -132,22 +108,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!vapidPublic || !vapidPrivate) return res.status(500).json({ error: 'Web-Push-Schlüssel fehlen.' })
   webpush.setVapidDetails(process.env.WEB_PUSH_CONTACT || 'mailto:admin@uniflow.app', vapidPublic, vapidPrivate)
   try {
-    const { data, error } = await database.from('push_subscriptions').select('*').or('mail_enabled.eq.true,lesson_feedback_enabled.eq.true')
+    const { data, error } = await database.from('push_subscriptions').select('*').eq('lesson_feedback_enabled', true)
     if (error) throw error
     const groups = new Map<string, SubscriptionRow[]>()
     for (const row of data as SubscriptionRow[]) groups.set(row.user_id, [...(groups.get(row.user_id) || []), row])
-    let mails = 0, lessons = 0
+    let lessons = 0
     const failures: string[] = []
     for (const [userId, rows] of groups) {
       try {
-        const mailRows = rows.filter(row => row.mail_enabled), lessonRows = rows.filter(row => row.lesson_feedback_enabled)
-        if (mailRows.length) mails += await notifyMail(userId, mailRows)
+        const lessonRows = rows.filter(row => row.lesson_feedback_enabled)
         if (lessonRows.length) lessons += await notifyLessons(userId, lessonRows)
       } catch (reason) {
         failures.push(`${userId.slice(0,8)}: ${reason instanceof Error ? reason.message : 'Unbekannter Fehler'}`)
       }
     }
-    return res.json({ ok: failures.length === 0, users: groups.size, mails, lessons, failures })
+    return res.json({ ok: failures.length === 0, users: groups.size, lessons, failures })
   } catch (reason) {
     return res.status(500).json({ error: reason instanceof Error ? reason.message : 'Benachrichtigungen fehlgeschlagen.' })
   }

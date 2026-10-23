@@ -56,14 +56,8 @@ on conflict (user_id) do update set role = excluded.role;
 
 **Hier in der Erstellungsumgebung** konnten der Parser, statische Quellcodeprüfung mit Ersatztypen, CSS und die Kalenderberechnung geprüft werden. Ein echter React-Build und iPhone-/Supabase-Livetest waren wegen fehlender herunterladbarer npm-Pakete nicht möglich. Teste insbesondere die langen Gesten und die Darstellung auf deinem iPhone; bei Fehlern bitte den genauen Konsolenfehler schicken.
 
-## Postfach und Push einrichten
+## Erinnerungen nach Veranstaltungen
 
-Das Postfach verbindet sich serverseitig per IMAP/SMTP. Zugangsdaten werden mit AES-256-GCM verschlüsselt gespeichert; die Tabellen sind für Browserrollen vollständig gesperrt. UniFlow zeigt vorhandene Mails, wenn der Mailserver sie noch vorhält und „Vorhandene Mails übernehmen“ beim Verbinden aktiv ist. Bei OAuth-only-Anbietern ist ein App-Passwort erforderlich.
+Push-Erinnerungen werden über `/api/notifications` gespeichert und versendet. Dafür werden die Supabase-Serverkonfiguration und die Web-Push-Schlüssel aus `.env.example` benötigt. Ein authentifizierter Scheduler kann den GET-Endpunkt aufrufen. iOS/iPadOS unterstützt Web Push für zum Home-Bildschirm hinzugefügte PWAs.
 
-1. `supabase/migrations/20261013_uniflow_mail.sql` im Supabase SQL Editor ausführen.
-2. Mit `npx web-push generate-vapid-keys` ein VAPID-Schlüsselpaar erzeugen.
-3. Die Werte aus `.env.example` in Vercel setzen. `SUPABASE_SERVICE_ROLE_KEY`, `MAIL_CREDENTIAL_SECRET`, `WEB_PUSH_PRIVATE_KEY` und `CRON_SECRET` sind ausschließlich Server-Secrets und dürfen niemals mit `VITE_` beginnen.
-4. `VITE_WEB_PUSH_PUBLIC_KEY` und `WEB_PUSH_PUBLIC_KEY` erhalten denselben öffentlichen VAPID-Key.
-5. Neu deployen. `/api/notifications` wird über `vercel.json` alle fünf Minuten aufgerufen. Falls der gewählte Vercel-Tarif diese Frequenz nicht unterstützt, denselben authentifizierten Endpoint über einen externen Scheduler oder Supabase Cron aufrufen.
-
-Push umfasst bewusst nur neue, nicht stummgeschaltete Mails und die kurze Feedbackfrage direkt nach einer Veranstaltung. iOS/iPadOS unterstützt Web Push für zum Home-Bildschirm hinzugefügte PWAs.
+Das Postfach wurde entfernt. Bestehende Mail-Tabellen und gespeicherte Daten bleiben erhalten.
