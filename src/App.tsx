@@ -1675,8 +1675,9 @@ export default function App() {
         currentModuleId={currentModuleId}
         onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
         onToggleHomework={item=>{
-          mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed:true}:old)}))
-          note('Hausaufgabe erledigt.',()=>mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed:false}:old)})))
+          const completed=!item.completed
+          mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed}:old)}))
+          note(completed?'Hausaufgabe erledigt.':'Hausaufgabe wieder geöffnet.',()=>mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed:!!item.completed}:old)})))
         }}
         onActiveModuleChange={setActiveLearningModuleId}
         storageKey={'uniflow-last-module:'+user.id} onDeleteTask={deleteStudyTask} onDeleteActivity={deleteActivity}

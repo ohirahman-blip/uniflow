@@ -254,3 +254,12 @@ body:has([role='dialog']) .app-root nav.mobile-navigation{visibility:hidden;poin
 .mlh-homework-check:hover>i{background:color-mix(in srgb,var(--mlh-accent) 20%,transparent);border-color:var(--mlh-accent)}
 .mlh-homework-open{display:grid;gap:3px;flex:1;min-width:0;text-align:left;padding:0;border:0;background:transparent;color:inherit}
 .mlh-homework-open strong{font-size:13px;font-weight:500;overflow-wrap:anywhere}.mlh-homework-open small{font-size:10px;color:var(--muted)}
+.mlh-homework-row{transition:opacity 220ms ease,border-color 220ms ease}
+.mlh-homework-row.is-completed{opacity:.42;border-color:#ffffff0b}
+.mlh-homework-row.is-completed .mlh-homework-open{filter:blur(1.2px)}
+.mlh-homework-row.is-completed .mlh-homework-open strong{text-decoration:line-through;text-decoration-thickness:1px}
+.mlh-homework-row.is-completed .mlh-homework-check>i{display:grid;place-items:center;background:#ffffff12;color:#c0c0c9;border-color:#ffffff40}
+.mlh-exam-cards>button.is-completed{opacity:.45;border-color:#ffffff12;background:transparent}
+.mlh-exam-cards>button.is-completed strong,.mlh-exam-cards>button.is-completed small,
+.mlh-timeline-month button.is-completed strong,.mlh-timeline-month button.is-completed small{text-decoration:line-through;text-decoration-thickness:1px}
+.mlh-timeline-month button.is-completed{opacity:.4}
