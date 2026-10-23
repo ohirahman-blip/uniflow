@@ -170,3 +170,49 @@ svg.lucide-plus{stroke:#d4d4d8}
   .app-main{padding-bottom:100px}
 }
 @media(prefers-reduced-motion:reduce){.mlh-score>.mlh-score-number{transition:none}}
+
+/* One editor language for tasks, assessments and timetable entries. */
+.app-root:has(.module-detail-screen) nav.mobile-navigation,
+body:has([role='dialog']) .app-root nav.mobile-navigation{visibility:hidden;pointer-events:none}
+.mlh-sheet,.sheet,.uf-picker-dialog{box-sizing:border-box;min-width:0;max-width:100vw;color:#f4f4f5;background:#101012;border:1px solid #ffffff18;border-radius:27px 27px 0 0;box-shadow:0 -20px 70px #00000050}
+.mlh-sheet{width:min(680px,100%)}
+.mlh-form,.mlh-form>label,.uf-entry-form,.uf-entry-field,.editor-field{min-width:0;max-width:100%;box-sizing:border-box}
+.mlh-form input,.mlh-form .uf-picker-trigger,.uf-entry-form :is(input,textarea,.uf-picker-trigger){box-sizing:border-box;min-width:0;max-width:100%;width:100%}
+.mlh-form input[type='date']{appearance:none;-webkit-appearance:none;display:block;width:100%;max-width:100%;min-width:0}
+.mlh-form input[type='date']::-webkit-date-and-time-value{min-width:0;text-align:left}
+.sheet-backdrop{background:#00000060;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.sheet{width:min(680px,100%);padding-inline:22px;overflow:hidden;max-height:min(91dvh,850px)}
+.sheet .sheet-header{gap:14px;padding-top:10px;padding-bottom:17px;border-bottom:1px solid #ffffff0b}
+.sheet .sheet-header h2{font-size:22px;font-weight:550;line-height:1.25;letter-spacing:-.035em;text-transform:none}
+.sheet .sheet-header .icon-button,.uf-picker-close{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border:1px solid #ffffff15;border-radius:50%;background:#ffffff05;color:#dddde4}
+.sheet .sheet-handle{background:#ffffff25;width:40px;height:4px}
+.sheet .sheet-body{overflow-y:auto;overflow-x:hidden;padding-top:18px;overscroll-behavior:contain}
+.sheet .uf-entry-form{gap:16px}
+.sheet :is(.uf-entry-form,.editor-field) .field-label{font-size:10px;font-weight:550;letter-spacing:.07em;text-transform:uppercase;color:#92929c}
+.sheet :is(input.line-input,textarea,.big-choice,.uf-picker-trigger){min-height:44px;border:1px solid #ffffff16;border-radius:14px;background:#ffffff04;color:#f0f0f5;font:inherit;font-size:13px;padding:11px 12px;box-shadow:none;transition:border-color 200ms ease,background 200ms ease}
+.sheet :is(input.line-input,textarea,.big-choice,.uf-picker-trigger):focus-visible{outline:none;border-color:color-mix(in srgb,var(--module-accent) 60%,transparent);background:color-mix(in srgb,var(--module-accent) 5%,#111113)}
+.sheet :is(.category-list,.repeat-switch,.inline-toggle){gap:6px;background:transparent}
+.sheet :is(.category-list,.repeat-switch,.inline-toggle)>button{border:1px solid #ffffff18;border-radius:99px;background:transparent;color:#a5a5b0;padding:9px 12px;font-size:11px}
+.sheet :is(.category-list,.repeat-switch,.inline-toggle)>button:is(.chosen,.selected,.active){background:color-mix(in srgb,var(--module-accent) 12%,transparent);border-color:color-mix(in srgb,var(--module-accent) 50%,transparent);color:var(--module-accent)}
+.sheet .sheet-footer{padding-top:16px;border-top:1px solid #ffffff0b;background:transparent}
+.sheet .primary-action,.mlh-primary,.uf-picker-confirm{min-height:44px;border-radius:999px;background:var(--module-accent);border:1px solid color-mix(in srgb,var(--module-accent) 75%,transparent);color:#101114;font-size:12px;font-weight:650;box-shadow:none}
+.sheet :is(.assessment-time-switch,.assessment-check,.big-choice){border-radius:14px}
+.uf-picker-dialog{border-radius:24px;padding:20px;max-width:min(460px,100%)}
+.uf-picker-option{border:1px solid #ffffff12;border-radius:14px;background:#ffffff03}
+.uf-picker-option.selected{background:color-mix(in srgb,var(--module-accent) 9%,transparent);border-color:color-mix(in srgb,var(--module-accent) 35%,transparent)}
+.calendar-page .calendar-compact-toolbar .calendar-tools>.calendar-today{width:auto!important;min-width:54px;flex:0 0 auto;padding:7px 10px;line-height:20px;height:34px;overflow:visible;white-space:nowrap;text-overflow:clip;display:block}
+.calendar-page .uf-week-strip-button.uf-week-today,
+.calendar-page .uf-week-strip-button.uf-week-today:not(.uf-week-first){color:#080808;-webkit-text-fill-color:#080808}
+@media(max-width:720px){
+  .calendar-compact-toolbar .calendar-tools>button[aria-label='Vorheriger Zeitraum'],
+  .calendar-compact-toolbar .calendar-tools>button[aria-label='Nächster Zeitraum']{display:none}
+  .calendar-page .calendar-compact-toolbar{min-width:0;gap:6px;overflow:visible;padding-inline:0}
+  .calendar-page .calendar-tools{flex:0 0 auto;gap:3px;overflow:visible}
+  .sheet,.mlh-sheet{padding-inline:18px}
+}
+@media(max-width:390px){
+  .calendar-page .calendar-compact-toolbar .calendar-tools>.calendar-today{min-width:46px;padding-inline:6px;font-size:11px}
+  .calendar-page .calendar-compact-toolbar .view-switch button{width:29px;min-width:29px}
+  .calendar-page .calendar-compact-toolbar .view-switch .calendar-view-count.active{width:49px}
+  .calendar-page .calendar-compact-toolbar .view-switch .calendar-view-count-two.active{width:55px}
+}
