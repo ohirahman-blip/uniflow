@@ -61,3 +61,21 @@ body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen) text
 @media(max-width:720px),(hover:none) and (pointer:coarse){
   :root{--uf-field-font:16px;--uf-field-height:46px;--uf-editor-control-font:16px;--uf-editor-control-height:46px;--uf-editor-control-radius:14px}
 }
+
+/* Hints must never look like saved values, including in iOS Safari. */
+body input::placeholder,body textarea::placeholder{
+  color:rgba(240,240,245,.34)!important;
+  -webkit-text-fill-color:rgba(240,240,245,.34)!important;
+  opacity:1!important;
+  font-weight:400!important;
+}
+body .uf-picker-trigger>.uf-picker-placeholder{
+  color:rgba(240,240,245,.34)!important;
+  -webkit-text-fill-color:rgba(240,240,245,.34)!important;
+  font-weight:400!important;
+}
+body .uf-picker-trigger:has(>.uf-picker-placeholder)>svg{opacity:.4}
+body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen) select:has(option[value='']:checked){
+  color:rgba(240,240,245,.34)!important;
+  -webkit-text-fill-color:rgba(240,240,245,.34)!important;
+}
