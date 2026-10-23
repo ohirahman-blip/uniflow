@@ -1560,16 +1560,21 @@ export default function App() {
   const [adviceClock,setAdviceClock]=useState(0)
   useEffect(()=>{
     if(!user||!cloudReady||onboarding)return
-    const refresh=()=>{if(document.visibilityState==='visible')setAdviceClock(n=>n+1)}
-    const timer=window.setInterval(refresh,60_000)
+    let timer:number
+    const refresh=()=>{
+      window.clearTimeout(timer)
+      if(document.visibilityState==='visible')setAdviceClock(n=>n+1)
+      timer=window.setTimeout(refresh,60_000-Date.now()%60_000)
+    }
+    refresh()
     document.addEventListener('visibilitychange',refresh)
     window.addEventListener('focus',refresh)
-    return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh);window.removeEventListener('focus',refresh)}
+    return()=>{window.clearTimeout(timer);document.removeEventListener('visibilitychange',refresh);window.removeEventListener('focus',refresh)}
   },[user?.id,cloudReady,onboarding])
   const currentStudyContext=useMemo(()=>adviceContext(data,semester,semesterModules,new Date()),[data,semester,adviceClock])
   const currentModuleId=useMemo(()=>{
     const now=new Date(),clock=now.getHours()*60+now.getMinutes()
-    return occurrencesOn(data.offerings,today()).filter(occ=>occ.offering.semesterId===semester?.id&&semesterModules.some(module=>module.id===occ.offering.moduleId)&&!isAssessment(occ.offering.category)&&minutes(occ.from)<=clock&&clock<minutes(occ.to)).sort((a,b)=>b.from.localeCompare(a.from))[0]?.offering.moduleId
+    return occurrencesOn(data.offerings,today()).filter(occ=>!occ.cancelled&&occ.offering.semesterId===semester?.id&&semesterModules.some(module=>module.id===occ.offering.moduleId)&&!isAssessment(occ.offering.category)&&minutes(occ.from)<=clock&&clock<minutes(occ.to)).sort((a,b)=>b.from.localeCompare(a.from))[0]?.offering.moduleId
   },[data.offerings,semester?.id,adviceClock,semesterModules])
   const contextualColor=data.modules.find(module=>module.id===(page==='modules'?selectedModuleId:page==='calendar'?(focusModuleId||currentModuleId):activeLearningModuleId))?.color||'#d4d4d8'
   useEffect(()=>{
@@ -1664,7 +1669,7 @@ export default function App() {
   if (!cloudReady) return <main className="auth-loading auth-cloud-loading"><div><div className="wordmark">uniflow<span className="wordmark-dot">.</span></div><p>{cloudStatus === 'error' ? cloudError : 'Deine Daten werden sicher geladen …'}</p>{cloudStatus === 'error' && <><button className="primary-action" onClick={() => void loadUserWorkspace(user, authEpoch.current)}>Erneut versuchen</button><button className="auth-secondary" onClick={() => void logOut()}>Abmelden</button></>}</div></main>
   if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(d); setOnboarding(false); pageHistory.current=[]; setPage('dashboard') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
   return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{ id: 'dashboard' as const, title: 'Lernen', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, { id: 'settings', title: 'Einstellungen', icon: Settings2 }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} /></span>{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
-    <div className="app-main"><header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button></header>
+    <div className="app-main">{page!=='dashboard'&&<header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button></header>}
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
       {page === 'dashboard' && <ModuleLearningHome data={data} semester={semester} modules={semesterModules}
         currentModuleId={currentModuleId}

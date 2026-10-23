@@ -233,3 +233,13 @@ body:has([role='dialog']) .app-root nav.mobile-navigation{visibility:hidden;poin
 .app-root .screen-calendar{background:#080808!important}
 .screen-calendar,.screen-calendar *,.screen-calendar *::before,.screen-calendar *::after{box-shadow:none!important;text-shadow:none!important}
 @media(max-width:600px){.module-fast .module-fast-topic-head{padding:10px 12px 22px}.module-fast .module-fast-topic-foot{padding:17px 12px}.module-fast .module-slot-edit-form{padding-top:22px}}
+
+.settings-screen .admin-settings-link{display:flex;flex-direction:column;align-items:stretch;gap:12px;min-width:0;isolation:isolate}
+.settings-screen .admin-settings-link h2{margin:0;line-height:1.5}
+.settings-screen .admin-settings-link .settings-action{display:grid;grid-template-columns:19px minmax(0,1fr) 17px;align-items:center;gap:10px;min-height:42px;width:100%;padding:10px 0;margin:0;line-height:1.5;white-space:normal}
+.settings-screen .admin-settings-link .quiet-copy{margin:0;line-height:1.6;overflow-wrap:anywhere}
+.settings-screen .setting-input-plain{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:14px;min-width:0;margin-block:10px 16px}
+.settings-screen .setting-input-plain>span{flex:0 0 auto;font-size:12px}
+.settings-screen .setting-input-plain>input{--uf-field-height:36px;width:min(210px,62%)!important;flex:0 1 210px;text-align:left}
+@media(prefers-reduced-motion:no-preference){.mlh-current-banner i{animation:mlh-live-blink 1.6s ease-in-out infinite}}
+@keyframes mlh-live-blink{0%,100%{opacity:1;box-shadow:0 0 10px currentColor}50%{opacity:.2;box-shadow:0 0 2px currentColor}}

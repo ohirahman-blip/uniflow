@@ -100,7 +100,7 @@ function AnimatedScore({value,storageKey}:{value:number;storageKey:string}){
 
 export default function ModuleLearningHome({ data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onActiveModuleChange, onSession, onLearnContent, onEditModule, onCreateModule }: Props) {
   const visible = modules.filter(module => !module.hidden && module.status !== 'passed')
-  const [selectedModule, setSelectedModule] = useState(currentModuleId||'')
+  const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
   const [modal, setModal] = useState<Modal>(null)
   const [duration, setDuration] = useState(45)
   const [rating, setRating] = useState<Exclude<LearningRating, 'absent'>>('understood')
@@ -111,6 +111,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
   const suppressScoreClick = useRef(false)
   const safeIndex = Math.max(0, visible.findIndex(module=>module.id===selectedModule))
   const active = visible[safeIndex]
+  useEffect(()=>{if(active)try{localStorage.setItem(storageKey,active.id)}catch{/* Keep navigation usable when storage is unavailable. */}},[active?.id,storageKey])
   useEffect(()=>{if(active)onActiveModuleChange(active.id)},[active?.id,onActiveModuleChange])
   useEffect(()=>{
     const openCurrent=()=>{if(currentModuleId&&document.visibilityState==='visible')setSelectedModule(currentModuleId)}
@@ -139,7 +140,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className="screen mlh-home" style={accent} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
     <div className="mlh-glow" aria-hidden="true" />
-    {active.id===currentModuleId&&<div className="mlh-current-banner"><i/>Aktuell im Stundenplan</div>}
+    {active.id===currentModuleId&&<div className="mlh-current-banner"><i/>Jetzt gerade</div>}
     <header className="mlh-module-head">
       <button disabled={safeIndex === 0} onClick={() => switchTo(safeIndex - 1)} aria-label="Vorheriges Modul"><ArrowLeft size={21} /></button>
       <div><h1 key={active.id}>{active.name}</h1><i aria-hidden="true" /></div>
