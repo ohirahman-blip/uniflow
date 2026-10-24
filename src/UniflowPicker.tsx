@@ -1,3 +1,4 @@
+import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Minus, Plus, X } from 'lucide-react'
@@ -124,6 +125,7 @@ export default function UniflowPicker(props: Props) {
     setOpen(true)
   }
   const closePicker = () => { setOpen(false); trigger.current?.focus() }
+  useSwipeToDismiss(dialog,closePicker,open)
   const commit = (next: string) => { props.onChange(next); closePicker() }
   useEffect(() => {
     if (!open) return

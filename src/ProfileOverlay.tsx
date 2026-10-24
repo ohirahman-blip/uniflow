@@ -1,3 +1,4 @@
+import {useSwipeToDismiss} from './useSwipeToDismiss'
 import {useEffect,useRef,useState,type ReactNode} from 'react'
 import {createPortal} from 'react-dom'
 import {ArrowLeft,ChevronRight,GraduationCap,Layers2,Settings2,Target,UserRound,X} from 'lucide-react'
@@ -7,6 +8,7 @@ type Section='home'|'modules'|'goals'|'settings'
 export default function ProfileOverlay({data,settings,onClose,onModule,onProfileChange}:{data:AppData;settings:ReactNode;onClose:()=>void;onModule:(module:StudyModule)=>void;onProfileChange:(name:string)=>void}){
   const [section,setSection]=useState<Section>('home')
   const panel=useRef<HTMLElement>(null)
+  useSwipeToDismiss(panel,onClose)
   useEffect(()=>{
     const previousFocus=document.activeElement as HTMLElement|null
     panel.current?.querySelector<HTMLButtonElement>('button')?.focus()

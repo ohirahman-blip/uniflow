@@ -1,3 +1,4 @@
+import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ClipboardList, History, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
@@ -47,13 +48,15 @@ const eventLabels: Record<ScoreEvent['type'], string> = {
 }
 
 function Overlay({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  const sheet=useRef<HTMLElement>(null)
+  useSwipeToDismiss(sheet,onClose)
   useEffect(() => {
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
     window.addEventListener('keydown', escape)
     return () => window.removeEventListener('keydown', escape)
   }, [onClose])
   return createPortal(<div className="mlh-overlay" onPointerDown={event => { if (event.target === event.currentTarget) onClose() }}>
-    <section className="mlh-sheet" role="dialog" aria-modal="true" aria-label={title}>
+    <section ref={sheet} className="mlh-sheet" role="dialog" aria-modal="true" aria-label={title}>
       <i className="mlh-sheet-handle" aria-hidden="true" />
       <header><h2>{title}</h2><button onClick={onClose} aria-label="Schließen"><X size={20} /></button></header>
       {children}
