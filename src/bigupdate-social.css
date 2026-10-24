@@ -69,7 +69,7 @@
 .screen-calendar .course{transition:top 300ms cubic-bezier(.2,.8,.2,1),height 300ms cubic-bezier(.2,.8,.2,1),background-color 240ms ease,color 240ms ease,filter 240ms ease,opacity 240ms ease}
 .screen-calendar .calendar-sticky-header,.screen-calendar .time-ruler,.screen-calendar .course-time-thread,.screen-calendar .now-day-line{transition:filter 240ms ease,opacity 240ms ease}
 .screen-calendar .has-open-course .course:not(.course-expanded){filter:blur(2.5px);opacity:.48}
-.screen-calendar .has-open-course :is(.calendar-sticky-header,.time-ruler,.course-time-thread,.now-day-line){filter:blur(2px);opacity:.55}
+.screen-calendar .has-open-course :is(.time-ruler,.course-time-thread,.now-day-line){filter:blur(2px);opacity:.55}
 .screen-calendar .has-open-course .course-expanded,.screen-calendar .calendar-course-expansion{filter:none;opacity:1}
 @media(prefers-reduced-motion:reduce){.screen-calendar .course,.screen-calendar .calendar-sticky-header,.screen-calendar .time-ruler,.screen-calendar .course-time-thread,.screen-calendar .now-day-line{transition:none!important}}
 
@@ -78,7 +78,9 @@
 .screen-calendar .calendar-course-expansion .wallet-card{height:auto;min-height:0;max-height:none;justify-content:flex-start;align-self:start}
 .screen-calendar .calendar-course-expansion .wallet-card small{white-space:normal;overflow-wrap:anywhere}
 /* Keep the blurred week strip behind the opened course, never on top of it. */
-.screen-calendar .calendar-page.has-open-course .calendar-sticky-header{z-index:90;pointer-events:none}
+.screen-calendar .calendar-page.has-open-course .calendar-sticky-header{z-index:90;pointer-events:none;filter:none;opacity:1;background:#080808}
+.screen-calendar .calendar-page.has-open-course .calendar-sticky-header::before{background:#080808}
+.screen-calendar .calendar-page.has-open-course .calendar-sticky-header>*{filter:blur(2px);opacity:.55}
 .screen-calendar .calendar-page.has-open-course .calendar-lanes{z-index:auto}
 
 /* These are the alternatives IN the timetable, not the expanded detail cards. */
