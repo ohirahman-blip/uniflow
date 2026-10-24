@@ -38,3 +38,25 @@
 @keyframes calendar-unfold{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:799px){.calendar-course-expansion{left:46px;padding-right:6px;padding-left:12px}}
 @media(prefers-reduced-motion:reduce){.calendar-course-expansion,.calendar-course-expansion .wallet-card,.calendar-course-expansion .wallet-actions{animation:none!important}.screen-calendar .course,.screen-calendar .day-track,.screen-calendar .ruler-track,.screen-calendar .ruler-track>span,.screen-calendar .now-day-line,.screen-calendar .now-ruler-line,.screen-calendar .empty-slot,.course-time-thread{transition:none!important}}
+
+/* Color belongs to the type until the course is opened. */
+.screen-calendar .course{background:transparent!important;color:var(--course-accent)!important;border:0!important;outline:0;filter:none;transition:top 300ms cubic-bezier(.2,.8,.2,1),height 300ms cubic-bezier(.2,.8,.2,1),background-color 240ms ease,color 240ms ease}
+.screen-calendar .course span{opacity:1}
+.screen-calendar .course:not(.course-expanded) :is(.course-title,.course-kind-icon,.course-kind-icon svg){color:var(--course-accent)!important}
+.screen-calendar .course:not(.course-expanded) :is(.course-meta,.course-meta span,.course-place,.course-place span,.course-hours){color:#96969f!important}
+.screen-calendar .course.course-inactive{background:transparent!important;opacity:1;filter:none;outline:0;border:0!important}
+.screen-calendar .course.course-inactive:not(.course-expanded) :is(strong,small,span,svg){color:color-mix(in srgb,var(--course-accent) 45%,transparent)!important}
+.screen-calendar .course.course-expanded{background:var(--course-accent)!important;color:var(--course-ink)!important;opacity:1;outline:0;filter:none}
+.screen-calendar .course.course-expanded :is(strong,small,span,svg){color:var(--course-ink)!important}
+.screen-calendar .course.course-expanded.course-inactive :is(strong,small,span,svg){color:var(--course-ink)!important}
+.screen-calendar .course.course-expanded :is(.course-meta,.course-place){opacity:.72}
+.screen-calendar .course .course-rating-star{color:var(--course-accent);background:transparent}
+.screen-calendar .course.course-expanded .course-rating-star{color:var(--course-ink);background:color-mix(in srgb,var(--course-ink) 9%,transparent)}
+.screen-calendar .course:focus-visible{outline:1px solid var(--course-accent);outline-offset:1px}
+.screen-calendar .course-time-thread{left:2px;transform:none;background:#ffffff12}
+.screen-calendar .calendar-course-expansion .wallet-card{background:transparent!important;border:0;outline:0;opacity:1;color:color-mix(in srgb,var(--wallet-accent) 45%,transparent)!important;box-shadow:none!important;transition:background-color 240ms ease,color 240ms ease,transform 200ms ease}
+.screen-calendar .calendar-course-expansion .wallet-card :is(strong,small,span){color:inherit!important;opacity:1}
+.screen-calendar .calendar-course-expansion .wallet-card:hover{color:color-mix(in srgb,var(--wallet-accent) 75%,transparent)!important}
+.screen-calendar .calendar-course-expansion .wallet-card.wallet-card-picked{background:var(--wallet-accent)!important;color:var(--wallet-ink)!important;outline:0}
+.screen-calendar .calendar-course-expansion .wallet-card:focus-visible{outline:1px solid var(--wallet-accent);outline-offset:1px}
+@media(prefers-reduced-motion:reduce){.screen-calendar .course,.screen-calendar .calendar-course-expansion .wallet-card{transition:none!important}}

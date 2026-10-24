@@ -630,6 +630,11 @@ export function ModuleHub({ degree, modules, goals, assessments, journeys: _jour
 }
 
 
+function calendarInk(color:string){
+  const hex=color.replace('#',''),full=hex.length===3?hex.split('').map(value=>value+value).join(''):hex
+  const values=[0,2,4].map(index=>parseInt(full.slice(index,index+2),16)/255).map(value=>value<=.04045?value/12.92:((value+.055)/1.055)**2.4)
+  return values[0]*.2126+values[1]*.7152+values[2]*.0722>.179?'#141419':'#fafafa'
+}
 function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNew,onEditOccurrence,onRateOccurrence,onPreviewAssessment,onSelectGroup,onSuspendVisit,onCancelVisit,onRestoreVisit,onRequestDeleteOccurrence,onOfferingsChange,onNotice}:{
   data:AppData;semester:Semester;modules:StudyModule[];userId:string;focusModuleId:string;onFocusChange:(id:string)=>void;
   onNew:(slot:NewEntry)=>void;onEditOccurrence:(occ:Occurrence)=>void;onRateOccurrence:(occ:Occurrence)=>void;onPreviewAssessment:(assessment:Assessment)=>void;
@@ -1043,7 +1048,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const rateable=past&&!!occ.offering.moduleId&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'
           const checkin=rateable?(data.learningCheckins||[]).find(item=>item.key===lessonKeyForOccurrence(occ)):undefined
           const rated=!!checkin&&(checkin.attended??checkin.rating!=='absent')
-          const style:CSSProperties={top:timelineY(start)+Math.min(4,(end-start)/4),height:Math.max(2,courseEndY(end)-timelineY(start)-Math.min(8,(end-start)/2)),background:inactive?'#29292b':module?.color||'#A5A5A5',left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`}
+          const style={top:timelineY(start)+Math.min(4,(end-start)/4),height:Math.max(2,courseEndY(end)-timelineY(start)-Math.min(8,(end-start)/2)),'--course-accent':module?.color||'#A5A5A5','--course-ink':calendarInk(module?.color||'#A5A5A5'),left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`} as CSSProperties
           if(fan&&start<insertionY&&end>insertionY){
             const cutTop=insertionY-timelineY(start)-Math.min(4,(end-start)/4),cutBottom=cutTop+expansionHeight
             style.clipPath=`polygon(0 0,100% 0,100% ${cutTop}px,0 ${cutTop}px,0 ${cutBottom}px,100% ${cutBottom}px,100% 100%,0 100%)`
@@ -1192,7 +1197,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const equivalent=sameContent(item.offering,fan.occ.offering)
           return <div role="button" tabIndex={0} key={item.key}
             className={'wallet-card '+(selected?'wallet-card-active':'wallet-card-inactive')+(item.cancelled?' wallet-card-cancelled':'')+(fanPicked?.key===item.key?' wallet-card-picked':'')}
-            style={{'--wallet-accent':module?.color||'#9b8cff',minHeight:Math.max(76,(minutes(item.to)-minutes(item.from))/120*heightPerSlot),animationDelay:`${i*38}ms`,zIndex:fanItems.length-i} as CSSProperties}
+            style={{'--wallet-accent':module?.color||'#9b8cff','--wallet-ink':calendarInk(module?.color||'#9b8cff'),minHeight:Math.max(76,(minutes(item.to)-minutes(item.from))/120*heightPerSlot),animationDelay:`${i*38}ms`,zIndex:fanItems.length-i} as CSSProperties}
             onPointerDown={e=>{if(i===0&&selected){e.stopPropagation();onDown(e,item)}}}
             onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancelGesture}
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;onFanTap(item)}}
