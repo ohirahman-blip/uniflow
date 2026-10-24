@@ -1006,6 +1006,9 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const fanMain=fanPicked ? findMainForInactive(data.offerings,fanPicked) : null
   const fanConflict=fanPicked ? occurrencesOn(data.offerings,fanPicked.date)
     .some(other=>other.key!==fanPicked.key && intersects(other,fanPicked)) : false
+  const fanCheckin=fanPicked?(data.learningCheckins||[]).find(item=>item.key===lessonKeyForOccurrence(fanPicked)):undefined
+  const fanAttended=!!fanCheckin&&(fanCheckin.attended??fanCheckin.rating!=='absent')
+  const fanRateable=!!fanPicked&&fanSelected&&!fanCancelled&&!!fanPicked.offering.moduleId&&!isAssessment(fanPicked.offering.category)&&fanPicked.offering.category!=='Freies Lernen'&&canRateOccurrence(fanPicked)
   const onFanTap=(occ:Occurrence)=>{
     const now=Date.now()
     const old=lastCardTap.current
@@ -1033,7 +1036,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         {events.length>0&&<div className="course-time-thread" aria-hidden="true" style={{top:timelineY(Math.min(...events.map(item=>offsetY(item.from)))),height:Math.max(0,courseEndY(Math.max(...events.map(item=>offsetY(item.to))))-timelineY(Math.min(...events.map(item=>offsetY(item.from)))))}}/>}
         {times.map((h,i)=>{const from=timeString(h*60),to=timeString((h+2)*60)
           return <div key={from} className="empty-slot" data-day={date} data-time={from} style={{height:courseEndY((i+1)*heightPerSlot)-timelineY(i*heightPerSlot),top:timelineY(i*heightPerSlot)}}
-            onClick={()=>onNew({date,from,to})}
+            onClick={()=>{if(fan)setFan(null);else onNew({date,from,to})}}
             aria-label={`${formDate(date)} ${from}–${to}, antippen zum Hinzufügen`}><Plus size={14}/></div>
         })}
         {events.map(occ=>{
@@ -1043,27 +1046,22 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           if(end<=0||start>=height)return null
           const siblings=events.filter(o=>o.key!==occ.key&&intersects(o,occ))
           const group=[occ,...siblings].sort((a,b)=>a.key.localeCompare(b.key)),ix=group.findIndex(x=>x.key===occ.key),n=group.length
-          const numberOfAlternatives=linkedCandidates(data.offerings,occ).length
           const past=date<today()||(date===today()&&minutes(occ.to)<=clockNow.getHours()*60+clockNow.getMinutes())
-          const rateable=past&&!!occ.offering.moduleId&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'
-          const checkin=rateable?(data.learningCheckins||[]).find(item=>item.key===lessonKeyForOccurrence(occ)):undefined
-          const rated=!!checkin&&(checkin.attended??checkin.rating!=='absent')
           const style={top:timelineY(start)+Math.min(4,(end-start)/4),height:Math.max(2,courseEndY(end)-timelineY(start)-Math.min(8,(end-start)/2)),'--course-accent':module?.color||'#A5A5A5','--course-ink':calendarInk(module?.color||'#A5A5A5'),left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`} as CSSProperties
           if(fan&&start<insertionY&&end>insertionY){
             const cutTop=insertionY-timelineY(start)-Math.min(4,(end-start)/4),cutBottom=cutTop+expansionHeight
             style.clipPath=`polygon(0 0,100% 0,100% ${cutTop}px,0 ${cutTop}px,0 ${cutBottom}px,100% ${cutBottom}px,100% 100%,0 100%)`
           }
           return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
-            aria-expanded={fan?.occ.key===occ.key} className={'course '+(fan?.occ.key===occ.key?'course-expanded ':'')+(inactive?'course-inactive ':'')+(occ.cancelled?'course-cancelled ':'')+(numberOfAlternatives?'course-stacked ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
+            aria-expanded={fan?.occ.key===occ.key} className={'course '+(fan?.occ.key===occ.key?'course-expanded ':'')+(inactive?'course-inactive ':'')+(occ.cancelled?'course-cancelled ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
             style={style} onPointerDown={e=>{e.stopPropagation();if(!inactive&&!occ.cancelled)onDown(e,occ)}} onPointerMove={onMove}
             onPointerUp={e=>{e.stopPropagation();onUp(e)}} onPointerCancel={cancelGesture}
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ)}}
             onContextMenu={e=>{e.preventDefault();e.stopPropagation();setFan(null);setWalletContext({occ,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
             onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(occ)}} onKeyDown={e=>{if(e.key==='Enter')openFan(occ)}}>
             <div className="course-head"><strong className="course-title">{isAssessment(occ.offering.category)?<span className="course-kind-icon">{/klausur|prüfung/i.test(occ.offering.category)?<GraduationCap size={compact?12:16}/>:<ClipboardList size={compact?12:16}/>}</span>:null}{module?.emoji?<span className="course-emoji">{module.emoji}</span>:null}{compact?module?.shortName||acronym(occ.offering.name):module?.name||occ.offering.name}</strong>
-              {(singleVisitLabel(occ)||numberOfAlternatives>0)&&<span className="course-head-badges">
+              {singleVisitLabel(occ)&&<span className="course-head-badges">
                 {singleVisitLabel(occ)&&<span className="course-recurrence" title={singleVisitLabel(occ)==='Einmalig'?'Nur einmaliger Termin':'Einmalige Ausnahme'}>{compact?'x1':singleVisitLabel(occ)}</span>}
-                {numberOfAlternatives>0&&!compact&&<span className="stack-indicator" title={`${numberOfAlternatives} Alternativen`}><Layers2 size={12}/><span>{numberOfAlternatives}</span></span>}
               </span>}
             </div>
             <div className="course-meta">
@@ -1071,19 +1069,14 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
               {occ.offering.organizer&&<><span className="course-meta-divider" aria-hidden="true">·</span><span className="course-organizer" title={occ.offering.organizer}>{occ.offering.organizer}</span></>}
             </div>
             {placeLabel(occ.offering)&&<span className="course-place"><span title={placeLabel(occ.offering)}>{placeLabel(occ.offering)}</span></span>}
-            {rateable&&<button type="button" className={'course-rating-star'+(rated?' is-rated':'')}
-              aria-label={rated?'Besuch ändern':'Als besucht markieren'} title={rated?'Besuch eingetragen – ändern':'Besuch eintragen'}
-              onPointerDown={e=>e.stopPropagation()} onPointerUp={e=>e.stopPropagation()}
-              onClick={e=>{e.preventDefault();e.stopPropagation();setFan(null);onRateOccurrence(occ)}}>
-              <Check size={compact?12:15} strokeWidth={2.3}/>
-            </button>}
+
           </div>
         })}
         {clockActive&&<div className="now-day-line" style={{top:timelineY(nowY)}} aria-hidden="true"/>}
       </div>
     </div>
   }
-  return <section className="calendar-page">
+  return <section className={'calendar-page'+(fan&&!monthOpen?' has-open-course':'')}>
     {/* Keep the toolbar, date strip and their menus inside one sticky stacking
         context while the timetable scrolls underneath. */}
     <div className="calendar-sticky-header">
@@ -1212,6 +1205,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         })}
         </div>
         {fanPicked&&<div className="wallet-actions" key={fanPicked.key}>
+          {fanRateable&&<button className="wallet-review" onClick={()=>{const occurrence=fanPicked;setFan(null);if(occurrence)onRateOccurrence(occurrence)}}>{fanAttended?'Besuch & Verständnis ändern':'Besuch & Verständnis eintragen'}</button>}
           <div className="wallet-action-title">{fanCancelled?'Ausnahme':fanSelected?'Termin ändern':'Gruppe auswählen'}{fanConflict&&!fanSelected&&!fanCancelled&&<small>Überschneidung im Stundenplan</small>}</div>
           {!fanSelected&&!fanCancelled&&fanMain&&<div className="wallet-attendance"><button className={!fanBoth?'chosen':''} onClick={()=>setFanBoth(false)}>Wechseln</button><button className={fanBoth?'chosen':''} onClick={()=>setFanBoth(true)}>Beide besuchen</button></div>}
           {fanSelected?<div className="wallet-scope"><button onClick={()=>{setWalletMove(fanPicked);setFan(null)}}>Verschieben</button><button className="wallet-cancel-visit" onClick={()=>{onCancelVisit(fanPicked);setFan(null)}}>Fällt ohne Ersatz aus</button></div>:!fanCancelled?<div className="wallet-scope"><button onClick={()=>applyFanChoice('single')}>{fanBoth?'Einmalig beide besuchen':fanMain?'Einmalig wechseln':'Einmalig besuchen'}</button>{fanPicked.offering.recurrence!=='once'&&<button onClick={()=>applyFanChoice('future')}>{fanBoth?'Ab jetzt beide besuchen':fanMain?'Ab jetzt wechseln':'Immer besuchen'}</button>}</div>:null}

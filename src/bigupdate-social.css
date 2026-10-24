@@ -60,3 +60,15 @@
 .screen-calendar .calendar-course-expansion .wallet-card.wallet-card-picked{background:var(--wallet-accent)!important;color:var(--wallet-ink)!important;outline:0}
 .screen-calendar .calendar-course-expansion .wallet-card:focus-visible{outline:1px solid var(--wallet-accent);outline-offset:1px}
 @media(prefers-reduced-motion:reduce){.screen-calendar .course,.screen-calendar .calendar-course-expansion .wallet-card{transition:none!important}}
+
+/* Course actions live together in the expanded timeline section. */
+.screen-calendar .course:not(.course-expanded),.screen-calendar .course.course-inactive:not(.course-expanded){background:#ffffff08!important}
+.screen-calendar .calendar-course-expansion .wallet-card{border:1px solid color-mix(in srgb,var(--wallet-accent) 28%,transparent);background:#ffffff03!important}
+.screen-calendar .calendar-course-expansion .wallet-card.wallet-card-picked{background:var(--wallet-accent)!important;border-color:var(--wallet-accent)}
+.calendar-course-expansion .wallet-review{min-height:36px;align-self:flex-start;border:1px solid color-mix(in srgb,var(--wallet-accent) 35%,transparent);border-radius:20px;padding:9px 15px;background:color-mix(in srgb,var(--wallet-accent) 9%,transparent);color:var(--wallet-accent);font-size:12px;cursor:pointer}
+.screen-calendar .course{transition:top 300ms cubic-bezier(.2,.8,.2,1),height 300ms cubic-bezier(.2,.8,.2,1),background-color 240ms ease,color 240ms ease,filter 240ms ease,opacity 240ms ease}
+.screen-calendar .calendar-sticky-header,.screen-calendar .time-ruler,.screen-calendar .course-time-thread,.screen-calendar .now-day-line{transition:filter 240ms ease,opacity 240ms ease}
+.screen-calendar .has-open-course .course:not(.course-expanded){filter:blur(2.5px);opacity:.48}
+.screen-calendar .has-open-course :is(.calendar-sticky-header,.time-ruler,.course-time-thread,.now-day-line){filter:blur(2px);opacity:.55}
+.screen-calendar .has-open-course .course-expanded,.screen-calendar .calendar-course-expansion{filter:none;opacity:1}
+@media(prefers-reduced-motion:reduce){.screen-calendar .course,.screen-calendar .calendar-sticky-header,.screen-calendar .time-ruler,.screen-calendar .course-time-thread,.screen-calendar .now-day-line{transition:none!important}}
