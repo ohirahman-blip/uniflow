@@ -78,17 +78,15 @@
 .screen-calendar .calendar-course-expansion .wallet-card{height:auto;min-height:0;max-height:none;justify-content:flex-start;align-self:start}
 .screen-calendar .calendar-course-expansion .wallet-card small{white-space:normal;overflow-wrap:anywhere}
 /* Keep the blurred week strip behind the opened course, never on top of it. */
-.screen-calendar .calendar-page.has-open-course .calendar-sticky-header{z-index:0;pointer-events:none}
-.screen-calendar .calendar-page.has-open-course .calendar-lanes{z-index:1}
-
-/* Only the opened course escapes above the sticky week strip. */
-.screen-calendar .calendar-page.has-open-course .calendar-sticky-header{z-index:90}
+.screen-calendar .calendar-page.has-open-course .calendar-sticky-header{z-index:90;pointer-events:none}
 .screen-calendar .calendar-page.has-open-course .calendar-lanes{z-index:auto}
-.course-position-anchor{position:absolute;pointer-events:none;box-sizing:border-box}
-.course-focus-layer{position:absolute;inset:0;z-index:100;pointer-events:none}
-.screen-calendar .course-focus-layer>.course-expanded{pointer-events:auto;transition:background-color 240ms ease,color 240ms ease}
-.screen-calendar .calendar-course-expansion{border-left:0}
+
+/* These are the alternatives IN the timetable, not the expanded detail cards. */
+.screen-calendar .course.course-inactive:not(.course-expanded){background:transparent!important;border:1px dashed color-mix(in srgb,var(--course-accent) 23%,transparent)!important}
+.screen-calendar .course.course-inactive:not(.course-expanded) :is(strong,small,span,svg){color:color-mix(in srgb,var(--course-accent) 30%,transparent)!important}
 .screen-calendar .has-open-course .course-time-thread{opacity:0;filter:none}
-.screen-calendar .calendar-course-expansion .wallet-card{background:transparent!important;border:1px dashed color-mix(in srgb,var(--wallet-accent) 23%,transparent);color:color-mix(in srgb,var(--wallet-accent) 30%,transparent)!important;box-shadow:none!important}
-.screen-calendar .calendar-course-expansion .wallet-card:hover{color:color-mix(in srgb,var(--wallet-accent) 55%,transparent)!important}
-.screen-calendar .calendar-course-expansion .wallet-card.wallet-card-picked{background:transparent!important;border:1px dashed color-mix(in srgb,var(--wallet-accent) 65%,transparent);color:color-mix(in srgb,var(--wallet-accent) 85%,transparent)!important;outline:0}
+/* Keep the original box in place; release ancestor paint layers so only it rises. */
+.screen-calendar .has-open-course .snap-viewport{-webkit-overflow-scrolling:auto;isolation:auto;z-index:auto}
+.screen-calendar .has-open-course .snap-viewport .snap-pages{will-change:auto;transform:none!important;animation:none!important;opacity:1;isolation:auto;z-index:auto}
+.screen-calendar .has-open-course :is(.snap-page,.days-grid,.day-column,.day-track){isolation:auto;z-index:auto}
+.screen-calendar .has-open-course .course-expanded{z-index:100}
