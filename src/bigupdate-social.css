@@ -53,7 +53,7 @@
 .screen-calendar .course .course-rating-star{color:var(--course-accent);background:transparent}
 .screen-calendar .course.course-expanded .course-rating-star{color:var(--course-ink);background:color-mix(in srgb,var(--course-ink) 9%,transparent)}
 .screen-calendar .course:focus-visible{outline:1px solid var(--course-accent);outline-offset:1px}
-.screen-calendar .course-time-thread{left:2px;transform:none;background:#ffffff12}
+.screen-calendar .course-time-thread{display:none}
 .screen-calendar .calendar-course-expansion .wallet-card{background:transparent!important;border:0;outline:0;opacity:1;color:color-mix(in srgb,var(--wallet-accent) 45%,transparent)!important;box-shadow:none!important;transition:background-color 240ms ease,color 240ms ease,transform 200ms ease}
 .screen-calendar .calendar-course-expansion .wallet-card :is(strong,small,span){color:inherit!important;opacity:1}
 .screen-calendar .calendar-course-expansion .wallet-card:hover{color:color-mix(in srgb,var(--wallet-accent) 75%,transparent)!important}
