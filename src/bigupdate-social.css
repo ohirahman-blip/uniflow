@@ -72,3 +72,11 @@
 .screen-calendar .has-open-course :is(.calendar-sticky-header,.time-ruler,.course-time-thread,.now-day-line){filter:blur(2px);opacity:.55}
 .screen-calendar .has-open-course .course-expanded,.screen-calendar .calendar-course-expansion{filter:none;opacity:1}
 @media(prefers-reduced-motion:reduce){.screen-calendar .course,.screen-calendar .calendar-sticky-header,.screen-calendar .time-ruler,.screen-calendar .course-time-thread,.screen-calendar .now-day-line{transition:none!important}}
+
+/* Alternatives are compact details, not a second duration-scaled timetable. */
+.screen-calendar .calendar-course-expansion .wallet-cards{align-items:start;grid-auto-rows:auto}
+.screen-calendar .calendar-course-expansion .wallet-card{height:auto;min-height:0;max-height:none;justify-content:flex-start;align-self:start}
+.screen-calendar .calendar-course-expansion .wallet-card small{white-space:normal;overflow-wrap:anywhere}
+/* Keep the blurred week strip behind the opened course, never on top of it. */
+.screen-calendar .calendar-page.has-open-course .calendar-sticky-header{z-index:0;pointer-events:none}
+.screen-calendar .calendar-page.has-open-course .calendar-lanes{z-index:1}

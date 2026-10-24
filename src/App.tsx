@@ -1190,7 +1190,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const equivalent=sameContent(item.offering,fan.occ.offering)
           return <div role="button" tabIndex={0} key={item.key}
             className={'wallet-card '+(selected?'wallet-card-active':'wallet-card-inactive')+(item.cancelled?' wallet-card-cancelled':'')+(fanPicked?.key===item.key?' wallet-card-picked':'')}
-            style={{'--wallet-accent':module?.color||'#9b8cff','--wallet-ink':calendarInk(module?.color||'#9b8cff'),minHeight:Math.max(76,(minutes(item.to)-minutes(item.from))/120*heightPerSlot),animationDelay:`${i*38}ms`,zIndex:fanItems.length-i} as CSSProperties}
+            style={{'--wallet-accent':module?.color||'#9b8cff','--wallet-ink':calendarInk(module?.color||'#9b8cff'),animationDelay:`${i*38}ms`,zIndex:fanItems.length-i} as CSSProperties}
             onPointerDown={e=>{if(i===0&&selected){e.stopPropagation();onDown(e,item)}}}
             onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancelGesture}
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;onFanTap(item)}}
