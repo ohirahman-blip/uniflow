@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ClipboardList, History, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, UserRound, Flame, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ClipboardList, History, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
 import { dateString, formatDate, today, uid, type AppData, type Assessment, type Semester, type StudyModule } from './model'
-import {streakCount} from './streaks'
+import StudyUtilities from './StudyUtilities'
 import ExamTimeline from './ExamTimeline'
 import UniflowPicker from './UniflowPicker'
 import LearningSessionForm,{type SessionValues} from './LearningSessionForm'
@@ -161,8 +161,7 @@ export default function ModuleLearningHome({ onProfile, onStreak, data, semester
     else onSession({...values,moduleId:active.id,kind:'review'})
     setModal(null);setFinishingTimer(null);setEditingSession(null)
   }
-  const streak=streakCount(data.streakDays)
-  const utility=<div className="mlh-utility"><button onClick={onProfile} aria-label="Dein Profil"><UserRound size={21}/></button><button className={'mlh-streak'+(streak>=7?' is-purple':'')} onClick={onStreak} aria-label={`${streak} Tage Streak${streak>=7?', 1,5-fache Punkte':''}`}><Flame size={22}/><strong>{streak}</strong>{streak>=7&&<small>1,5×</small>}</button></div>
+  const utility=<StudyUtilities days={data.streakDays} onProfile={onProfile} onStreak={onStreak}/>
   if (!visible.length) return <main className="screen mlh-empty">{utility}<Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className="screen mlh-home" style={accent} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
@@ -195,8 +194,8 @@ export default function ModuleLearningHome({ onProfile, onStreak, data, semester
       </div>
       {completed.length>0 && <button className="mlh-completed-preview" aria-label="Erledigte Aufgaben im Verlauf öffnen" onClick={()=>open('tasks')}>{completed.slice(0,3).map(task=><span key={task.id}><Check size={16}/><s>{task.title}</s></span>)}</button>}
     </section>
-    {homework.length>0&&<section className="mlh-homework" aria-label="Hausaufgaben"><header><BookOpenCheck size={17}/><h2>Hausaufgaben</h2></header><div className="mlh-task-stack">{homework.map(item=><article className={'mlh-homework-row'+(item.completed?' is-completed':'')} key={item.id}><button className="mlh-homework-check" role="checkbox" aria-checked={!!item.completed} aria-label={item.completed?`${item.title} wieder öffnen`:`${item.title} als erledigt markieren`} onClick={()=>onToggleHomework(item)}><i aria-hidden="true">{item.completed&&<Check size={12}/>}</i></button><button className="mlh-homework-open" aria-label={item.completed?`${item.title} wieder öffnen`:`${item.title} ansehen`} onClick={()=>item.completed?onToggleHomework(item):onPreviewAssessment(item)}><strong>{item.title}</strong><small>{formatDate(item.date,{weekday:'short',day:'numeric',month:'short'})}{item.from?` · ${item.from}`:''}</small></button></article>)}</div></section>}
-    <ExamTimeline data={data} semester={semester} module={active} onOpen={onPreviewAssessment}/>
+    {homework.length>0&&<section className="mlh-homework" aria-label="Hausaufgaben"><header><BookOpenCheck size={17}/><h2>Hausaufgaben</h2></header><div className="mlh-task-stack">{homework.map(item=><article className={'mlh-homework-row'+(item.completed?' is-completed':'')} key={item.id}><button className="mlh-homework-check" role="checkbox" aria-checked={!!item.completed} aria-label={item.completed?`${item.title} wieder öffnen`:`${item.title} als erledigt markieren`} onClick={()=>onToggleHomework(item)}><i aria-hidden="true">{item.completed&&<Check size={12}/>}</i></button><button className="mlh-homework-open" aria-label={item.completed?`${item.title} wieder öffnen`:`${item.title} ansehen`} onClick={()=>item.completed?onToggleHomework(item):onPreviewAssessment(item)}><strong>{item.title}</strong>{item.date&&<small>{formatDate(item.date,{weekday:'short',day:'numeric',month:'short'})}{item.from?` · ${item.from}`:''}</small>}</button></article>)}</div></section>}
+    <ExamTimeline data={data} semester={semester} module={active} onOpen={onPreviewAssessment} onToggle={onToggleHomework}/>
 
     {modal === 'modules' && <Overlay title="Deine Module" onClose={() => setModal(null)}><div className="mlh-module-overview">{visible.map((module,position)=><button key={module.id} className={position===safeIndex?'is-current':''} aria-current={position===safeIndex?'true':undefined} style={{'--module-color':module.color} as CSSProperties} onClick={()=>switchTo(position)}><i aria-hidden="true"/><span><strong>{module.name}</strong><small>{module.credits} LP</small></span><b>{scoreTotal(data.scoreEvents,module.id).toLocaleString('de-DE')}</b>{position===safeIndex?<Check size={18}/>:<ArrowRight size={18}/>}</button>)}</div><button className="mlh-overview-history" onClick={()=>open('history')}><History size={16}/> Aktivitäten von {active.name}</button></Overlay>}
     {modal === 'task' && <Overlay title="Neue Aufgabe" onClose={() => setModal(null)}><form className="mlh-form" onSubmit={event => { event.preventDefault(); if (!taskTitle.trim()) return; onAddTask(active.id, taskTitle.trim(), taskDate || undefined); setTaskTitle(''); setTaskDate(''); setModal(null) }}>

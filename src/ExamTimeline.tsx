@@ -1,11 +1,11 @@
 import type { CSSProperties } from 'react'
-import { ArrowUpRight, GraduationCap } from 'lucide-react'
+import { ArrowUpRight, Check, GraduationCap } from 'lucide-react'
 import { formatDate, fromDate, selectedAssessment, today, type AppData, type Assessment, type Semester, type StudyModule } from './model'
 
-type Props={data:AppData;semester?:Semester;module:StudyModule;onOpen:(exam:Assessment)=>void}
+type Props={data:AppData;semester?:Semester;module:StudyModule;onOpen:(exam:Assessment)=>void;onToggle:(exam:Assessment)=>void}
 const day=(value:string)=>fromDate(value).getTime()
 
-export default function ExamTimeline({data,semester,module,onOpen}:Props){
+export default function ExamTimeline({data,semester,module,onOpen,onToggle}:Props){
   if(!semester)return null
   const exams=data.assessments.filter(exam=>exam.semesterId===semester.id&&exam.type==='exam'&&selectedAssessment(exam,data.assessments)).sort((a,b)=>a.date.localeCompare(b.date))
   const own=exams.filter(exam=>exam.moduleId===module.id)
@@ -43,7 +43,7 @@ export default function ExamTimeline({data,semester,module,onOpen}:Props){
   const firstPhase=positionAt(start+(day(target.date)-start)/3),secondPhase=positionAt(start+(day(target.date)-start)*2/3)
   return <section className="mlh-exams" aria-label="Prüfungen und Semesterzeitstrahl">
     <header><GraduationCap size={17}/><h2>Prüfungen</h2></header>
-    <div className="mlh-exam-cards">{own.map(exam=><button key={exam.id} className={exam.completed?'is-completed':''} aria-label={exam.completed?`${exam.title}, erledigt`:exam.title} onClick={()=>onOpen(exam)}><span><strong>{exam.title}</strong><small>{formatDate(exam.date,{day:'numeric',month:'long'})}{exam.from?` · ${exam.from}`:''}</small></span><ArrowUpRight size={18}/></button>)}</div>
+    <div className="mlh-exam-cards">{own.map(exam=><article key={exam.id} className={'mlh-exam-row'+(exam.completed?' is-completed':'')}><button className="mlh-exam-check" role="checkbox" aria-checked={!!exam.completed} aria-label={exam.completed?exam.title+' wieder öffnen':exam.title+' als erledigt markieren'} onClick={()=>onToggle(exam)}><i>{exam.completed&&<Check size={12}/>}</i></button><button className="mlh-exam-open" aria-label={exam.title+' ansehen'} onClick={()=>onOpen(exam)}><span><strong>{exam.title}</strong><small>{formatDate(exam.date,{day:'numeric',month:'long'})}{exam.from?' · '+exam.from:''}</small></span><ArrowUpRight size={18}/></button></article>)}</div>
     <div className="mlh-timeline-heading"><h3>Dein Semester im Blick</h3><span>Grobe Orientierung bis {target.title}</span></div>
     <div className="mlh-timeline" style={{height:Math.max(260,totalHeight)} as CSSProperties}>
       <div className="mlh-timeline-axis" aria-hidden="true"><div className="mlh-timeline-phases"><i style={{height:`${firstPhase}%`}}/><i style={{height:`${secondPhase-firstPhase}%`}}/><i style={{height:`${targetPosition-secondPhase}%`}}/></div></div>

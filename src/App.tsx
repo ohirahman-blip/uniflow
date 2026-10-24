@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight, House } from 'lucide-react'
 import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, examVisibilityEnd, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
@@ -12,6 +12,8 @@ import { shiftCalendarMonth } from './calendar-month'
 import { adjacentCalendarPage, alignCalendarStart, datesForCalendarPage, twoDayRail, weekHeaderDates } from './calendar-navigation'
 import UniflowPicker from './UniflowPicker'
 import ModuleLearningHome from './ModuleLearningHome'
+import OverviewDashboard from './OverviewDashboard'
+import StudyUtilities from './StudyUtilities'
 import ProfileOverlay from './ProfileOverlay'
 import StreakCelebration from './StreakCelebration'
 import {applyScoreAwards,streakCount} from './streaks'
@@ -28,13 +30,14 @@ import './brand-theme.css'
 import './dark-refinement.css'
 import './form-controls.css'
 import './bigupdate-social.css'
+import './dashboard-update.css'
 
-type Page = 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
+type Page = 'overview' | 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
 const pageFromUrl = (userId?: string): Page => {
   let saved: string | null = null
   try { if(userId)saved=localStorage.getItem('uniflow-last-page:'+userId) } catch { /* Storage may be unavailable. */ }
   const requested = new URLSearchParams(window.location.search).get('page') || saved
-  return requested === 'calendar' ? requested : 'dashboard'
+  return requested === 'calendar'||requested==='overview' ? requested : 'dashboard'
 }
 /** Entitlements are checked elsewhere; this component is only a visual mark. */
 function BrandMark({premium,page,compact=false}:{premium:boolean;page:Page;compact?:boolean}){
@@ -351,7 +354,9 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
 }) {
   const [type,setType]=useState<'exam'|'homework'>(existing?.type||initial.type)
   const [title,setTitle]=useState(existing?.title||'')
-  const [date,setDate]=useState(existing?.date||initial.date)
+  const [date,setDate]=useState(existing?.date||initial.date||today())
+  const [hasDeadline,setHasDeadline]=useState(existing?!!existing.date:true)
+  const [notes,setNotes]=useState(existing?.notes||'')
   const [moduleId,setModuleId]=useState(existing?.moduleId||initial.moduleId||modules[0]?.id||'')
   const [picker,setPicker]=useState(false)
   const [hasTime,setHasTime]=useState(!!(existing ? existing.from : initial.type==='exam'))
@@ -362,9 +367,10 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
   const chosen=modules.find(m=>m.id===moduleId)
   const save=()=>{
     if (!title.trim()) return setErr('Gib bitte einen Titel ein.')
-    if (hasTime && minutes(to)<=minutes(from)) return setErr('Das Ende muss nach dem Beginn liegen.')
-    onSave({id:existing?.id||uid(),semesterId:semester.id,moduleId,type,title:title.trim(),date,
-      from:hasTime?from:undefined,to:hasTime?to:undefined,completed,componentId:existing?.componentId,selected:existing?.selected,weight:existing?.weight})
+    if ((type==='exam'||hasDeadline)&&!date) return setErr('Wähle bitte ein Datum aus.')
+    if ((type==='exam'||hasDeadline)&&hasTime && minutes(to)<=minutes(from)) return setErr('Das Ende muss nach dem Beginn liegen.')
+    onSave({id:existing?.id||uid(),semesterId:existing?.semesterId||semester.id,moduleId,type,title:title.trim(),date:type==='exam'||hasDeadline?date:'',notes:notes.trim()||undefined,
+      from:(type==='exam'||hasDeadline)&&hasTime?from:undefined,to:(type==='exam'||hasDeadline)&&hasTime?to:undefined,completed,componentId:existing?.componentId,selected:existing?.selected,weight:existing?.weight})
   }
   return <BottomSheet title={existing?'Eintrag bearbeiten':type==='exam'?'Neue Prüfung':'Neue Hausaufgabe'} onClose={onClose}
     footer={<button className="primary-action" onClick={save}>{existing?'Speichern':'Hinzufügen'}<Check size={18}/></button>}>
@@ -375,9 +381,11 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
       {picker&&<div className="module-dropdown"><div className="module-pick-list"><button onClick={()=>{setModuleId('');setPicker(false)}}>Ohne Modul</button>
         {modules.map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}</div></div>}
     </div>
-    <div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={type==='exam'?examVisibilityEnd(semester):semester.end} onChange={setDate}/>{type==='exam'&&<small className="setting-hint">Prüfungen können noch bis einen Monat nach Semesterende stattfinden.</small>}</div>
-    <div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>
-    {hasTime&&<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>}
+    {type==='homework'&&<div className="editor-field"><button className={'assessment-time-switch '+(hasDeadline?'enabled':'')} onClick={()=>setHasDeadline(value=>!value)}><CalendarDays size={17}/>{hasDeadline?'Abgabetermin angegeben':'Abgabetermin hinzufügen'}<span>{hasDeadline?'Entfernen':'Optional'}</span></button></div>}
+    {(type==='exam'||hasDeadline)&&<div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={type==='exam'?examVisibilityEnd(semester):semester.end} onChange={setDate}/>{type==='exam'&&<small className="setting-hint">Prüfungen können noch bis einen Monat nach Semesterende stattfinden.</small>}</div>}
+    {(type==='exam'||hasDeadline)&&<div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>}
+    {(type==='exam'||hasDeadline)&&hasTime&&<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>}
+    <label className="editor-field"><span className="field-label">Notizen · optional</span><textarea className="assessment-notes-input" rows={3} value={notes} onChange={event=>setNotes(event.target.value)} placeholder="Was möchtest du dir dazu merken?"/></label>
     {<button className={'assessment-check '+(completed?'completed':'')} onClick={()=>setCompleted(v=>!v)}><span>{completed?<Check size={15}/>:null}</span>{completed?'Erledigt':'Als erledigt markieren'}</button>}
     {existing&&onDelete&&<button className="danger-simple" onClick={onDelete}><Trash2 size={18}/> {type==='exam'?'Prüfung':'Hausaufgabe'} löschen</button>}
     {err&&<p className="inline-error" role="alert">{err}</p>}
@@ -396,7 +404,8 @@ function AssessmentPreview({item,module,onToggle,onEdit,onClose}:{
         {item.type==='exam'?'Prüfung':'Hausaufgabe'}</span>
       <h2>{item.title}</h2>
       {module&&<p>{module.name}</p>}
-      <p>{formDate(item.date)}{item.from?' · '+item.from+(item.to?'–'+item.to:'')+' Uhr':''}</p>
+      {item.date&&<p>{formDate(item.date)}{item.from?' · '+item.from+(item.to?'–'+item.to:'')+' Uhr':''}</p>}
+      {item.notes&&<p className="assessment-notes-copy">{item.notes}</p>}
       <button type="button" role="checkbox" aria-checked={!!item.completed}
         className={'assessment-check uf-assessment-preview-toggle '+(item.completed?'completed':'')}
         onClick={onToggle}>
@@ -671,6 +680,15 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const monthGesture=useRef<{x:number;y:number}|null>(null)
   const suppressMonthTap=useRef(0)
   const monthTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
+  const [assessmentDay,setAssessmentDay]=useState<string|null>(null)
+  useEffect(()=>setAssessmentDay(null),[anchor,mode,monthOpen,focusModuleId])
+  useEffect(()=>{
+    if(!assessmentDay)return
+    const dismiss=(event:PointerEvent)=>{if(!(event.target as Element).closest('.uf-assessment-picker,.uf-week-strip-assessments'))setAssessmentDay(null)}
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setAssessmentDay(null)}
+    document.addEventListener('pointerdown',dismiss);window.addEventListener('keydown',escape)
+    return()=>{document.removeEventListener('pointerdown',dismiss);window.removeEventListener('keydown',escape)}
+  },[assessmentDay])
   const [stripPreview,setStripPreview]=useState<string|null>(null)
   const weekGesture=useRef<{x:number;y:number}|null>(null)
   const suppressWeekTap=useRef(0)
@@ -683,12 +701,13 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const [fanPicked,setFanPicked] = useState<Occurrence|null>(null)
   const [walletContext,setWalletContext] = useState<{occ:Occurrence;x:number;y:number}|null>(null)
   useEffect(()=>{
-    if(!walletContext&&!fan&&!proposal&&!walletMove&&!monthOpen&&!focusOpen&&!taskMenu)return
+    if(!assessmentDay&&!walletContext&&!fan&&!proposal&&!walletMove&&!monthOpen&&!focusOpen&&!taskMenu)return
     const onBack=(event:Event)=>{
       const detail=(event as CustomEvent<{handled:boolean}>).detail
       if(detail?.handled)return
       detail.handled=true
-      if(walletContext)setWalletContext(null)
+      if(assessmentDay)setAssessmentDay(null)
+      else if(walletContext)setWalletContext(null)
       else if(fan)setFan(null)
       else if(proposal)setProposal(null)
       else if(walletMove)setWalletMove(null)
@@ -698,7 +717,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     }
     window.addEventListener('uniflow-back',onBack)
     return()=>window.removeEventListener('uniflow-back',onBack)
-  },[fan,focusOpen,monthOpen,proposal,taskMenu,walletContext,walletMove])
+  },[assessmentDay,fan,focusOpen,monthOpen,proposal,taskMenu,walletContext,walletMove])
   const walletRef=useRef<HTMLDivElement>(null)
   const [walletHeight,setWalletHeight]=useState(0)
   useLayoutEffect(()=>{
@@ -718,12 +737,13 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     document.addEventListener('keydown',esc,true)
     return()=>{document.removeEventListener('pointerdown',dismiss);document.removeEventListener('keydown',esc,true)}
   },[walletContext])
-  const [fanBoth,setFanBoth] = useState(false)
+  const [fanChoice,setFanChoice] = useState<'replace'|'both'|null>(null)
+  const fanBoth=fanChoice==='both'
   const lastCardTap=useRef<{key:string;at:number}|null>(null)
   const openFan=(occ:Occurrence)=>{
     if(fan?.occ.key===occ.key){setFan(null);return}
     setFan({occ,openedAt:Date.now()})
-    setFanPicked(occ);setFanBoth(false);setWalletContext(null)
+    setFanPicked(occ);setFanChoice(null);setWalletContext(null)
   }
   useEffect(()=>{
     if(!fan)return
@@ -1014,7 +1034,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
       lastCardTap.current=null;setFan(null);onEditOccurrence(occ);return
     }
     lastCardTap.current={key:occ.key,at:now}
-    setFanPicked(occ);setFanBoth(false)
+    setFanPicked(occ);setFanChoice(null)
   }
   const applyFanChoice=(scope:'single'|'future')=>{
     if(!fanPicked)return
@@ -1133,16 +1153,17 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
               {dayItems.length>0&&<div className="uf-week-strip-assessments">
                 {dayItems.slice(0,2).map(item=><button type="button" key={item.id}
                   title={item.title} aria-label={(item.type==='exam'?'Prüfung: ':'Hausaufgabe: ')+item.title}
-                  className={item.completed?'uf-week-assessment done':'uf-week-assessment'} onClick={e=>{e.stopPropagation();onPreviewAssessment(item)}}>
+                  className={item.completed?'uf-week-assessment done':'uf-week-assessment'} onClick={e=>{e.stopPropagation();if(dayItems.length>1)setAssessmentDay(value=>value===date?null:date);else onPreviewAssessment(item)}}>
                   {item.type==='exam'?<GraduationCap size={11}/>:<ClipboardList size={11}/>}
                 </button>)}
-                {dayItems.length>2&&<span className="uf-week-assessment-more">+{dayItems.length-2}</span>}
+                {dayItems.length>2&&<button className="uf-week-assessment-more" aria-label="Alle Prüfungen und Abgaben anzeigen" onClick={()=>setAssessmentDay(value=>value===date?null:date)}>+{dayItems.length-2}</button>}
               </div>}
             </div>
           })}
         </div>
       </div>
     </div>}
+    {assessmentDay&&<div className="uf-assessment-picker" role="group" aria-label="Prüfungen und Abgaben an diesem Tag"><header><strong>{formatDate(assessmentDay,{weekday:'short',day:'numeric',month:'short'})}</strong><button aria-label="Auswahl schließen" onClick={()=>setAssessmentDay(null)}><X size={16}/></button></header>{data.assessments.filter(item=>item.semesterId===semester.id&&item.date===assessmentDay&&selectedAssessment(item,data.assessments)&&(!focusModuleId||item.moduleId===focusModuleId)).map(item=><button key={item.id} className={item.completed?'is-completed':''} onClick={()=>{setAssessmentDay(null);onPreviewAssessment(item)}}>{item.type==='exam'?<GraduationCap size={16}/>:<ClipboardList size={16}/>}<span><strong>{item.title}</strong><small>{data.modules.find(module=>module.id===item.moduleId)?.name}{item.from?' · '+item.from:''}</small></span></button>)}</div>}
     </div>
     {monthOpen?<div className="uf-month-swipe" onPointerDown={onMonthPointerDown}
       onPointerUp={onMonthPointerUp} onPointerCancel={()=>{monthGesture.current=null}}
@@ -1205,8 +1226,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         {fanPicked&&<div className="wallet-actions" key={fanPicked.key}>
           {fanRateable&&<button className="wallet-review" onClick={()=>{const occurrence=fanPicked;setFan(null);if(occurrence)onRateOccurrence(occurrence)}}>Besuch eintragen</button>}
           <div className="wallet-action-title">{fanCancelled?'Ausnahme':fanSelected?'Termin ändern':'Gruppe auswählen'}{fanConflict&&!fanSelected&&!fanCancelled&&<small>Überschneidung im Stundenplan</small>}</div>
-          {!fanSelected&&!fanCancelled&&fanMain&&<div className="wallet-attendance"><button className={!fanBoth?'chosen':''} onClick={()=>setFanBoth(false)}>Wechseln</button><button className={fanBoth?'chosen':''} onClick={()=>setFanBoth(true)}>Beide besuchen</button></div>}
-          {fanSelected?<div className="wallet-scope"><button onClick={()=>{setWalletMove(fanPicked);setFan(null)}}>Verschieben</button><button className="wallet-cancel-visit" onClick={()=>{onCancelVisit(fanPicked);setFan(null)}}>Fällt ohne Ersatz aus</button></div>:!fanCancelled?<div className="wallet-scope"><button onClick={()=>applyFanChoice('single')}>{fanBoth?'Einmalig beide besuchen':fanMain?'Einmalig wechseln':'Einmalig besuchen'}</button>{fanPicked.offering.recurrence!=='once'&&<button onClick={()=>applyFanChoice('future')}>{fanBoth?'Ab jetzt beide besuchen':fanMain?'Ab jetzt wechseln':'Immer besuchen'}</button>}</div>:null}
+          {!fanSelected&&!fanCancelled&&fanMain&&<div className="wallet-choice-banners">{(['replace','both'] as const).map(choice=><div key={choice} className={'wallet-choice-banner'+(fanChoice===choice?' is-expanded':'')}>{fanChoice===choice?<><button onClick={()=>applyFanChoice('single')}>{choice==='both'?'Einmalig beide besuchen':'Einmalig wechseln'}</button>{fanPicked.offering.recurrence!=='once'&&<button onClick={()=>applyFanChoice('future')}>{choice==='both'?'Ab jetzt beide besuchen':'Ab jetzt wechseln'}</button>}<button className="wallet-choice-back" onClick={()=>setFanChoice(null)}>Zurück</button></>:<button onClick={()=>setFanChoice(choice)}>{choice==='both'?'Beide besuchen':'Wechseln'}</button>}</div>)}</div>}
+          {fanSelected?<div className="wallet-scope"><button onClick={()=>{setWalletMove(fanPicked);setFan(null)}}>Verschieben</button><button className="wallet-cancel-visit" onClick={()=>{onCancelVisit(fanPicked);setFan(null)}}>Fällt ohne Ersatz aus</button></div>:!fanCancelled&&!fanMain?<div className="wallet-scope"><button onClick={()=>applyFanChoice('single')}>{fanBoth?'Einmalig beide besuchen':fanMain?'Einmalig wechseln':'Einmalig besuchen'}</button>{fanPicked.offering.recurrence!=='once'&&<button onClick={()=>applyFanChoice('future')}>{fanBoth?'Ab jetzt beide besuchen':fanMain?'Ab jetzt wechseln':'Immer besuchen'}</button>}</div>:null}
           {fanPicked.offering.overrides?.[fanPicked.origin]?.scope==='single'&&<button className="wallet-reset" onClick={()=>{onRestoreVisit(fanPicked);setFan(null)}}><RotateCcw size={14}/> Einmalige Wahl zurücknehmen</button>}
           <button className="wallet-edit" onClick={()=>{setFan(null);onEditOccurrence(fanPicked)}}><Settings2 size={14}/> Bearbeiten</button>
         </div>}
@@ -1246,7 +1267,7 @@ export default function App() {
     if(page===next)return
     if(page==='calendar')window.dispatchEvent(new Event('uniflow-calendar-leave'))
     if(remember)pageHistory.current.push(page)
-    const order:Page[]=['dashboard','calendar','modules','settings','admin']
+    const order:Page[]=['overview','dashboard','calendar','modules','settings','admin']
     setPageDirection(order.indexOf(next)>order.indexOf(page)?'forward':'backward')
     // Root-level View Transitions captured the fixed bottom tab bar and briefly
     // placed it behind the switching page. Animate only the content instead.
@@ -1724,16 +1745,18 @@ export default function App() {
         <div className="setting-line"><span><strong>Feedback nach Terminen</strong><small>Fragt nach dem Ende einer Veranstaltung kurz nach.</small></span><button type="button" role="switch" aria-checked={data.notificationPreferences?.lessonFeedback||false} className={'settings-switch'+(data.notificationPreferences?.lessonFeedback?' is-on':'')} onClick={()=>void setNotificationPreference(!(data.notificationPreferences?.lessonFeedback||false))}><span/></button></div>
         <p className="quiet-copy">Auf iPhone und iPad funktioniert Push, wenn uniflow zum Home-Bildschirm hinzugefügt wurde.</p>
       </section><section className="settings-section"><h2>Stundenplan</h2><div className="setting-line"><span>Zeitraum</span><strong>00:00–24:00</strong></div><div className="setting-line"><span>Woche anzeigen bis</span><div className="inline-toggle week-end-toggle">{([{v:4,label:'Fr'},{v:5,label:'Sa'},{v:6,label:'So'}] as const).map(x=><button key={x.v} className={(data.weekEndDay??4)===x.v?'selected':''} onClick={()=>mutate(d=>({...d,weekEndDay:x.v}))}>{x.label}</button>)}</div></div><small className="setting-hint">Die Wochenansicht endet am gewählten Tag. Spätere Termine bleiben über die Tages- oder Zwei-Tage-Ansicht erreichbar.</small><small className="setting-hint">Der Zeitraum bleibt fest. Veranstaltungen werden minutengenau dargestellt.</small></section><section className="settings-section"><h2>Semester</h2><div className="semester-picker-list">{data.semesters.filter(s => s.degreeId === degree?.id).map(s => <button key={s.id} className={s.id === semester?.id ? 'current' : ''} onClick={() => { mutate(d => ({ ...d, activeSemesterId: s.id })); note(`${s.name} geöffnet.`) }}><span><strong>{s.name}</strong><small>{formDate(s.start)} – {formDate(s.end)}</small></span>{s.id === semester?.id && <Check size={18} />}</button>)}</div>{semester && <label className="setting-input"><span>Letzter Vorlesungstag</span><DateControl value={semester.lectureEnd} min={semester.start} max={semester.end} onChange={v => mutate(d => ({ ...d, semesters: d.semesters.map(s => s.id === semester.id ? { ...s, lectureEnd: v } : s) }))} /></label>}<button className="underlined-link" onClick={() => { if (!degree) return; const recent = data.semesters.filter(s => s.degreeId === degree.id).sort((a, b) => b.end.localeCompare(a.end))[0]; const start = recent ? addDays(recent.end, 1) : currentSemesterDates().start; const next = semesterFromStart(start); if (data.semesters.some(s => s.degreeId === degree.id && overlaps(s.start, s.end, next.start, next.end))) { note('Dieses Semester ist bereits vorhanden.'); return } const newSemester: Semester = { ...next, id: uid(), degreeId: degree.id, archived: false }; mutate(d => ({ ...d, semesters: [...d.semesters, newSemester], activeSemesterId: d.activeSemesterId })); note('Nächstes Semester gespeichert. Das aktuelle bleibt ausgewählt.') }}>Nächstes Semester hinzufügen <Plus size={17} /></button><div className="semester-management"><h3>Semester verwalten</h3>{data.semesters.filter(x=>x.degreeId===degree?.id).map(x=><div key={x.id} className="semester-manage-row"><span><strong>{x.name}</strong><small>{x.id===semester?.id?'Ausgewählt':x.start>today()?'Geplant':x.end<today()?'Vergangen':'Laufend'} · {formDate(x.start)} – {formDate(x.end)}</small></span><button aria-label={`${x.name} löschen`} onClick={()=>setConfirmDeleteSemester(x)}><Trash2 size={18}/></button></div>)}</div></section><section className="settings-section"><h2>Deine Daten</h2><button className="settings-action" onClick={saveBackup}><Download size={19} /> Backup herunterladen <ArrowRight size={17} /></button><button className="settings-action" onClick={() => fileRef.current?.click()}><Upload size={19} /> Backup importieren <ArrowRight size={17} /></button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => { void readBackup(e.target.files?.[0]); e.target.value = '' }} /><button className="settings-action settings-danger" onClick={() => setConfirmReset(true)}><RotateCcw size={19} /> Alles zurücksetzen <ArrowRight size={17} /></button><div className="cloud-account-state"><div><strong>unicloud</strong><small>{cloudStatus === 'synced' ? 'Alle Änderungen gespeichert' : cloudStatus === 'saving' ? 'Synchronisiere …' : cloudStatus === 'error' ? 'Synchronisierung fehlgeschlagen' : 'Verbunden'}</small></div>{cloudStatus === 'synced' ? <Check size={19}/> : <RefreshCw size={19}/>}</div>{cloudStatus === 'error' && <p className="auth-error">{cloudError}</p>}<button className="settings-action" disabled={cloudBusy || cloudStatus === 'saving'} onClick={() => void syncNow()}><RefreshCw size={19}/> Jetzt synchronisieren <ArrowRight size={17}/></button><button className="settings-action" onClick={() => void logOut()}><LogOut size={19}/> uniflow abmelden <ArrowRight size={17}/></button><p className="quiet-copy">Angemeldet als {user.email || user.id.slice(0,8) + '…'}. Deine Daten werden beim Öffnen geladen und bei Änderungen automatisch in unicloud gespeichert. Bei gleichzeitigen Änderungen auf mehreren Geräten kann der zuletzt gespeicherte Stand gewinnen.</p></section></div>)
-  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{ id: 'dashboard' as const, title: 'Lernen', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} /></span>{n.title}</button>)}</nav><div className="sidebar-profile">{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
-    <div className="app-main">{page!=='dashboard'&&<header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button></header>}
+  return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{ id: 'dashboard' as const, title: 'Lernen', icon: Layers2 }, {id:'overview' as const,title:'Dashboard',icon:House}, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} /></span>{n.title}</button>)}</nav><div className="sidebar-profile"><StudyUtilities days={data.streakDays} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))}/>{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
+    <div className="app-main">{page!=='dashboard'&&page!=='overview'&&<header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button></header>}
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
+      {page==='overview'&&<OverviewDashboard data={data} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onDeleteTask={deleteStudyTask} onGoal={goal=>mutate(d=>({...d,dailyScoreGoal:goal}))} onAssessment={item=>setPreviewAssessmentId(item.id)} onCalendar={occ=>{setFocusModuleId(occ.offering.moduleId);navigatePage('calendar')}}/>}
       {page === 'dashboard' && <ModuleLearningHome onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} data={data} semester={semester} modules={semesterModules}
         currentModuleId={currentModuleId}
         onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
         onToggleHomework={item=>{
           const completed=!item.completed
           mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed}:old)}))
-          note(completed?'Hausaufgabe erledigt.':'Hausaufgabe wieder geöffnet.',()=>mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed:!!item.completed}:old)})))
+          const label=item.type==='exam'?'Prüfung':'Hausaufgabe'
+          note(completed?label+' erledigt.':label+' wieder geöffnet.',()=>mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed:!!item.completed}:old)})))
         }}
         onActiveModuleChange={setActiveLearningModuleId}
         onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))}
@@ -1804,7 +1827,7 @@ export default function App() {
 
       </div>
     </div>
-    <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Lernen', icon: Layers2 }, { id: 'calendar', name: 'Stundenplan', icon: CalendarDays }] as const).map(item => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => navigatePage(item.id)}><span className="nav-icon-wrap"><item.icon size={21} /></span><span>{item.name}</span></button>)}</nav>
+    <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{ id: 'dashboard' as const, name: 'Lernen', icon: Layers2 }, {id:'overview' as const,name:'Dashboard',icon:House}, { id: 'calendar', name: 'Stundenplan', icon: CalendarDays }] as const).map(item => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => navigatePage(item.id)}><span className="nav-icon-wrap"><item.icon size={21} /></span><span>{item.name}</span></button>)}</nav>
     {profileOpen&&<ProfileOverlay data={data} settings={settingsContent} onClose={closeProfile} onProfileChange={name=>mutate(d=>({...d,profile:name}))} onModule={module=>{const target=data.semesters.find(s=>s.id===data.activeSemesterId&&module.semesterIds.includes(s.id))||data.semesters.filter(s=>module.semesterIds.includes(s.id)).sort((a,b)=>b.start.localeCompare(a.start))[0];mutate(d=>({...d,activeDegreeId:module.degreeId,activeSemesterId:target?.id||d.activeSemesterId}));setSelectedModuleId(module.id);navigatePage('modules')}}/>}
     {streakCelebration!==null&&<StreakCelebration count={streakCelebration} onClose={closeStreak}/>}
     {newModule&&<BottomSheet title="Neues Modul" onClose={()=>setNewModule(false)} footer={<button className="primary-action" onClick={saveNewModule}>Modul erstellen · +100 <Sparkles size={18}/></button>}>
@@ -1812,13 +1835,13 @@ export default function App() {
     </BottomSheet>}
     {assessmentDraft&&semester&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={semester} modules={semesterModules} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setAssessmentDraft(null);note(assessment.type==='exam'?'Prüfung hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
     {previewAssessment&&<AssessmentPreview item={previewAssessment}
-      module={semesterModules.find(m=>m.id===previewAssessment.moduleId)}
+      module={data.modules.find(m=>m.id===previewAssessment.moduleId)}
       onClose={()=>setPreviewAssessmentId(null)}
       onToggle={()=>mutate(d=>({...d,assessments:d.assessments.map(item=>
         item.id===previewAssessment.id?{...item,completed:!item.completed}:item)}))}
       onEdit={()=>{setEditingAssessment(previewAssessment);setPreviewAssessmentId(null)}}/>}
     {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={semester} modules={semesterModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
-    {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Prüfung löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“ am {formDate(deletingAssessment.date)} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>{const remaining=d.assessments.filter(x=>x.id!==deletingAssessment.id);return {...d,assessments:remaining}});setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
+    {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Prüfung löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“{deletingAssessment.date?' am '+formDate(deletingAssessment.date):''} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>{const remaining=d.assessments.filter(x=>x.id!==deletingAssessment.id);return {...d,assessments:remaining}});setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
     {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { const now=new Date().toISOString(); mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }],scoreEvents:[...(d.scoreEvents||[]),makeScoreEvent({id:`module-created:${id}`,moduleId:id,type:'module-created',basePoints:SCORE_RULES.moduleCreated,occurredAt:now,sourceId:id,label:'Startbonus'})] })); note('Modul hinzugefügt · +100 Startpunkte') } return id }} />}
     {ratingLesson&&ratingOccurrence&&<BottomSheet title="Check-in" onClose={()=>setRatingOccurrence(null)} compactHeader
       headerAction={<button type="button" className="sheet-header-save" onClick={saveRatingDraft}>Speichern</button>}>
