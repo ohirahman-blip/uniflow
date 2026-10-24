@@ -92,3 +92,4 @@
 .screen-calendar .has-open-course .snap-viewport .snap-pages{will-change:auto;transform:none!important;animation:none!important;opacity:1;isolation:auto;z-index:auto}
 .screen-calendar .has-open-course :is(.snap-page,.days-grid,.day-column,.day-track){isolation:auto;z-index:auto}
 .screen-calendar .has-open-course .course-expanded{z-index:100}
+.screen-calendar .has-open-course .calendar-course-expansion{z-index:100;background:#080808}
