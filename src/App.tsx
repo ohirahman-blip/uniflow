@@ -673,7 +673,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const [proposal,setProposal]=useState<MoveProposal|null>(null),[walletMove,setWalletMove]=useState<Occurrence|null>(null),[dragUI,setDragUI]=useState<MoveProposal|null>(null),[pressed,setPressed]=useState('')
   const [focusOpen,setFocusOpen]=useState(false),[taskMenu,setTaskMenu]=useState(false),[clockNow,setClockNow]=useState(()=>new Date())
   const [motion,setMotion] = useState<'idle'|'exit-left'|'exit-right'|'exit-switch'|'enter'>('idle')
-  type FanState = { occ:Occurrence; rect:{left:number;top:number;width:number;height:number}; openedAt:number }
+  type FanState = { occ:Occurrence; openedAt:number }
   const [fan,setFan] = useState<FanState|null>(null)
   const [fanPicked,setFanPicked] = useState<Occurrence|null>(null)
   const [walletContext,setWalletContext] = useState<{occ:Occurrence;x:number;y:number}|null>(null)
@@ -695,6 +695,16 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     return()=>window.removeEventListener('uniflow-back',onBack)
   },[fan,focusOpen,monthOpen,proposal,taskMenu,walletContext,walletMove])
   const walletRef=useRef<HTMLDivElement>(null)
+  const [walletHeight,setWalletHeight]=useState(0)
+  useLayoutEffect(()=>{
+    if(!fan||!walletRef.current)return
+    const element=walletRef.current
+    const measure=()=>setWalletHeight(previous=>{const next=Math.ceil(element.getBoundingClientRect().height);return next===previous?previous:next})
+    measure()
+    const observer=new ResizeObserver(measure)
+    observer.observe(element)
+    return()=>observer.disconnect()
+  },[fan,fanPicked,monthOpen])
   useEffect(()=>{
     if(!walletContext)return
     const dismiss=(e:PointerEvent)=>{if(!(e.target as Element).closest('.wallet-context-menu'))setWalletContext(null)}
@@ -705,11 +715,10 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   },[walletContext])
   const [fanBoth,setFanBoth] = useState(false)
   const lastCardTap=useRef<{key:string;at:number}|null>(null)
-  const openFan=(occ:Occurrence,el:HTMLElement)=>{
-    const r=el.getBoundingClientRect()
-    const parent=el.closest('.calendar-page')!.getBoundingClientRect()
-    setFan({occ,rect:{left:r.left-parent.left,top:r.top-parent.top,width:r.width,height:r.height},openedAt:Date.now()})
-    setFanPicked(null);setFanBoth(false);setWalletContext(null)
+  const openFan=(occ:Occurrence)=>{
+    if(fan?.occ.key===occ.key){setFan(null);return}
+    setFan({occ,openedAt:Date.now()})
+    setFanPicked(occ);setFanBoth(false);setWalletContext(null)
   }
   useEffect(()=>{
     if(!fan)return
@@ -787,6 +796,12 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const heightPerSlot=mode==='week'?82:114
   const height=times.length*heightPerSlot
   const offsetY=(time:string)=>minutes(time)/120*heightPerSlot
+  const insertionY=fan?Math.min(height,offsetY(fan.occ.to)):Infinity
+  const expansionHeight=fan?walletHeight+24:0
+  const timelineHeight=height+expansionHeight
+  const timelineY=(position:number)=>position+(position>=insertionY?expansionHeight:0)
+  const courseEndY=(position:number)=>position+(position>insertionY?expansionHeight:0)
+  const walletAccent=modules.find(module=>module.id===fan?.occ.offering.moduleId)?.color||'#a296ff'
   const nowY=offsetY(timeString(clockNow.getHours()*60+clockNow.getMinutes()))
   // Reset to the center window before the browser paints the new anchor.
   useLayoutEffect(()=>{
@@ -943,7 +958,9 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     if(!column)return undefined
     const date=column.dataset.calendarDay||''
     const rect=column.getBoundingClientRect()
-    const relative=Math.max(0,Math.min(rect.height-1,y-rect.top))
+    let relative=Math.max(0,Math.min(rect.height-1,y-rect.top))
+    if(fan&&relative>=insertionY&&relative<insertionY+expansionHeight)return undefined
+    if(relative>=insertionY+expansionHeight)relative-=expansionHeight
     const rowIndex=Math.floor(relative/heightPerSlot)
     const from=timeString((rowIndex*2)*60)
     return {date,from,to:timeString((rowIndex*2+2)*60)}
@@ -1007,9 +1024,10 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     const isToday=date===today()
     const clockActive=isToday&&nowY>=0&&nowY<=height
     return <div className="day-column" key={date}>
-      <div className="day-track" data-calendar-day={date} style={{height}}>
+      <div className="day-track" data-calendar-day={date} style={{height:timelineHeight}}>
+        {events.length>0&&<div className="course-time-thread" aria-hidden="true" style={{top:timelineY(Math.min(...events.map(item=>offsetY(item.from)))),height:Math.max(0,courseEndY(Math.max(...events.map(item=>offsetY(item.to))))-timelineY(Math.min(...events.map(item=>offsetY(item.from)))))}}/>}
         {times.map((h,i)=>{const from=timeString(h*60),to=timeString((h+2)*60)
-          return <div key={from} className="empty-slot" data-day={date} data-time={from} style={{height:heightPerSlot,top:i*heightPerSlot}}
+          return <div key={from} className="empty-slot" data-day={date} data-time={from} style={{height:courseEndY((i+1)*heightPerSlot)-timelineY(i*heightPerSlot),top:timelineY(i*heightPerSlot)}}
             onClick={()=>onNew({date,from,to})}
             aria-label={`${formDate(date)} ${from}–${to}, antippen zum Hinzufügen`}><Plus size={14}/></div>
         })}
@@ -1025,14 +1043,18 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
           const rateable=past&&!!occ.offering.moduleId&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'
           const checkin=rateable?(data.learningCheckins||[]).find(item=>item.key===lessonKeyForOccurrence(occ)):undefined
           const rated=!!checkin&&(checkin.attended??checkin.rating!=='absent')
-          const style:CSSProperties={top:start,height:Math.max(2,end-start),background:inactive?'#29292b':module?.color||'#A5A5A5',left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`}
+          const style:CSSProperties={top:timelineY(start)+Math.min(4,(end-start)/4),height:Math.max(2,courseEndY(end)-timelineY(start)-Math.min(8,(end-start)/2)),background:inactive?'#29292b':module?.color||'#A5A5A5',left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`}
+          if(fan&&start<insertionY&&end>insertionY){
+            const cutTop=insertionY-timelineY(start)-Math.min(4,(end-start)/4),cutBottom=cutTop+expansionHeight
+            style.clipPath=`polygon(0 0,100% 0,100% ${cutTop}px,0 ${cutTop}px,0 ${cutBottom}px,100% ${cutBottom}px,100% 100%,0 100%)`
+          }
           return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
-            className={'course '+(inactive?'course-inactive ':'')+(occ.cancelled?'course-cancelled ':'')+(numberOfAlternatives?'course-stacked ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
+            aria-expanded={fan?.occ.key===occ.key} className={'course '+(fan?.occ.key===occ.key?'course-expanded ':'')+(inactive?'course-inactive ':'')+(occ.cancelled?'course-cancelled ':'')+(numberOfAlternatives?'course-stacked ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
             style={style} onPointerDown={e=>{e.stopPropagation();if(!inactive&&!occ.cancelled)onDown(e,occ)}} onPointerMove={onMove}
             onPointerUp={e=>{e.stopPropagation();onUp(e)}} onPointerCancel={cancelGesture}
-            onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ,e.currentTarget as HTMLElement)}}
+            onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ)}}
             onContextMenu={e=>{e.preventDefault();e.stopPropagation();setFan(null);setWalletContext({occ,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
-            onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(occ)}} onKeyDown={e=>{if(e.key==='Enter')openFan(occ,e.currentTarget as HTMLElement)}}>
+            onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(occ)}} onKeyDown={e=>{if(e.key==='Enter')openFan(occ)}}>
             <div className="course-head"><strong className="course-title">{isAssessment(occ.offering.category)?<span className="course-kind-icon">{/klausur|prüfung/i.test(occ.offering.category)?<GraduationCap size={compact?12:16}/>:<ClipboardList size={compact?12:16}/>}</span>:null}{module?.emoji?<span className="course-emoji">{module.emoji}</span>:null}{compact?module?.shortName||acronym(occ.offering.name):module?.name||occ.offering.name}</strong>
               {(singleVisitLabel(occ)||numberOfAlternatives>0)&&<span className="course-head-badges">
                 {singleVisitLabel(occ)&&<span className="course-recurrence" title={singleVisitLabel(occ)==='Einmalig'?'Nur einmaliger Termin':'Einmalige Ausnahme'}>{compact?'x1':singleVisitLabel(occ)}</span>}
@@ -1052,7 +1074,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             </button>}
           </div>
         })}
-        {clockActive&&<div className="now-day-line" style={{top:nowY}} aria-hidden="true"/>}
+        {clockActive&&<div className="now-day-line" style={{top:timelineY(nowY)}} aria-hidden="true"/>}
       </div>
     </div>
   }
@@ -1145,8 +1167,8 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     </div>
     :<div className={"calendar-lanes calendar-lanes-"+mode+" calendar-motion-"+motion}>
       <div className="time-ruler"><button className="ruler-head" title="Heute" onClick={()=>setAnchor(today())}>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'})}</button>
-        <div className="ruler-track" style={{height}}>{times.map((h,i)=><span key={h} style={{top:i*heightPerSlot}}>{String(h).padStart(2,'0')}:00</span>)}<span style={{top:height}}>24:00</span>
-          {visibleDays(pages[1]).includes(today())&&nowY>=0&&nowY<=height&&<div className="now-ruler-line" style={{top:nowY}} aria-hidden="true"/>}
+        <div className="ruler-track" style={{height:timelineHeight}}>{times.map((h,i)=><span key={h} style={{top:timelineY(i*heightPerSlot)}}>{String(h).padStart(2,'0')}:00</span>)}<span style={{top:timelineHeight}}>24:00</span>
+          {visibleDays(pages[1]).includes(today())&&nowY>=0&&nowY<=height&&<div className="now-ruler-line" style={{top:timelineY(nowY)}} aria-hidden="true"/>}
         </div>
       </div>
       <div className={'snap-viewport'+(mode==='two'?' snap-two-view':'')} ref={scroller} onScroll={onScroll}>
@@ -1160,14 +1182,11 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             })}</div>
         }
       </div>
-    </div>}
-    {dragUI&&createPortal(<div className="drag-overlay wallet-drag-badge"><Grip size={16}/>{dragUI.occ.offering.name} · {dragUI.from}</div>,document.body)}
-    {proposal&&<MoveScope proposal={proposal} onClose={()=>setProposal(null)} onConfirm={confirmScope} mode="move"/>}
-    {fan && <div className="calendar-inline-wallet" style={{top:fan.rect.top,left:Math.max(0,Math.min(fan.rect.left,Math.max(0,document.documentElement.clientWidth-370)))}}>
+    {fan && <div className="calendar-course-expansion" style={{top:insertionY+8,'--wallet-accent':walletAccent} as CSSProperties}>
       <div ref={walletRef} className="wallet-fan" role="region" aria-label="Veranstaltungsgruppen">
-        <div className="wallet-fan-head"><span>Veranstaltungen · {fanItems.length}</span><button aria-label="Stapel schließen" onClick={()=>setFan(null)}><X size={17}/></button></div>
+        <div className="wallet-fan-head"><span><strong>{modules.find(module=>module.id===fan.occ.offering.moduleId)?.name||fan.occ.offering.name}</strong><small>{formatDate(fan.occ.date,{weekday:'short',day:'numeric',month:'short'})} · {fan.occ.from}–{fan.occ.to}{fanItems.length>1?` · ${fanItems.length-1} Alternativen`:''}</small></span><button aria-label="Stapel schließen" onClick={()=>setFan(null)}><X size={17}/></button></div>
         <div className="wallet-cards">
-        {fanItems.map((item,i)=>{
+        {fanItems.slice(1).map((item,i)=>{
           const selected=!!occurrenceAtOrigin(item.offering,item.origin,false)
           const module=modules.find(m=>m.id===item.offering.moduleId)
           const equivalent=sameContent(item.offering,fan.occ.offering)
@@ -1196,6 +1215,9 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         </div>}
       </div>
     </div>}
+    </div>}
+    {dragUI&&createPortal(<div className="drag-overlay wallet-drag-badge"><Grip size={16}/>{dragUI.occ.offering.name} · {dragUI.from}</div>,document.body)}
+    {proposal&&<MoveScope proposal={proposal} onClose={()=>setProposal(null)} onConfirm={confirmScope} mode="move"/>}
     {walletMove&&<MoveVisitEditor occ={walletMove} onClose={()=>setWalletMove(null)} onConfirm={next=>{setWalletMove(null);setProposal(next)}}/>}
     {walletContext&&createPortal(<div className="wallet-context-menu" role="menu" aria-label="Terminaktionen" style={{left:walletContext.x,top:walletContext.y}}
       onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
