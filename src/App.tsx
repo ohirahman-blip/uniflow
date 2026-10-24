@@ -699,6 +699,9 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     window.addEventListener('uniflow-back',onBack)
     return()=>window.removeEventListener('uniflow-back',onBack)
   },[fan,focusOpen,monthOpen,proposal,taskMenu,walletContext,walletMove])
+  const calendarRoot=useRef<HTMLElement>(null)
+  const focusedAnchor=useRef<HTMLDivElement>(null)
+  const [focusedRect,setFocusedRect]=useState<{top:number;left:number;width:number;height:number}|null>(null)
   const walletRef=useRef<HTMLDivElement>(null)
   const [walletHeight,setWalletHeight]=useState(0)
   useLayoutEffect(()=>{
@@ -710,6 +713,20 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
     observer.observe(element)
     return()=>observer.disconnect()
   },[fan,fanPicked,monthOpen])
+  useLayoutEffect(()=>{
+    if(!fan||monthOpen||!focusedAnchor.current||!calendarRoot.current)return
+    const anchor=focusedAnchor.current,root=calendarRoot.current
+    const position=()=>{
+      const rect=anchor.getBoundingClientRect(),parent=root.getBoundingClientRect()
+      const next={top:rect.top-parent.top,left:rect.left-parent.left,width:rect.width,height:rect.height}
+      setFocusedRect(previous=>previous&&Object.keys(next).every(key=>previous[key as keyof typeof next]===next[key as keyof typeof next])?previous:next)
+    }
+    position()
+    const observer=new ResizeObserver(position)
+    observer.observe(anchor);observer.observe(root)
+    window.addEventListener('resize',position)
+    return()=>{observer.disconnect();window.removeEventListener('resize',position)}
+  },[fan,monthOpen])
   useEffect(()=>{
     if(!walletContext)return
     const dismiss=(e:PointerEvent)=>{if(!(e.target as Element).closest('.wallet-context-menu'))setWalletContext(null)}
@@ -722,6 +739,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const lastCardTap=useRef<{key:string;at:number}|null>(null)
   const openFan=(occ:Occurrence)=>{
     if(fan?.occ.key===occ.key){setFan(null);return}
+    setFocusedRect(null)
     setFan({occ,openedAt:Date.now()})
     setFanPicked(occ);setFanBoth(false);setWalletContext(null)
   }
@@ -1006,8 +1024,6 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
   const fanMain=fanPicked ? findMainForInactive(data.offerings,fanPicked) : null
   const fanConflict=fanPicked ? occurrencesOn(data.offerings,fanPicked.date)
     .some(other=>other.key!==fanPicked.key && intersects(other,fanPicked)) : false
-  const fanCheckin=fanPicked?(data.learningCheckins||[]).find(item=>item.key===lessonKeyForOccurrence(fanPicked)):undefined
-  const fanAttended=!!fanCheckin&&(fanCheckin.attended??fanCheckin.rating!=='absent')
   const fanRateable=!!fanPicked&&fanSelected&&!fanCancelled&&!!fanPicked.offering.moduleId&&!isAssessment(fanPicked.offering.category)&&fanPicked.offering.category!=='Freies Lernen'&&canRateOccurrence(fanPicked)
   const onFanTap=(occ:Occurrence)=>{
     const now=Date.now()
@@ -1052,9 +1068,11 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             const cutTop=insertionY-timelineY(start)-Math.min(4,(end-start)/4),cutBottom=cutTop+expansionHeight
             style.clipPath=`polygon(0 0,100% 0,100% ${cutTop}px,0 ${cutTop}px,0 ${cutBottom}px,100% ${cutBottom}px,100% 100%,0 100%)`
           }
-          return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
+          const expanded=fan?.occ.key===occ.key
+          const courseStyle=expanded&&focusedRect?{...style,...focusedRect,zIndex:100}:style
+          const card=<div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
             aria-expanded={fan?.occ.key===occ.key} className={'course '+(fan?.occ.key===occ.key?'course-expanded ':'')+(inactive?'course-inactive ':'')+(occ.cancelled?'course-cancelled ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
-            style={style} onPointerDown={e=>{e.stopPropagation();if(!inactive&&!occ.cancelled)onDown(e,occ)}} onPointerMove={onMove}
+            style={courseStyle} onPointerDown={e=>{e.stopPropagation();if(!inactive&&!occ.cancelled)onDown(e,occ)}} onPointerMove={onMove}
             onPointerUp={e=>{e.stopPropagation();onUp(e)}} onPointerCancel={cancelGesture}
             onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ)}}
             onContextMenu={e=>{e.preventDefault();e.stopPropagation();setFan(null);setWalletContext({occ,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
@@ -1071,12 +1089,14 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
             {placeLabel(occ.offering)&&<span className="course-place"><span title={placeLabel(occ.offering)}>{placeLabel(occ.offering)}</span></span>}
 
           </div>
+          if(expanded)return <div key={occ.key} ref={focusedAnchor} className="course-position-anchor" style={style} aria-hidden="true">{focusedRect&&calendarRoot.current?createPortal(<div className={'course-focus-layer mode-'+mode}>{card}</div>,calendarRoot.current):null}</div>
+          return card
         })}
         {clockActive&&<div className="now-day-line" style={{top:timelineY(nowY)}} aria-hidden="true"/>}
       </div>
     </div>
   }
-  return <section className={'calendar-page'+(fan&&!monthOpen?' has-open-course':'')}>
+  return <section ref={calendarRoot} className={'calendar-page'+(fan&&!monthOpen?' has-open-course':'')}>
     {/* Keep the toolbar, date strip and their menus inside one sticky stacking
         context while the timetable scrolls underneath. */}
     <div className="calendar-sticky-header">
@@ -1205,7 +1225,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onNe
         })}
         </div>
         {fanPicked&&<div className="wallet-actions" key={fanPicked.key}>
-          {fanRateable&&<button className="wallet-review" onClick={()=>{const occurrence=fanPicked;setFan(null);if(occurrence)onRateOccurrence(occurrence)}}>{fanAttended?'Besuch & Verständnis ändern':'Besuch & Verständnis eintragen'}</button>}
+          {fanRateable&&<button className="wallet-review" onClick={()=>{const occurrence=fanPicked;setFan(null);if(occurrence)onRateOccurrence(occurrence)}}>Besuch eintragen</button>}
           <div className="wallet-action-title">{fanCancelled?'Ausnahme':fanSelected?'Termin ändern':'Gruppe auswählen'}{fanConflict&&!fanSelected&&!fanCancelled&&<small>Überschneidung im Stundenplan</small>}</div>
           {!fanSelected&&!fanCancelled&&fanMain&&<div className="wallet-attendance"><button className={!fanBoth?'chosen':''} onClick={()=>setFanBoth(false)}>Wechseln</button><button className={fanBoth?'chosen':''} onClick={()=>setFanBoth(true)}>Beide besuchen</button></div>}
           {fanSelected?<div className="wallet-scope"><button onClick={()=>{setWalletMove(fanPicked);setFan(null)}}>Verschieben</button><button className="wallet-cancel-visit" onClick={()=>{onCancelVisit(fanPicked);setFan(null)}}>Fällt ohne Ersatz aus</button></div>:!fanCancelled?<div className="wallet-scope"><button onClick={()=>applyFanChoice('single')}>{fanBoth?'Einmalig beide besuchen':fanMain?'Einmalig wechseln':'Einmalig besuchen'}</button>{fanPicked.offering.recurrence!=='once'&&<button onClick={()=>applyFanChoice('future')}>{fanBoth?'Ab jetzt beide besuchen':fanMain?'Ab jetzt wechseln':'Immer besuchen'}</button>}</div>:null}
