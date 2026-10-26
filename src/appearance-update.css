@@ -1,5 +1,5 @@
 /* Calm learning surface. Module colours remain accents, never a backdrop. */
-.app-root:has(.mlh-home,.mlh-empty) .app-main::before{display:none!important}
+.app-root:has(.mlh-home,.mlh-empty,.overview-dashboard) .app-main::before{display:none!important}
 .mlh-home{background:none!important}.mlh-glow{display:none!important}
 .mlh-module-head div>i{box-shadow:none!important}
 .mlh-module-head h1,.mlh-task,.mlh-exam-cards>*{animation:none!important}
@@ -153,3 +153,26 @@ html[data-theme='light'] .mlh-score-banner .mlh-actions>button:focus-visible{bac
 html[data-theme='light'] .overview-advice{background:#20212603;border-color:#20212620;color:#202126}
 html[data-theme='light'] .overview-advice>footer>span:first-child{color:#55515d!important}
 @media(max-width:420px){.overview-advice{padding:19px}.overview-advice h2{font-size:17px}}
+
+/* Quiet live-course atmosphere, behind content rather than a status badge. */
+.study-live-ambient{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:paint;opacity:var(--live-opacity,1);animation:live-ambient-appear 1.8s ease both}
+.study-live-ambient::before,.study-live-ambient::after{content:'';position:absolute;inset:-18%;pointer-events:none}
+.study-live-ambient::before{background:radial-gradient(ellipse 50% 45% at 24% 23%,color-mix(in srgb,var(--live-accent) 17%,transparent),transparent 85%),radial-gradient(ellipse 48% 42% at 77% 65%,color-mix(in srgb,var(--live-accent) 9%,transparent),transparent 85%);animation:live-ambient-drift 28s ease-in-out infinite alternate}
+.study-live-ambient::after{background:radial-gradient(ellipse 40% 36% at 68% 25%,color-mix(in srgb,var(--live-accent) 8%,transparent),transparent 90%);animation:live-ambient-drift 37s ease-in-out -12s infinite alternate-reverse;opacity:.7}
+.app-root.has-live-session :is(.overview-dashboard,.mlh-home){background:transparent!important}
+html[data-theme='light'] .study-live-ambient{--live-opacity:.7}
+@keyframes live-ambient-appear{from{opacity:0}to{opacity:var(--live-opacity,1)}}
+@keyframes live-ambient-drift{0%{transform:translate3d(-3%,-2%,0) scale(1)}50%{transform:translate3d(4%,2%,0) scale(1.06)}100%{transform:translate3d(-1%,5%,0) scale(1.02)}}
+@media(prefers-reduced-motion:reduce){.study-live-ambient,.study-live-ambient::before,.study-live-ambient::after{animation:none!important}}
+
+/* Field values follow the palette even where Safari enforces text fill. */
+html[data-theme='light']{--uf-field-text:#202126}
+html[data-theme='light'] body .profile-panel :is(.number-setting input,.setting-input input,.setting-input-plain input,.profile-name input){color:#202126!important;-webkit-text-fill-color:#202126!important;caret-color:#202126;color-scheme:light}
+html[data-theme='light'] body .profile-panel input::placeholder{color:#20212666!important;-webkit-text-fill-color:#20212666!important}
+
+/* Keep the Today action in its outer toolbar, without another pill inside. */
+.app-root .calendar-page .calendar-tools>.calendar-today{background:transparent!important;border:0!important;border-radius:0;box-shadow:none!important}
+
+/* Preserve native elastic edge feedback without moving the fixed navigation. */
+html,body{overscroll-behavior-y:auto}
+:is(.sheet-body,.mlh-sheet,.profile-body,.uf-picker-choices,.uf-picker-scroll,.wallet-cards){overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}

@@ -171,7 +171,6 @@ export default function ModuleLearningHome({ onProfile, onStreak, data, semester
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className={'screen mlh-home'+(firstOpen?' mlh-first-open':'')} style={accent} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
     {utility}<div className="mlh-glow" aria-hidden="true" />
-    {active.id===currentModuleId&&<div className="mlh-current-banner"><i/>Jetzt gerade</div>}
     <header className="mlh-module-head">
       <button disabled={safeIndex === 0} onClick={() => switchTo(safeIndex - 1)} aria-label="Vorheriges Modul"><ArrowLeft size={21} /></button>
       <div><h1 key={active.id}>{active.name}</h1><i aria-hidden="true" /></div>

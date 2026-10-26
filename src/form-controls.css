@@ -2,6 +2,7 @@
    the same mobile metrics; 16px also avoids Safari zooming text inputs alone. */
 :root{
   --uf-field-font:13px;
+  --uf-field-text:var(--uf-color-text,#f0f0f5);
   --uf-field-height:46px;
   --uf-field-radius:14px;
   --uf-field-padding:12px;
@@ -30,8 +31,8 @@ body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen)
   line-height:1.3!important;
   letter-spacing:normal!important;
   text-transform:none!important;
-  color:#f0f0f5!important;
-  -webkit-text-fill-color:#f0f0f5!important;
+  color:var(--uf-field-text)!important;
+  -webkit-text-fill-color:var(--uf-field-text)!important;
   -webkit-text-size-adjust:100%;
   text-size-adjust:100%;
   transition:border-color 180ms ease,background-color 180ms ease;
