@@ -26,8 +26,8 @@ html[data-theme='light'] .pixel-score-display{background:color-mix(in srgb,var(-
 .learning-sticky-header.is-visible{opacity:1;visibility:visible;transform:translateY(0)}
 .learning-sticky-header>div{display:flex;align-items:center;justify-content:center;gap:0;max-width:900px;min-height:60px;margin:auto}
 .learning-sticky-header .learning-sticky-title{min-width:0;flex:0 1 auto;font-size:14px;font-weight:500;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
-.learning-sticky-header button{flex:0 1 auto;max-width:0;opacity:0;overflow:hidden;padding:0;border:0;background:transparent;color:var(--mlh-accent);font-family:StudyPixel,monospace;font-size:12px;white-space:nowrap;transform:translateY(8px);transition:max-width 350ms ease,opacity 220ms ease,transform 350ms ease}
-.learning-sticky-header.has-score button{max-width:55%;opacity:1;transform:translateY(0);padding:12px 2px 12px 24px}
+.learning-sticky-header button{flex:0 1 auto;max-width:0;opacity:0;overflow:hidden;padding:12px 0;border:0;background:transparent;color:var(--mlh-accent);font-family:StudyPixel,monospace;font-size:12px;white-space:nowrap;transform:translateY(8px);transition:max-width 450ms cubic-bezier(.22,.8,.2,1),padding 450ms cubic-bezier(.22,.8,.2,1),opacity 180ms ease,transform 350ms ease}
+.learning-sticky-header.is-visible.has-score button{max-width:55%;opacity:1;transform:translateY(0);padding:12px 2px 12px 24px;transition:max-width 450ms cubic-bezier(.22,.8,.2,1) 340ms,padding 450ms cubic-bezier(.22,.8,.2,1) 340ms,opacity 260ms ease 440ms,transform 450ms cubic-bezier(.22,.8,.2,1) 340ms}
 .learning-sticky-header .mlh-score-number{position:relative;display:block;transform:scale(1);transform-origin:center;transition:transform 520ms cubic-bezier(.22,.8,.2,1),filter 700ms ease}
 .learning-sticky-header .mlh-score-number strong{display:block;font:inherit;line-height:1.5;letter-spacing:0;color:var(--mlh-accent)}
 .learning-sticky-header .mlh-score-number>i{right:calc(100% + 4px);font-family:StudyPixel,monospace;font-size:10px}
