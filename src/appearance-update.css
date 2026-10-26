@@ -173,6 +173,12 @@ html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-too
 html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today:hover,
 html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today:active{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important}
 
+/* Give mobile controls breathing room without exposing the scrolled calendar
+   above the sticky header, including in installed home-screen mode. */
+@media(max-width:720px){
+  .app-root .screen-calendar .calendar-sticky-header{padding-top:10px}
+}
+
 /* Cover the entire iOS status-bar inset in installed mode. The browser's
    already-correct sticky offsets are intentionally left untouched. */
 @media(max-width:720px) and (display-mode:standalone),(max-width:720px) and (display-mode:fullscreen){
