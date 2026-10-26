@@ -8,6 +8,15 @@
 .pixel-score-display .mlh-score-number>i{left:auto;right:calc(100% + 4px);font-family:StudyPixel,monospace;font-size:12px}
 .mlh-score-banner .mlh-score .pixel-score-display .is-rising strong{color:#70ef9b!important;-webkit-text-fill-color:#70ef9b!important}
 .pixel-console-speaker{display:none}
+/* Quiet CRT texture stays inside the display; controls and sticky score stay clean. */
+.pixel-score-display::before{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;background:repeating-linear-gradient(0deg,#00000012 0 1px,transparent 1px 4px),radial-gradient(ellipse at center,transparent 42%,#00000024 100%),radial-gradient(#ffffff16 .5px,transparent .75px);background-size:auto,auto,5px 7px;opacity:.65}
+.pixel-score-display::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;z-index:3;pointer-events:none;background:color-mix(in srgb,var(--mlh-accent) 45%,transparent);box-shadow:0 3px 0 #ffffff12,0 8px 0 #00000018;opacity:0;animation:score-tv-tracking 14s linear infinite}
+.mlh-score-banner .mlh-score .pixel-score-display strong{animation:score-tv-drift 17s linear infinite;text-shadow:0 0 9px color-mix(in srgb,var(--mlh-accent) 13%,transparent)}
+.mlh-score-banner .mlh-score .pixel-score-display .is-rising strong{animation:none}
+@keyframes score-tv-tracking{0%,83%{opacity:0;transform:translateY(0)}85%{opacity:.16;transform:translateY(12px)}93%{opacity:.12;transform:translateY(138px)}95%,100%{opacity:0;transform:translateY(150px)}}
+@keyframes score-tv-drift{0%,88%,92%,100%{transform:translateX(0) skewX(0);text-shadow:0 0 9px color-mix(in srgb,var(--mlh-accent) 13%,transparent)}89%{transform:translateX(.7px) skewX(.3deg);text-shadow:-1px 0 #ff67802e,1px 0 #79dfff2e}90%{transform:translateX(-.6px) skewX(-.2deg);text-shadow:1px 0 #ff678022,-1px 0 #79dfff22}91%{transform:translateX(.3px) skewX(0);text-shadow:0 0 9px color-mix(in srgb,var(--mlh-accent) 13%,transparent)}}
+html[data-theme='light'] .pixel-score-display::before{opacity:.4}
+@media(prefers-reduced-motion:reduce){.pixel-score-display::after{animation:none;display:none}.mlh-score-banner .mlh-score .pixel-score-display strong{animation:none}}
 .pixel-score-scene{position:absolute;inset:0;pointer-events:none;overflow:hidden;color:var(--mlh-accent);opacity:.48;z-index:0}
 .pixel-book{position:absolute;width:34px;height:34px;opacity:0;animation:pixel-book-journey 18s linear infinite;will-change:transform,opacity}
 .pixel-book-one{left:-36px;top:12%;animation-delay:-12s}
