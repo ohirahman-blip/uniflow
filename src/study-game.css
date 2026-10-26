@@ -32,6 +32,8 @@ html[data-theme='light'] .pixel-score-display{background:color-mix(in srgb,var(-
 .learning-sticky-header .mlh-score-number>i{right:calc(100% + 4px);font-family:StudyPixel,monospace;font-size:10px}
 .learning-sticky-header .mlh-score-number.is-rising{transform:scale(1.055);filter:drop-shadow(0 0 12px #62e28b55)}
 .learning-sticky-header .mlh-score-number.is-rising strong{color:#70ef9b;-webkit-text-fill-color:#70ef9b}
+.learning-sticky-points{transition:color 600ms ease,text-shadow 600ms ease}
+.learning-sticky-header .mlh-score-number.is-rising+.learning-sticky-points{color:#70ef9b;-webkit-text-fill-color:#70ef9b;text-shadow:0 0 16px #64e58f55}
 @media(prefers-reduced-motion:reduce){.learning-sticky-header .mlh-score-number{transition:none}}
 html[data-theme='light'] .learning-sticky-header{background:#f7f7f8;color:#202126}
 body:has(.mlh-overlay) .learning-sticky-header{visibility:hidden;pointer-events:none}
