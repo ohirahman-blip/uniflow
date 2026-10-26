@@ -6,7 +6,7 @@ export default function StreakCelebration({count,onClose,soundEnabled=true}:{cou
   const clipId=useId()
   useEffect(()=>{if(soundEnabled)return playStreakSound()},[soundEnabled])
   useEffect(()=>{
-    const timer=window.setTimeout(onClose,4200)
+    const timer=window.setTimeout(onClose,2300)
     const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()}
     window.addEventListener('keydown',escape)
     return()=>{window.clearTimeout(timer);window.removeEventListener('keydown',escape)}
