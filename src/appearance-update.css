@@ -176,3 +176,29 @@ html[data-theme='light'] body .profile-panel input::placeholder{color:#20212666!
 /* Preserve native elastic edge feedback without moving the fixed navigation. */
 html,body{overscroll-behavior-y:auto}
 :is(.sheet-body,.mlh-sheet,.profile-body,.uf-picker-choices,.uf-picker-scroll,.wallet-cards){overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+
+/* The light palette's earlier :is(.calendar-focus.chosen) rule had higher
+   specificity than the generic Today reset, restoring an unwanted gray fill. */
+html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today,
+html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today:hover,
+html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today:active{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important}
+
+/* Cover the entire iOS status-bar inset in installed mode. The browser's
+   already-correct sticky offsets are intentionally left untouched. */
+@media(max-width:720px) and (display-mode:standalone),(max-width:720px) and (display-mode:fullscreen){
+  .app-root:has(.screen-calendar) .app-main{padding-top:env(safe-area-inset-top,0px)}
+  .app-root .screen-calendar{padding-top:0}
+  .app-root .screen-calendar .calendar-sticky-header{top:env(safe-area-inset-top,0px);background:var(--uf-page-background,#080808)!important}
+  .app-root .screen-calendar .calendar-sticky-header::before{top:calc(0px - env(safe-area-inset-top,0px) - 1px);height:calc(env(safe-area-inset-top,0px) + 1px);background:var(--uf-page-background,#080808)!important}
+}
+
+/* A persistent shared circle travels between tabs instead of three separate
+   highlights fading in place. The navigation is outside the keyed page. */
+.mobile-nav-indicator{display:none}
+@media(max-width:799px){
+  .app-root nav.mobile-navigation .mobile-nav-indicator{display:block;position:absolute;top:4px;left:calc(8px + (100% - 16px) * var(--nav-position,.5));width:42px;height:42px;border-radius:50%;transform:translateX(-50%);z-index:-1;pointer-events:none;opacity:var(--nav-highlight,1);background:#ffffff16;border:1px solid #ffffff12;box-shadow:inset 0 1px 0 #ffffff16;transition:left 420ms cubic-bezier(.22,1,.36,1),opacity 180ms ease,background-color 200ms ease}
+  .app-root nav.mobile-navigation button{border-radius:999px}
+  .app-root nav.mobile-navigation button::before{content:none!important;display:none!important}
+  html[data-theme='light'] .app-root nav.mobile-navigation .mobile-nav-indicator{background:#20212610;border-color:#20212609;box-shadow:inset 0 1px 0 #ffffffb0}
+}
+@media(prefers-reduced-motion:reduce){.app-root nav.mobile-navigation .mobile-nav-indicator{transition:none!important}}
