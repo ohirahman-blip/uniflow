@@ -1,7 +1,8 @@
 // Supabase Edge Function: uniflow-ai-advice
 // DeepSeek runs server-side ONLY. Deploy after adding DEEPSEEK_API_KEY to
-// Supabase secrets and applying 20261013_uniflow_ai_quota.sql.
+// Supabase secrets and applying 20261027_uniflow_ai_cache.sql.
 // Supabase's JWT gateway verification should stay ENABLED.
+import {sanitizeAdviceContext,aiAdviceSignature} from '../_shared/advice-policy.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2.58.0'
 
 const allowedOrigins=(Deno.env.get('UNIFLOW_ALLOWED_ORIGINS')||
@@ -24,40 +25,6 @@ const takeString=(v:unknown,max=100)=>
   typeof v==='string'?v.slice(0,max).replace(/[\u0000-\u001f]/g,' ').trim():''
 const number=(v:unknown,max:number)=>
   typeof v==='number'&&Number.isFinite(v)?Math.max(0,Math.min(max,Math.round(v))):0
-const parseWeak=(v:unknown)=>{
-  const x=asRecord(v)
-  if(!x)return null
-  return {moduleId:takeString(x.moduleId,110),moduleName:takeString(x.moduleName,85),
-    topic:takeString(x.topic,100),lessonKey:takeString(x.lessonKey,170),
-    date:takeString(x.date,10),rating:takeString(x.rating,24)}
-}
-function sanitizeContext(value:unknown){
-  const x=asRecord(value)
-  if(!x)return null
-  const next=asRecord(x.nextLecture)
-  const rawExams=Array.isArray(x.exams)?x.exams.slice(0,4):[]
-  const rawOther=Array.isArray(x.otherWeak)?x.otherWeak.slice(0,6):[]
-  const output={
-    today:takeString(x.today,10),localTime:takeString(x.localTime,5),
-    timeZone:takeString(x.timeZone,70),freeMinutes:number(x.freeMinutes,240),
-    nextLecture:next?{
-      moduleId:takeString(next.moduleId,110),moduleName:takeString(next.moduleName,85),
-      topic:takeString(next.topic,100),lessonKey:takeString(next.lessonKey,170),
-      date:takeString(next.date,10),time:takeString(next.time,5),
-      minutesUntil:number(next.minutesUntil,60*24*15)
-    }:null,
-    previousWeak:parseWeak(x.previousWeak),
-    pendingFeedback:parseWeak(x.pendingFeedback),
-    otherWeak:rawOther.map(parseWeak).filter(Boolean),
-    exams:rawExams.map(v=>{const e=asRecord(v);return e?{
-      moduleId:takeString(e.moduleId,110),moduleName:takeString(e.moduleName,85),
-      date:takeString(e.date,10),daysUntil:number(e.daysUntil,365)
-    }:null}).filter(Boolean)
-  }
-  if(!/^\d{4}-\d\d-\d\d$/.test(output.today)||
-     !/^\d\d:\d\d$/.test(output.localTime))return null
-  return output
-}
 const cors=(req:Request)=>{
   const origin=req.headers.get('origin')||''
   return {
@@ -107,27 +74,35 @@ Deno.serve(async req=>{
   if(premiumError)return reply(req,503,{error:'PREMIUM_CHECK_UNAVAILABLE'})
   if(account?.premium!==true)return reply(req,403,{error:'PREMIUM_REQUIRED'})
 
-  const apiKey=Deno.env.get('DEEPSEEK_API_KEY')?.trim()
-  if(!apiKey)return reply(req,503,{error:'DEEPSEEK_NOT_CONFIGURED'})
+  const serviceRole=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if(!serviceRole)return reply(req,503,{error:'CACHE_NOT_CONFIGURED'})
+  const server=createClient(url,serviceRole,{auth:{persistSession:false,autoRefreshToken:false}})
+  let lease:string|null=null
+  let signature=''
   try{
     // Minimal fact-only context. No full workspace, user email or identifiers.
     const body=await req.text()
     if(body.length>9000)return reply(req,413,{error:'CONTEXT_TOO_LARGE'})
     let parsed:unknown
     try{parsed=JSON.parse(body)}catch{return reply(req,400,{error:'BAD_JSON'})}
-    const context=sanitizeContext(asRecord(parsed)?.context)
+    const context=sanitizeAdviceContext(asRecord(parsed)?.context)
     if(!context)return reply(req,400,{error:'BAD_CONTEXT'})
 
-    // The SQL function checks premium AGAIN and consumes quota atomically.
-    // 25/day, >=90 seconds apart, including parallel requests.
-    const {data:allowed,error:quotaError}=await client.rpc('uniflow_consume_ai_quota')
-    if(quotaError)return reply(req,503,{error:'QUOTA_NOT_CONFIGURED'})
-    if(allowed!==true)return reply(req,429,{error:'QUOTA_OR_ACCESS_LIMIT'})
+    signature=aiAdviceSignature(context)
+    const candidateLease=crypto.randomUUID()
+    const {data:reservation,error:cacheError}=await server.rpc('uniflow_acquire_ai_advice',{p_user_id:identity.user.id,p_signature:signature,p_lease:candidateLease})
+    if(cacheError)return reply(req,503,{error:'CACHE_NOT_CONFIGURED'})
+    const reserved=asRecord(reservation)
+    if(!reserved)return reply(req,503,{error:'CACHE_NOT_CONFIGURED'})
+    if(reserved.status!=='generate')return reply(req,200,{...reserved,cached:true})
+    lease=candidateLease
+    const apiKey=Deno.env.get('DEEPSEEK_API_KEY')?.trim()
+    if(!apiKey)return reply(req,503,{error:'DEEPSEEK_NOT_CONFIGURED'})
 
     const controller=new AbortController()
     // DeepSeek documents occasional empty responses in forced JSON mode.
     // Retry at most once in text mode; both provider calls count as one
-    // authenticated, quota-checked user action (with a shared timeout).
+    // authenticated, cache-reserved user action (with a shared timeout).
     const timeout=setTimeout(()=>controller.abort(),30000)
     const requestPayload={
           model:Deno.env.get('DEEPSEEK_MODEL')?.trim()||'deepseek-v4-flash',
@@ -202,14 +177,23 @@ Gib nur IDs und lessonKeys zurück, die im JSON-Kontext vorkommen.`},
     ].filter((v):v is string=>typeof v==='string'&&!!v))
     const moduleId=takeString(recommendation.moduleId,110)
     const lessonKey=takeString(recommendation.lessonKey,170)
-    return reply(req,200,{recommendation:{
+    const safeRecommendation={
       title,message,kind,minutes:number(recommendation.minutes,60),
       moduleId:availableModules.has(moduleId)?moduleId:undefined,
       lessonKey:availableLessons.has(lessonKey)?lessonKey:undefined
-    }})
+    }
+    const {data:committed,error:saveError}=await server.rpc('uniflow_finish_ai_advice',{p_user_id:identity.user.id,p_lease:lease,p_signature:signature,p_recommendation:safeRecommendation})
+    if(saveError||committed!==true)return reply(req,503,{error:'CACHE_WRITE_FAILED'})
+    lease=null
+    const {data:saved}=await server.from('uniflow_ai_advice_cache').select('generated_at').eq('user_id',identity.user.id).single()
+    return reply(req,200,{recommendation:safeRecommendation,signature,generatedAt:saved?.generated_at||new Date().toISOString(),cached:false})
   }catch(error){
     return error instanceof Error&&error.name==='AbortError'?
       reply(req,504,{error:'MODEL_TIMEOUT'}):
       reply(req,502,{error:'MODEL_NETWORK_ERROR'})
+  }finally{
+    // Failed/cancelled generation never erases the last successful advice.
+    // Only this lease can finish; a late worker cannot overwrite newer advice.
+    if(lease){try{await server.rpc('uniflow_finish_ai_advice',{p_user_id:identity.user.id,p_lease:lease,p_signature:signature,p_recommendation:null})}catch{/* An unreachable database leaves a time-limited lease, never an unlimited retry. */}}
   }
 })

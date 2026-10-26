@@ -1,155 +1,69 @@
-# DeepSeek für uniflow+ vorbereiten
+# KI-Empfehlungen und Schnelleingabe
 
-Der neue Studienbegleiter ist **kein Chatbot**. Auf „Heute“ zeigt uniflow jederzeit
-eine einzige situationsabhängige Empfehlung, z. B. eine kurze Wiederholung vor
-der nächsten Vorlesung oder Klausurtraining bei einer nahenden Prüfung.
+Die bestehende Supabase-/DeepSeek-Anbindung und das Premium-Modell bleiben erhalten.
+Ein Git-Push/Vercel-Deployment allein aktualisiert keine Supabase-Datenbank oder Edge Functions.
 
-## Bereits ohne DeepSeek nutzbar
-- Jede einzelne Vorlesung im Stundenplan öffnen: **Thema** eintragen und
-  **Verstanden / Teilweise / Nicht verstanden / Nicht besucht** auswählen.
-- Einschätzungen später jederzeit über dieselbe Terminoberfläche ändern.
-- Vorlesungsthemen sind **pro Lehrwoche/Inhalt**, nicht für die ganze Reihe.
-  Gleichwertige zeitliche Alternativen teilen sich das Thema einer Lehrwoche.
-- „Heute“ berechnet aktuelle Empfehlungen lokal aus Terminen, vergangenen
-  Bewertungen, offenen Rückmeldungen und Klausurfristen.
-- Dieses lokale Verhalten funktioniert auch ohne Plus und ohne API-Key.
+## Update von der gemeinsamen 25-Anfragen-Grenze
 
-## Aktivierung, sobald du einen DeepSeek-Key hast
-
-**Niemals** `DEEPSEEK_API_KEY` in `.env.local` als `VITE_...`, in `src/`,
-auf GitHub, im Browser, in Vercel-Umgebungsvariablen oder im Chat hinterlegen.
-Der Schlüssel gehört ausschließlich in **Supabase Edge Function Secrets**.
-
-1. Die vorhandene Supabase-Instanz öffnen, das SQL aus
-   `supabase/migrations/20261013_uniflow_ai_quota.sql`
-   im Supabase **SQL Editor** einmal ausführen.
-2. Supabase **Project Settings → Edge Function Secrets**:
-   - `DEEPSEEK_API_KEY`: deinen geheimen DeepSeek-Schlüssel
-   - optional `DEEPSEEK_MODEL`: standardmäßig `deepseek-v4-flash`
-   - optional `UNIFLOW_ALLOWED_ORIGINS`: kommaseparierte erlaubte Websites.
-     Standard: `http://localhost:5173,http://127.0.0.1:5173,https://uniflow-jet.vercel.app`
-3. Die Funktion **`supabase/functions/uniflow-ai-advice/index.ts`** in
-   dein Supabase-Projekt deployen, z. B. über Supabase CLI:
-   ```bash
+1. Im Supabase SQL Editor einmal die neue Migration ausführen:
+   `supabase/migrations/20261027_uniflow_ai_cache.sql`.
+   Bestehende Module, Bewertungen, Empfehlungen anderer Systeme und die alte Quota-Tabelle werden nicht gelöscht.
+2. Beide Funktionen aus diesem Stand mit Supabase CLI bereitstellen:
+   ```sh
    supabase login
    supabase link --project-ref DEIN_PROJECT_REF
    supabase functions deploy uniflow-ai-advice
+   supabase functions deploy uniflow-ai-schedule
    ```
-   JWT-Überprüfung der Edge Function **nicht deaktivieren**.
-4. Nur in der **lokalen** `.env.local` zusätzlich:
-   ```dotenv
-   VITE_UNIFLOW_AI_ENABLED=true
-   ```
-   Anschließend lokalen Vite-Server neu starten.
-5. In Supabase muss der angemeldete Nutzer bereits mit
-   `account_directory.premium=true` geführt werden (wie bisher durch
-   Adminbereich / Admin-RPC). Die App prüft Plus im UI, der Server erneut.
-6. Unter **Einstellungen → KI-Modus** als Plus-Nutzer den Regler einschalten.
-   Das ist die bewusste Zustimmung zur Verarbeitung der angegebenen
-   Lern- und Termininformationen durch DeepSeek. Der KI-Modus erscheint
-   nur bei uniflow+-Konten. Auf „Heute“ gibt es dafür keinen Schalter.
+   Der CLI-Bundler nimmt `supabase/functions/_shared/advice-policy.ts` für die Empfehlung mit.
+   JWT-Prüfung nicht deaktivieren.
+3. Web-App aus `main` aktualisieren. Bestehendes `VITE_UNIFLOW_AI_ENABLED=true` bleibt bestehen.
+   In **Profil → Einstellungen → KI-Modus** wird die Zustimmung gegeben; nur Premium-Konten können echte KI-Aufrufe starten.
 
-Erst nach diesen Schritten werden echte DeepSeek-Anfragen gestellt. Ein
-unvollständiges Setup beeinträchtigt den Stundenplan, Lernfortschritt und
-die lokalen Empfehlungen nicht.
+**Reihenfolge wichtig:** erst SQL, dann beide Funktionen, dann Web-App.
+Die neue Web-App startet ohne Cache-Migration keine alten 25/Tag-Empfehlungsaufrufe.
+Bis auch `uniflow-ai-schedule` aktualisiert wurde, verwendet die alte Schnelleingabe weiterhin ihr bisheriges Limit.
 
-## Sicherheit und Kosten
+## Dashboard-Empfehlung
 
-- Frontend übermittelt nur einen **kleinen Studienkontext** (relevante
-  Modulnamen, Themen, subjektive Check-ins, nächste Vorlesung, Klausuren).
-  Kein E-Mail-Name, kein vollständiger Workspace, keine Supabase-Tokens an
-  DeepSeek. Authentifizierung und Zugriffsentscheidung geschehen in Supabase.
-- Die Edge Function prüft das **echte Supabase-JWT**, Premium über
-  `account_directory` und ruft erst dann DeepSeek auf.
-- Die SQL-Funktion `uniflow_consume_ai_quota` limitiert **atomar** auf
-  **25 Anfragen pro Nutzer und UTC-Tag**. Eine zusätzliche Stunden-
-  oder 90-Sekunden-Sperre gibt es nicht.
-- **Eine neue KI-Empfehlung wird pro App-Öffnung oder Rückkehr aus einem
-  ausgeblendeten Browser-Tab höchstens einmal angefordert.** Das passiert nur,
-  wenn Premium + KI-Modus aktiv sind, die Seite sichtbar ist und das
-  Tageskontingent noch nicht verbraucht wurde.
-- **Kein Timer für KI-Anfragen:** Solange die App offen bleibt, wird nicht
-  automatisch jede Stunde neu angefragt. Beim Wechsel zwischen Dashboard,
-  Kalender und Einstellungen entsteht ebenfalls keine neue Anfrage.
-- **Geschlossen oder im Hintergrund:** keine neuen Modellaufrufe, keine
-  Warteschlange, keine Nachholanfragen. Eine neue App-Öffnung kann unmittelbar
-  erneut anfragen (bis höchstens 25 pro Tag).
-- Lokale und serverseitige Tageszähler schützen vor unkontrollierten Kosten.
-  Bei geänderten Veranstaltungen oder Bewertungen fällt die Anzeige zunächst
-  auf den aktuellen lokalen Vorschlag zurück, statt im selben Öffnungsvorgang
-  eine weitere KI-Anfrage zu starten.
-- Die letzte passende KI-Empfehlung wird in der Browser-Sitzung gehalten.
-- Fehler und fehlende API-Konfiguration führen ebenfalls zu lokalen Empfehlungen.
-  Nur tatsächlich mit DeepSeek erzeugte Premium-Empfehlungen zeigen das
-  **Sternsymbol (Sparkles)** und einen dezenten Farbverlauf. Kostenlose
-  Empfehlungen behalten das normale Design.
-- DeepSeek erhält eine JSON-Anfrage und soll eine kurze deutschsprachige
-  JSON-Empfehlung zurückgeben. Fehler/ungültige Ergebnisse => lokale
-  Empfehlung statt App-Absturz.
-- Bitte prüfe vor Live-Nutzung Datenschutzhinweise, Rechtsgrundlage und
-  Drittlandübermittlung bei Verwendung von DeepSeek.
-- Offizielle API-Dokumentation:
-  https://api-docs.deepseek.com/
-  https://api-docs.deepseek.com/api/create-chat-completion/
+- Ein kontoabhängiger Supabase-Cache speichert die letzte erfolgreiche Empfehlung, Kontext-Signatur und Erstellzeit.
+- Geräte und Browser-Tabs lesen denselben Stand. Zusätzlich gibt es einen benutzerspezifischen lokalen Cache für schnelle/offline Anzeige.
+- Dashboard öffnen oder App in den Vordergrund bringen liest zunächst den gespeicherten Stand. Das ist **kein Modellaufruf**.
+- Relevante Änderungen: neue/geänderte/entfernte Lernsessions, Verständnis/Besuch, gelernter Stoff, Termine und Prüfungen. Profil-, Design- und Timer-Anzeigeänderungen lösen keine Neubewertung aus.
+- Neu berechnen bei relevant verändertem Kontext **frühestens 30 Minuten** nach dem letzten erfolgreichen Ergebnis.
+- Bei unverändertem Kontext erst nach **4 Stunden**.
+- Nur ein sichtbares Dashboard ohne darüberliegendes Profil aktiviert die Prüfung. Keine periodischen Anfragen, kein Hintergrundjob und kein Nachholen geschlossener Zeiträume.
+- Zwei Geräte werden atomar durch eine Datenbank-Zeilensperre und eine **60-Sekunden-Reservierung** zusammengeführt. Nur ein Serveraufruf darf eine kostenpflichtige Generierung starten.
+- Bei Fehlern bleibt die letzte erfolgreiche Empfehlung samt Zeitstempel sichtbar. Die Server-Wartezeit steigt auf **5 Minuten**, **15 Minuten**, dann **1 Stunde**. Ein Neustart oder Umschalten des KI-Modus umgeht die Sperre nicht.
+- Der Browser hat zusätzlich eine 5-Minuten-Pause bei Netzwerk-/Konfigurationsfehlern. Manuelle Browser-Aktualisierungen können deshalb keine Modellaufruf-Schleife auslösen.
+- Die interne einmalige Antwortformat-Wiederholung bleibt erhalten, falls DeepSeek leere/ungültige JSON-Antworten liefert. Eine Generierung kann deshalb höchstens zwei Anbieteraufrufe umfassen.
+- Es gibt für diese neue Regelung keinen gemeinsamen 25/Tag-Zähler mehr. Die alte Quota-Funktion bleibt ausschließlich für Rollback/alte Deployments bestehen.
 
-## Lokales Testen ohne Deployment
+## KI-Schnelleingabe
 
-```bash
-git fetch origin
-git switch feature/premium-deepseek-context-lecture-feedback
-npm ci
-npm test
-npm run dev
-```
+- Kein festes Tageslimit.
+- Atomarer, geräteübergreifender Schutz: höchstens ein Start pro Konto innerhalb von **15 Sekunden**.
+- Unverändert: begrenzter Eingabetext, Prüfung von Anmeldung/Premium, erlaubte Origins, Server-Timeout und geprüfte strukturierte Vorschläge.
+- Vorschläge werden weiterhin erst nach bewusster Übernahme in den Stundenplan geschrieben.
+- Die Schnelleingabe verändert nicht den Dashboard-Cache und verbraucht kein Empfehlungskontingent.
 
-Für **`npm run build`** ist keine echte DeepSeek-API-Verbindung nötig.
-Es wurden keine bestehenden Kalender-Terminerzeugungsregeln geändert.
-Die neue SQL-Migration/Edge Function werden durch einen Git-Commit **nicht**
-automatisch auf Supabase angewandt.
+## Secrets und Datenschutz
 
-## Weitere Premium- und Kalenderfunktionen
+- `DEEPSEEK_API_KEY` gehört ausschließlich in Supabase Edge Function Secrets. Niemals in `VITE_...`, Browsercode, Git oder Chat.
+- `SUPABASE_SERVICE_ROLE_KEY` wird ausschließlich serverseitig verwendet. Hosted Supabase stellt die Standard-Projektvariablen bereit; bei lokaler Funktionsentwicklung entsprechend konfigurieren.
+- Die Funktionen prüfen zuerst das echte Nutzer-JWT und das adminverwaltete `account_directory.premium`. Erst danach verwendet der Server seinen privilegierten Client.
+- Schreibzugriff und Reservierungs-RPCs sind nur für `service_role` freigegeben. Angemeldete Premium-Nutzer können durch RLS ausschließlich ihre eigene gespeicherte Empfehlung lesen; keine fremden Daten oder Lease-Tokens.
+- Nur ein kleiner, begrenzter Studienkontext wird an den Anbieter geschickt. Ein lokaler Lernfortschritt-Fingerabdruck dient nur der Aktualisierungserkennung; vollständige Lernsessions werden nicht an DeepSeek übertragen.
+- `UNIFLOW_ALLOWED_ORIGINS` und bestehendes `DEEPSEEK_MODEL` bleiben unverändert. Kein Provider-/Modellwechsel durch dieses Update.
 
-- In **Module** ist die Schnelleingabe ausschließlich mit uniflow+ nutzbar.
-  Sie sendet nur den eingegebenen Text und Modulnamen über die separate
-  Supabase-Funktion `uniflow-ai-schedule` an DeepSeek und zeigt anschließend
-  **bearbeitbare** Veranstaltungen, Wochentage, Uhrzeiten, Dauer und Räume.
-  Erst „Übernehmen“ speichert die geprüften Vorschläge. Die klassische
-  Kalender- und Alternativenlogik bleibt unverändert.
-- Dazu die neue Edge Function einmalig zusätzlich bereitstellen:
-  ```bash
-  supabase functions deploy uniflow-ai-schedule
-  ```
-  Die bestehende Funktion `uniflow-ai-advice`, der `DEEPSEEK_API_KEY`,
-  die Premium-Kontrolle, erlaubte Origins und der bestehende Quota-RPC
-  werden weiterverwendet. Beide KI-Funktionen teilen sich das serverseitige
-  25-Anfragen-Tageslimit. Der DeepSeek-Standardmodellname für die neue
-  Funktion lautet `deepseek-v4-flash`; falls `DEEPSEEK_MODEL` gesetzt ist,
-  muss dessen Wert ein von DeepSeek unterstütztes Modell sein. Der alte
-  Modellname `deepseek-chat` wurde eingestellt. Entferne veraltete
-  Werte aus den Edge Function Secrets oder ersetze sie durch
-  `deepseek-v4-flash`.
-  Ein GitHub-Push allein deployed **keine** Supabase-Funktionen.
-- Vorlesungen und Übungen sind beim Öffnen des Modul-Editors standardmäßig
-  eingeklappt.
-- Der Zeit-Picker nutzt vertikale Scrollräder für Stunden und alle
-  **60 Minutenschritte**, mit denselben Gültigkeitsgrenzen wie bisher.
-- Kalendertermine besitzen unten rechts einen Bewertungsstern; rechtsklicken
-  und **Bewerten** öffnen dieselbe Bearbeitung der persönlichen Einschätzung.
-  Abgeschlossene Termine können später erneut bewertet werden.
+## Prüfung ohne kostenpflichtige KI-Aufrufe
 
-## Fehlerdiagnose
+`npm run build` prüft die Web-App. Die reine Aktualisierungslogik kann mit
+`npm run test:ai-cache` geprüft werden. Diese Prüfung ruft keine API auf.
+Die Live-Datenbank, RLS und Edge Deployments müssen nach Bereitstellung separat geprüft werden.
 
-- Die KI-Schnelleingabe meldet den konkreten HTTP-Status und einen sicher
-  übersetzten Fehlercode, beispielsweise `MODEL_INVALID` (Modellname),
-  `MODEL_AUTH_ERROR` (API-Schlüssel), `MODEL_RATE_LIMIT`, `MODEL_TIMEOUT`
-  und `PREMIUM_REQUIRED`. Die Hintergrundempfehlung zeigt Fehler beim
-  aktivierten KI-Modus in **Einstellungen** an, während die normale
-  lokale Empfehlung verfügbar bleibt.
-- Bei `FunctionsFetchError` mit „Failed to send a request“ zuerst
-  Supabase **Edge Functions → Invocations / Logs** prüfen. Oft ist es eine
-  fehlgeschlagene CORS-OPTIONS-Vorabfrage, ein falscher Function-Name,
-  fehlendes Deployment oder eine nicht erlaubte Origin. `booted` alleine
-  bestätigt noch keinen erfolgreichen KI-Aufruf.
-- Nach Änderungen unter `supabase/functions` müssen **beide** Funktionen
-  separat in Supabase redeployed werden. Ein GitHub-Commit allein reicht
-  nicht. Secrets niemals im Browser oder in GitHub veröffentlichen.
+Offizielle Supabase-Anleitungen:
+- [Datenbankfunktionen](https://supabase.com/docs/guides/database/functions)
+- [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
+- [Edge Functions deployen](https://supabase.com/docs/guides/functions/deploy)
+- [Server-Secrets](https://supabase.com/docs/guides/functions/secrets)

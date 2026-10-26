@@ -35,6 +35,7 @@ export type AdviceContext = {
   today:string
   localTime:string
   timeZone:string
+  progressRevision?:string
   freeMinutes:number
   nextLecture:ContextLecture|null
   previousWeak:ContextWeak|null
@@ -56,10 +57,21 @@ const isTeaching=(o:Occurrence,semester:Semester)=>o.offering.semesterId===semes
 /** Only facts required for ONE suggestion. No email, account ID, grades,
  * full timetable, notes outside class titles, or contact information. */
 export function adviceContext(data:AppData,semester:Semester|undefined,modules:StudyModule[],now=new Date()):AdviceContext {
+  // Only relevant study edits invalidate advice. Timer ticks, profile changes
+  // and other cosmetic workspace writes never alter this opaque revision.
+  const ids=new Set(modules.map(module=>module.id))
+  const progress=JSON.stringify({
+    sessions:(data.learningSessions||[]).filter(item=>ids.has(item.moduleId)).map(item=>[item.id,item.updatedAt,item.duration,item.rating,item.date]),
+    checkins:(data.learningCheckins||[]).filter(item=>ids.has(item.moduleId)).map(item=>[item.key,item.updatedAt,item.rating,item.attended,item.understandingSelected]),
+    learned:(data.scoreEvents||[]).filter(item=>ids.has(item.moduleId)&&item.type==='content-learned').map(item=>[item.id,item.reversedAt]),
+    schedule:data.offerings.filter(item=>ids.has(item.moduleId)&&item.semesterId===semester?.id)
+  })
+  let revision=2166136261
+  for(let index=0;index<progress.length;index++)revision=Math.imul(revision^progress.charCodeAt(index),16777619)
   const day=isoLocal(now)
   const time=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
   const empty:AdviceContext={today:day,localTime:time,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/Berlin',
-    freeMinutes:0,nextLecture:null,previousWeak:null,pendingFeedback:null,exams:[],otherWeak:[]}
+    progressRevision:(revision>>>0).toString(16),freeMinutes:0,nextLecture:null,previousWeak:null,pendingFeedback:null,exams:[],otherWeak:[]}
   if(!semester)return empty
   const moduleMap=new Map(modules.map(m=>[m.id,m]))
   let next:Occurrence|null=null

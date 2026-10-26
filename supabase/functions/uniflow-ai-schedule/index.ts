@@ -1,6 +1,6 @@
 // Supabase Edge Function: uniflow-ai-schedule
 // Separate from background advice. Reuses existing auth, premium status,
-// DeepSeek secret and atomic daily quota. The browser never receives the API key.
+// DeepSeek secret and a separate 15-second throttle. No daily usage cap.
 import { createClient } from 'npm:@supabase/supabase-js@2.58.0'
 
 type Plain=Record<string,unknown>
@@ -149,10 +149,12 @@ Deno.serve(async(req)=>{
     try{payload=object(JSON.parse(body))}catch{return reply(req,400,{error:'BAD_JSON'})}
     const text=clip(payload?.text,4000),moduleName=clip(payload?.moduleName,100)
     if(text.length<5||text.length>3500||!moduleName)return reply(req,400,{error:'BAD_INPUT'})
-    // Shares the atomic 25-per-UTC-day server quota with study recommendations.
-    const {data:allowed,error:quotaError}=await supabase.rpc('uniflow_consume_ai_quota')
-    if(quotaError)return reply(req,503,{error:'QUOTA_NOT_CONFIGURED'})
-    if(allowed!==true)return reply(req,429,{error:'QUOTA_OR_ACCESS_LIMIT'})
+    const serviceRole=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if(!serviceRole)return reply(req,503,{error:'CACHE_NOT_CONFIGURED'})
+    const server=createClient(url,serviceRole,{auth:{persistSession:false,autoRefreshToken:false}})
+    const {data:allowed,error:throttleError}=await server.rpc('uniflow_acquire_ai_schedule',{p_user_id:identity.user.id})
+    if(throttleError)return reply(req,503,{error:'CACHE_NOT_CONFIGURED'})
+    if(allowed!==true)return reply(req,429,{error:'SCHEDULE_RATE_LIMIT',retryAfterSeconds:15})
     const controller=new AbortController()
     const timeout=setTimeout(()=>controller.abort(),25000)
     let response:Response

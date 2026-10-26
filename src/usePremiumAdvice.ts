@@ -1,168 +1,143 @@
-import { useEffect, useRef, useState } from 'react'
-import { supabase } from './supabase'
-import { describeAiRequestError } from './ai-errors'
-import { aiAdviceSignature, canRequestOnOpen, readAiDailyAttempts, recordAiDailyAttempt } from './ai-request-schedule'
-import { parseAiAdvice, type AdviceContext, type StudyAdvice } from './study-advice'
+import {useEffect,useRef,useState} from 'react'
+import {supabase} from './supabase'
+import {aiFailureText,describeAiRequestError} from './ai-errors'
+import {aiAdviceSignature,shouldRefreshAdvice,ADVICE_MAX_AGE_MS,ADVICE_FAILURE_BACKOFF_MS} from './ai-request-schedule'
+import {parseAiAdvice,type AdviceContext,type StudyAdvice} from './study-advice'
 
-/** Consent is only a UI permission. Supabase also verifies the JWT,
- * admin-controlled premium flag and atomic 25-per-UTC-day quota. */
-export const deepseekConfigured = import.meta.env.VITE_UNIFLOW_AI_ENABLED === 'true'
+export const deepseekConfigured=import.meta.env.VITE_UNIFLOW_AI_ENABLED === 'true'
 const consentKey=(userId:string)=>'uniflow-ai-consent:'+userId
-const cacheKey=(userId:string)=>'uniflow-ai-advice:'+userId
-const loadConsent=(userId:string)=>!!userId&&localStorage.getItem(consentKey(userId))==='yes'
-type CachedAdvice={signature:string;advice:unknown}
-type DisplayedAdvice={signature:string;value:StudyAdvice}
+const cacheKey=(userId:string)=>'uniflow-ai-advice:v2:'+userId
+const failureKey=(userId:string)=>'uniflow-ai-backoff:v2:'+userId
+const loadConsent=(userId:string)=>{try{return !!userId&&localStorage.getItem(consentKey(userId))==='yes'}catch{return false}}
+type CachedAdvice={value:StudyAdvice;signature:string;generatedAt:string;retryAt?:string|null}
+type OwnedCache={userId:string;saved:CachedAdvice|null}
+function parseCache(raw:unknown,context:AdviceContext):CachedAdvice|null{
+  if(!raw||typeof raw!=='object')return null
+  const item=raw as Record<string,unknown>
+  const value=parseAiAdvice(item.recommendation||item.value,context)
+  if(!value||typeof item.signature!=='string'||typeof item.generatedAt!=='string'||!Number.isFinite(Date.parse(item.generatedAt)))return null
+  return {value,signature:item.signature,generatedAt:item.generatedAt,retryAt:typeof item.retryAt==='string'?item.retryAt:null}
+}
+function readCache(userId:string,context:AdviceContext){try{return parseCache(JSON.parse(localStorage.getItem(cacheKey(userId))||'null'),context)}catch{return null}}
+function readBackoff(userId:string){try{return Number(localStorage.getItem(failureKey(userId)))||0}catch{return 0}}
 
-/** Mounted at App root, so switching app tabs does NOT count as opening it.
- * Every NEW foreground session is eligible for one fresh recommendation.
- * Hidden/unmounted apps do no network work; there is no hourly timer.
- * At most 25 attempts per UTC day locally and atomically on the server. */
+/** Only the visible Dashboard activates network work. No interval, daily counter,
+ * or forced regeneration on tab switches/consent toggles. The database is the
+ * device-independent authority and serializes paid calls with a short lease. */
 export function usePremiumAdvice(userId:string,premium:boolean,context:AdviceContext,appActive:boolean){
   const [consentEntry,setConsentEntry]=useState(()=>({userId,allowed:loadConsent(userId)}))
   const consent=consentEntry.userId===userId&&consentEntry.allowed
-  const [displayed,setDisplayed]=useState<DisplayedAdvice|null>(null)
-  const [working,setWorking]=useState(false)
-  const [unavailable,setUnavailable]=useState(false)
-  const [errorMessage,setErrorMessage]=useState('')
+  const [displayed,setDisplayed]=useState<OwnedCache>({userId:'',saved:null})
+  const cache=useRef<OwnedCache>({userId:'',saved:null})
+  const latestContext=useRef(context)
+  latestContext.current=context
+  const [working,setWorking]=useState(false),[unavailable,setUnavailable]=useState(false),[errorMessage,setErrorMessage]=useState('')
   const [foregroundEpoch,setForegroundEpoch]=useState(0)
-  const [activationEpoch,setActivationEpoch]=useState(0)
   const [visible,setVisible]=useState(()=>document.visibilityState==='visible')
-  const requestedEpoch=useRef<{userId:string;epoch:number;activation:number}|null>(null)
-  const wasHidden=useRef(document.visibilityState!=='visible')
   const signature=aiAdviceSignature(context)
 
   useEffect(()=>{
+    const saved=readCache(userId,latestContext.current)
+    cache.current={userId,saved}
+    setDisplayed({userId,saved})
     setConsentEntry({userId,allowed:loadConsent(userId)})
-    setDisplayed(null)
-    requestedEpoch.current=null
-    setUnavailable(false)
-    setErrorMessage('')
+    setWorking(false);setUnavailable(false);setErrorMessage('')
   },[userId])
 
   useEffect(()=>{
-    if(!appActive)return
-    const onVisibility=()=>{
-      const nowVisible=document.visibilityState==='visible'
-      setVisible(nowVisible)
-      if(nowVisible&&wasHidden.current){
-        wasHidden.current=false
-        setForegroundEpoch(e=>e+1)
-      }else if(!nowVisible){
-        wasHidden.current=true
-        setWorking(false)
+    const foreground=()=>{
+      const shown=document.visibilityState==='visible'
+      setVisible(shown)
+      if(shown)setForegroundEpoch(epoch=>epoch+1)
+    }
+    const storage=(event:StorageEvent)=>{
+      if(event.key===consentKey(userId))setConsentEntry({userId,allowed:loadConsent(userId)})
+      if(event.key===cacheKey(userId)){
+        const saved=readCache(userId,latestContext.current)
+        if(saved){cache.current={userId,saved};setDisplayed({userId,saved})}
       }
     }
-    const onStorage=(event:StorageEvent)=>{
-      if(event.key===consentKey(userId)){
-        setConsentEntry({userId,allowed:loadConsent(userId)})
-      }
-    }
-    document.addEventListener('visibilitychange',onVisibility)
-    window.addEventListener('storage',onStorage)
-    onVisibility()
-    return()=>{
-      document.removeEventListener('visibilitychange',onVisibility)
-      window.removeEventListener('storage',onStorage)
-    }
-  },[appActive,userId])
+    document.addEventListener('visibilitychange',foreground)
+    window.addEventListener('focus',foreground)
+    window.addEventListener('storage',storage)
+    return()=>{document.removeEventListener('visibilitychange',foreground);window.removeEventListener('focus',foreground);window.removeEventListener('storage',storage)}
+  },[userId])
 
   const setConsent=(allowed:boolean)=>{
     if(!userId)return
-    if(allowed){
-      localStorage.setItem(consentKey(userId),'yes')
-      // Each explicit OFF → ON is a fresh test, not a cached recommendation.
-      sessionStorage.removeItem(cacheKey(userId))
-      setDisplayed(null)
-      setActivationEpoch(e=>e+1)
-    }else{
-      localStorage.removeItem(consentKey(userId))
-      sessionStorage.removeItem(cacheKey(userId))
-      setDisplayed(null)
-    }
+    try{if(allowed)localStorage.setItem(consentKey(userId),'yes');else localStorage.removeItem(consentKey(userId))}catch{/* This session can still change its consent. */}
     setConsentEntry({userId,allowed})
-    setErrorMessage('')
-    requestedEpoch.current=null
+    setErrorMessage('');setUnavailable(false)
+    // OFF -> ON reuses existing advice and cannot bypass the server cooldown.
   }
 
   useEffect(()=>{
     if(!appActive||!userId||!premium||!consent||!deepseekConfigured||!supabase){
-      setDisplayed(null)
       setWorking(false)
-      setErrorMessage(appActive&&userId&&premium&&consent&&!deepseekConfigured?
-        'KI-Empfehlungen sind lokal deaktiviert. Setze VITE_UNIFLOW_AI_ENABLED=true und starte den Entwicklungsserver neu.':
-        appActive&&userId&&premium&&consent&&!supabase?'Supabase ist im Browser nicht eingerichtet.':'')
+      if(appActive&&premium&&consent&&!deepseekConfigured)setErrorMessage('KI-Empfehlungen sind in dieser Umgebung deaktiviert.')
       return
     }
     if(!visible||document.visibilityState!=='visible')return
-    // Avoid another request after navigation, rating edits, study feedback
-    // or a clock tick. Only a NEW opening/foreground epoch may request.
-    if(requestedEpoch.current?.userId===userId&&requestedEpoch.current.epoch===foregroundEpoch&&
-      requestedEpoch.current.activation===activationEpoch)return
-
-    // Reuse matching advice while an opening is being prepared. If feedback
-    // changed, drop stale AI advice and display the local recommendation.
-    try{
-      const saved=JSON.parse(sessionStorage.getItem(cacheKey(userId))||'null') as CachedAdvice|null
-      const parsed=saved?.signature===signature?parseAiAdvice(saved.advice,context):null
-      setDisplayed(parsed?{signature,value:parsed}:null)
-    }catch{setDisplayed(null)}
-
-    if(!canRequestOnOpen(true,true,readAiDailyAttempts(userId))){
-      requestedEpoch.current={userId,epoch:foregroundEpoch,activation:activationEpoch}
-      setWorking(false)
-      setErrorMessage('Das lokale KI-Tageslimit (25 Anfragen) ist erreicht. Morgen sind wieder Anfragen möglich.')
-      return
-    }
     let cancelled=false
     const controller=new AbortController()
-    // Show immediate feedback as soon as the switch is turned on, even while
-    // the short StrictMode-safe debounce is still pending.
-    setWorking(true)
-    setErrorMessage('')
+    const client=supabase
+    const accept=(candidate:CachedAdvice|null)=>{
+      if(!candidate||cancelled)return
+      const previous=cache.current.userId===userId?cache.current.saved:null
+      if(previous&&Date.parse(previous.generatedAt)>Date.parse(candidate.generatedAt))return
+      cache.current={userId,saved:candidate};setDisplayed({userId,saved:candidate})
+      try{localStorage.setItem(cacheKey(userId),JSON.stringify(candidate))}catch{/* Server cache is still authoritative. */}
+    }
+    // StrictMode-safe debounce; no request starts in a hidden tab or another page.
     const timer=window.setTimeout(()=>{
       if(cancelled||document.visibilityState!=='visible')return
-      // Reserve only when the debounce actually fires. This also handles
-      // React StrictMode's development effect setup/cleanup cycle correctly.
-      if(requestedEpoch.current?.userId===userId&&requestedEpoch.current.epoch===foregroundEpoch&&
-        requestedEpoch.current.activation===activationEpoch)return
-      requestedEpoch.current={userId,epoch:foregroundEpoch,activation:activationEpoch}
-      // Count attempts even on API failure so a broken API never causes a storm.
-      if(!recordAiDailyAttempt(userId)){
-        setErrorMessage('Das lokale KI-Tageslimit (25 Anfragen) ist erreicht.')
-        setWorking(false)
+      if(readBackoff(userId)>Date.now()){
+        setUnavailable(true);setErrorMessage('Die Aktualisierung pausiert kurz. Die letzte Empfehlung bleibt erhalten.')
         return
       }
-      setWorking(true)
-      setUnavailable(false)
-      setErrorMessage('')
-      void (async()=>{
+      void(async()=>{
         try{
-          const {data,error}=await supabase!.functions.invoke('uniflow-ai-advice',{
-            body:{context},signal:controller.signal
-          })
-          if(error)throw error
-          const next=parseAiAdvice(data?.recommendation,context)
-          if(!next)throw new Error('Ungültige KI-Antwort')
+          const requestContext=latestContext.current
+          const {data:remote,error:readError}=await client.from('uniflow_ai_advice_cache')
+            .select('recommendation,signature,generated_at,next_attempt_at').eq('user_id',userId).maybeSingle()
+          if(cancelled)return
+          if(readError)throw new Error(aiFailureText('CACHE_NOT_CONFIGURED'))
+          const remoteCache=remote?parseCache({recommendation:remote.recommendation,signature:remote.signature,generatedAt:remote.generated_at,retryAt:remote.next_attempt_at},requestContext):null
+          accept(remoteCache)
+          const saved=cache.current.userId===userId?cache.current.saved:null
+          const retryAt=remote?.next_attempt_at||saved?.retryAt
+          if(retryAt&&Date.parse(retryAt)>Date.now())return
+          if(!shouldRefreshAdvice(saved,signature)){setUnavailable(false);setErrorMessage('');return}
           if(cancelled||document.visibilityState!=='visible')return
-          sessionStorage.setItem(cacheKey(userId),JSON.stringify({signature,advice:next} satisfies CachedAdvice))
-          setDisplayed({signature,value:next})
-          setUnavailable(false)
-          setErrorMessage('')
+          setWorking(true);setErrorMessage('')
+          const {data,error}=await client.functions.invoke('uniflow-ai-advice',{body:{context:requestContext},signal:controller.signal})
+          if(error)throw error
+          if(cancelled)return
+          const candidate=parseCache(data,requestContext)
+          accept(candidate)
+          if(!candidate&&data?.status!=='pending')throw new Error(aiFailureText('CACHE_NOT_CONFIGURED'))
+          if(!candidate&&typeof data?.retryAt==='string'){
+            try{localStorage.setItem(failureKey(userId),String(Date.parse(data.retryAt)))}catch{/* Best effort only. */}
+          }else{
+            try{localStorage.removeItem(failureKey(userId))}catch{/* Best effort only. */}
+          }
+          setUnavailable(false);setErrorMessage('')
         }catch(error){
-          const detailedMessage=await describeAiRequestError(error,'uniflow-ai-advice')
-          if(!cancelled){setDisplayed(null);setUnavailable(true);setErrorMessage(detailedMessage)}
-        }finally{
-          if(!cancelled)setWorking(false)
-        }
+          if(cancelled)return
+          const message=await describeAiRequestError(error,'uniflow-ai-advice')
+          if(cancelled)return
+          try{localStorage.setItem(failureKey(userId),String(Date.now()+ADVICE_FAILURE_BACKOFF_MS))}catch{/* The server also backs off. */}
+          setUnavailable(true);setErrorMessage(message)
+          // Keep both local and server copies of the last successful result.
+        }finally{if(!cancelled)setWorking(false)}
       })()
     },500)
     return()=>{cancelled=true;window.clearTimeout(timer);controller.abort()}
-  },[appActive,userId,premium,consent,visible,foregroundEpoch,activationEpoch,signature])
+  },[appActive,userId,premium,consent,visible,foregroundEpoch,signature])
 
-  // The cache never overrides newly changed classes, times or check-ins.
-  return {
-    consent,setConsent,
-    advice:premium&&consent&&appActive&&displayed?.signature===signature?displayed.value:null,
-    working,unavailable,errorMessage,configured:deepseekConfigured
-  }
+  const saved=displayed.userId===userId?displayed.saved:null
+  return {consent,setConsent,working,unavailable,errorMessage,configured:deepseekConfigured,
+    advice:premium&&consent&&appActive?saved?.value||null:null,
+    generatedAt:saved?.generatedAt||null,
+    isStale:!!saved&&(unavailable||saved.signature!==signature||Date.now()-Date.parse(saved.generatedAt)>=ADVICE_MAX_AGE_MS)}
 }
