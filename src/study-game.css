@@ -24,10 +24,16 @@ html[data-theme='light'] .mlh-score-banner .mlh-score.pixel-console{background:t
 html[data-theme='light'] .pixel-score-display{background:color-mix(in srgb,var(--mlh-accent) 10%,#fafaf8);border-color:#d3d4d0}
 .learning-sticky-header{position:fixed;top:0;left:0;right:0;padding:env(safe-area-inset-top,0px) 22px 0;z-index:45;opacity:0;visibility:hidden;transform:translateY(-12px);transition:opacity 240ms ease,transform 300ms cubic-bezier(.2,.8,.2,1),visibility 240ms;background:var(--bg,#090909);border-bottom:1px solid #8882}
 .learning-sticky-header.is-visible{opacity:1;visibility:visible;transform:translateY(0)}
-.learning-sticky-header>div{display:flex;align-items:center;gap:16px;max-width:900px;min-height:60px;margin:auto}
-.learning-sticky-header strong{min-width:0;flex:1;font-size:14px;font-weight:500;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.learning-sticky-header>div{display:flex;align-items:center;justify-content:center;gap:0;max-width:900px;min-height:60px;margin:auto}
+.learning-sticky-header .learning-sticky-title{min-width:0;flex:0 1 auto;font-size:14px;font-weight:500;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
 .learning-sticky-header button{flex:0 1 auto;max-width:0;opacity:0;overflow:hidden;padding:0;border:0;background:transparent;color:var(--mlh-accent);font-family:StudyPixel,monospace;font-size:12px;white-space:nowrap;transform:translateY(8px);transition:max-width 350ms ease,opacity 220ms ease,transform 350ms ease}
-.learning-sticky-header.has-score button{max-width:55%;opacity:1;transform:translateY(0);padding:12px 0}
+.learning-sticky-header.has-score button{max-width:55%;opacity:1;transform:translateY(0);padding:12px 2px 12px 24px}
+.learning-sticky-header .mlh-score-number{position:relative;display:block;transform:scale(1);transform-origin:center;transition:transform 520ms cubic-bezier(.22,.8,.2,1),filter 700ms ease}
+.learning-sticky-header .mlh-score-number strong{display:block;font:inherit;line-height:1.5;letter-spacing:0;color:var(--mlh-accent)}
+.learning-sticky-header .mlh-score-number>i{right:calc(100% + 4px);font-family:StudyPixel,monospace;font-size:10px}
+.learning-sticky-header .mlh-score-number.is-rising{transform:scale(1.055);filter:drop-shadow(0 0 12px #62e28b55)}
+.learning-sticky-header .mlh-score-number.is-rising strong{color:#70ef9b;-webkit-text-fill-color:#70ef9b}
+@media(prefers-reduced-motion:reduce){.learning-sticky-header .mlh-score-number{transition:none}}
 html[data-theme='light'] .learning-sticky-header{background:#f7f7f8;color:#202126}
 body:has(.mlh-overlay) .learning-sticky-header{visibility:hidden;pointer-events:none}
 .screen-calendar .course.course-live{isolation:isolate}

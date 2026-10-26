@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState,type CSSProperties} from 'react'
 import {createPortal} from 'react-dom'
+import AnimatedScore from './AnimatedScore'
 
 export default function LearningStickyHeader({moduleId,title,color,score,onHistory}:{moduleId:string;title:string;color:string;score:number;onHistory:()=>void}){
   const bar=useRef<HTMLElement>(null)
@@ -27,6 +28,6 @@ export default function LearningStickyHeader({moduleId,title,color,score,onHisto
     return()=>{observer?.disconnect();resize.disconnect()}
   },[moduleId])
   return createPortal(<header ref={bar} className={'learning-sticky-header'+(hidden.title?' is-visible':'')+(hidden.score?' has-score':'')} style={{'--mlh-accent':color} as CSSProperties} aria-hidden={!hidden.title} inert={!hidden.title}>
-    <div><strong title={title}>{title}</strong><button onClick={onHistory} tabIndex={hidden.title&&hidden.score?0:-1} aria-label={`${score} Punkte, Aktivitäten öffnen`} aria-hidden={!hidden.score}>{score.toLocaleString('de-DE')}</button></div>
+    <div><strong className="learning-sticky-title" title={title}>{title}</strong><button onClick={onHistory} tabIndex={hidden.title&&hidden.score?0:-1} aria-label={`${score} Punkte, Aktivitäten öffnen`} aria-hidden={!hidden.score}><AnimatedScore key={moduleId} value={score} storageKey={`sticky-score:${moduleId}`}/></button></div>
   </header>,document.body)
 }
