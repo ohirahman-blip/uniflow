@@ -3,7 +3,8 @@
 .mlh-module-head{display:grid;grid-template-columns:48px minmax(0,1fr) 48px;align-items:center;max-width:720px;margin:auto;text-align:center}
 .mlh-module-head>button{width:44px;height:44px;border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:50%;background:color-mix(in srgb,var(--page) 82%,transparent);color:inherit;display:grid;place-items:center;transition:.2s ease}
 .mlh-module-head>button:hover:not(:disabled){transform:scale(1.06);border-color:color-mix(in srgb,var(--mlh-accent) 50%,transparent)}.mlh-module-head>button:disabled{opacity:.22}
-.mlh-module-head h1{font-size:clamp(1.45rem,4vw,2.25rem);margin:0;letter-spacing:-.035em;animation:mlh-title .42s cubic-bezier(.2,.8,.2,1)}
+.mlh-module-head>div{min-width:0}
+.mlh-module-head h1{font-size:clamp(1.2rem,3.3vw,1.8rem);margin:0;letter-spacing:-.035em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:mlh-title .42s cubic-bezier(.2,.8,.2,1)}
 .mlh-module-head div>i{display:block;width:38px;height:4px;border-radius:99px;margin:12px auto 9px;background:var(--mlh-accent);box-shadow:0 0 20px color-mix(in srgb,var(--mlh-accent) 65%,transparent)}
 .mlh-module-head div>span{color:var(--muted);font-size:.9rem}.mlh-dots{display:flex;justify-content:center;align-items:center;gap:7px;margin:18px 0 8px}
 .mlh-dots>button{width:7px;height:7px;padding:0;border:0;border-radius:50%;background:color-mix(in srgb,currentColor 18%,transparent);transition:.25s ease}.mlh-dots>button.active{width:24px;border-radius:99px;background:var(--mlh-accent)}
