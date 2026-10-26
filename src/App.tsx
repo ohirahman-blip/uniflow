@@ -1,3 +1,4 @@
+import {SemesterAssignment} from './StudyManagement'
 import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
@@ -33,6 +34,7 @@ import './dark-refinement.css'
 import './form-controls.css'
 import './bigupdate-social.css'
 import './dashboard-update.css'
+import './appearance-update.css'
 
 type Page = 'overview' | 'dashboard' | 'calendar' | 'modules' | 'settings' | 'admin'
 const pageFromUrl = (userId?: string): Page => {
@@ -117,7 +119,7 @@ function normalizeWorkspace(value: AppData): AppData {
       from: a.from, to: a.to, recurrence: a.recurrence || 'once',
       overrides: {}, room: a.room, organizer: '', selected: false })
   }
-  const theme='dark'
+  const theme=value.theme==='light'?'light':'dark'
   return normalizeBigUpdate(separateAssessments({ ...emptyData, ...value, firstHour:0,lastHour:24,theme, themePreferenceVersion:1, weekEndDay: value.weekEndDay ?? 4,
     alternatives: [], creditGoals:Array.isArray(value.creditGoals)?value.creditGoals:[], offerings: offers, assessments: Array.isArray(value.assessments) ? value.assessments : [] }))
 }
@@ -1340,7 +1342,7 @@ export default function App() {
     window.addEventListener('touchend',onTouchEnd,{passive:true})
     return()=>{window.removeEventListener('touchstart',onTouchStart);window.removeEventListener('touchend',onTouchEnd)}
   },[user,onboarding])
-  useEffect(() => { document.documentElement.dataset.theme = 'dark' }, [])
+  useEffect(() => { document.documentElement.dataset.theme = data.theme||'dark'; document.querySelector('meta[name="theme-color"]')?.setAttribute('content',data.theme==='light'?'#f7f7f8':'#080808') }, [data.theme])
   useEffect(()=>{
     document.documentElement.dataset.uniflowTier=premium?'plus':'free'
     return ()=>{delete document.documentElement.dataset.uniflowTier}
@@ -1605,6 +1607,8 @@ export default function App() {
   }
   const degree = data.degrees.find(d => d.id === data.activeDegreeId)
   const semester = data.semesters.find(s => s.id === data.activeSemesterId)
+  const selectedModule=data.modules.find(module=>module.id===selectedModuleId)
+  const moduleEditorSemester=selectedModule?.status==='current'?semester:data.semesters.find(item=>selectedModule?.semesterIds.includes(item.id))||semester
   const degreeModules = data.modules.filter(m => m.degreeId === degree?.id)
   const semesterModules = degreeModules.filter(m => m.semesterIds.includes(semester?.id || ''))
   const [adviceClock,setAdviceClock]=useState(0)
@@ -1636,7 +1640,9 @@ export default function App() {
     return Object.fromEntries(semesterModules.map(m=>[m.id,journeyFor(data,m,lessons)])) as Record<string,Journey>
   },[data,semester])
   const updateModules = (mods: StudyModule[]) => mutate(d => ({ ...d, modules: mods }))
-  const saveNewModule = () => { if (!newName.trim() || !degree) return; const m: StudyModule = { id: uid(), degreeId: degree.id, name: newName.trim(), shortName: acronym(newName.trim()), credits: ensureCredits(newCredits), color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }; const now=new Date().toISOString(); mutate(d => ({ ...d, modules: [...d.modules, m],scoreEvents:[...(d.scoreEvents||[]),makeScoreEvent({id:`module-created:${m.id}`,moduleId:m.id,type:'module-created',basePoints:SCORE_RULES.moduleCreated,occurredAt:now,sourceId:m.id,label:'Startbonus'})] })); setNewName(''); setNewCredits('6'); setNewModule(false); note('Modul hinzugefügt · +100 Startpunkte') }
+  const [newModuleStatus,setNewModuleStatus]=useState<StudyModule['status']>('current')
+  const [newModuleSemesterIds,setNewModuleSemesterIds]=useState<string[]>([])
+  const saveNewModule = () => { if (!newName.trim() || !degree) return; const m: StudyModule = { id: uid(), degreeId: degree.id, name: newName.trim(), shortName: acronym(newName.trim()), credits: ensureCredits(newCredits), color: colors[degreeModules.length % colors.length], emoji: '', status: newModuleStatus, grade: '', counted: true, hidden: false, semesterIds: newModuleStatus==='current'?(semester?[semester.id]:[]):newModuleSemesterIds }; const now=new Date().toISOString(); mutate(d => ({ ...d, modules: [...d.modules, m],scoreEvents:[...(d.scoreEvents||[]),makeScoreEvent({id:`module-created:${m.id}`,moduleId:m.id,type:'module-created',basePoints:SCORE_RULES.moduleCreated,occurredAt:now,sourceId:m.id,label:'Startbonus'})] })); setNewName(''); setNewCredits('6'); setNewModule(false); note('Modul hinzugefügt · +100 Startpunkte') }
   const onAddOffer = (offer:Offering) => {
     // Check the whole new series, not only its first week: later clashes must
     // also make the new offering an available alternative, never a forced main.
@@ -1744,7 +1750,7 @@ export default function App() {
   return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{id:'overview' as const,title:'Dashboard',icon:House}, { id: 'dashboard' as const, title: 'Lernen', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} /></span>{n.title}</button>)}</nav><div className="sidebar-profile"><StudyUtilities days={data.streakDays} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))}/>{data.profile}<small>{degree?.name || 'Dein Studium'}</small></div></div>
     <div className="app-main">{page!=='dashboard'&&page!=='overview'&&<header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button></header>}
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
-      {page==='overview'&&<OverviewDashboard data={data} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onDeleteTask={deleteStudyTask} onGoal={goal=>mutate(d=>({...d,dailyScoreGoal:goal}))} onAssessment={item=>setPreviewAssessmentId(item.id)} onCalendar={occ=>{setFocusModuleId(occ.offering.moduleId);navigatePage('calendar')}}/>}
+      {page==='overview'&&<OverviewDashboard data={data} onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))} onSession={saveLearningSession} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onDeleteTask={deleteStudyTask} onGoal={goal=>mutate(d=>({...d,dailyScoreGoal:goal}))} onAssessment={item=>setPreviewAssessmentId(item.id)} onCalendar={occ=>{setFocusModuleId(occ.offering.moduleId);navigatePage('calendar')}}/>}
       {page === 'dashboard' && <ModuleLearningHome onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} data={data} semester={semester} modules={semesterModules}
         currentModuleId={currentModuleId}
         onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
@@ -1759,21 +1765,22 @@ export default function App() {
         onUpdateSession={updateLearningSession}
         storageKey={'uniflow-last-module:'+user.id} onDeleteTask={deleteStudyTask} onDeleteActivity={deleteActivity}
         onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onSession={saveLearningSession} onLearnContent={saveLearnedContent}
-        onEditModule={moduleId=>{setSelectedModuleId(moduleId);navigatePage('modules')}} onCreateModule={()=>setNewModule(true)} />}
+        onEditModule={moduleId=>{setSelectedModuleId(moduleId);navigatePage('modules')}} onCreateModule={()=>{setNewModuleStatus('current');setNewModuleSemesterIds([]);setNewModule(true)}} />}
       {page === 'calendar' && <div className="screen screen-calendar">{semester ? <Calendar key={user.id+':'+semester.id} data={data} semester={semester} modules={semesterModules} userId={user.id} focusModuleId={focusModuleId} onFocusChange={setFocusModuleId} onNew={slot=>{if(isAssessment(slot.category||''))setAssessmentDraft({...slot,type:/klausur|prüfung|exam/i.test(slot.category||'')?'exam':'homework'});else setEntry(slot)}} onEditOccurrence={setEditingOffering} onRateOccurrence={openRatingOccurrence} onPreviewAssessment={item=>setPreviewAssessmentId(item.id)} onSelectGroup={(source,target,scope,both)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:source?chooseOffering(d.offerings,source,target,scope,both):setOfferingAttendance(d.offerings,target,scope,true)}));note(both?'Beide Gruppen bleiben eingeplant.':'Besuchsauswahl aktualisiert.')}} onSuspendVisit={(occ,scope)=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:suspendOffering(d.offerings,occ,scope)}));note('Besuch ausgesetzt. Die Gruppe bleibt erhalten.')}} onCancelVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:d.offerings.map(item=>item.id===occ.offering.id?{...item,overrides:{...(item.overrides||{}),[occ.origin]:{date:occ.origin,from:occ.from,to:occ.to,cancelled:true,scope:'single',reason:'removal'}}}:item)}));note('Termin fällt ohne Ersatz aus.')}} onRestoreVisit={occ=>{undoOfferings.current=data.offerings;mutate(d=>({...d,offerings:undoSingleChoice(d.offerings,occ)}));note('Einmalige Auswahl zurückgenommen.')}} onRequestDeleteOccurrence={occ=>setDeleteProposal({occ,date:occ.date,from:occ.from,to:occ.to})} onOfferingsChange={offers => { undoOfferings.current = data.offerings; mutate(d => ({ ...d, offerings: offers })) }} onNotice={note} /> : <div className="page-blank"><h1>Dein Stundenplan</h1><p>Erstelle zuerst ein Semester in den Einstellungen.</p><button className="primary-action" onClick={() => navigatePage('settings')}>Einstellungen</button></div>}</div>}
       {page === 'modules' && selectedModuleId && data.modules.some(m=>m.id===selectedModuleId) && <ModuleScheduleEditor
-        key={selectedModuleId+'-'+(semester?.id||'')}
+        key={selectedModuleId}
         module={data.modules.find(m=>m.id===selectedModuleId)!}
-        semester={semester}
+        semester={moduleEditorSemester}
         offerings={data.offerings}
         assessments={data.assessments}
         journey={journeysByModule[selectedModuleId]}
         premium={premium}
         onBack={()=>{setSelectedModuleId(null);navigatePage('dashboard',false)}}
-        onUpdateModule={updated=>mutate(d=>({...d,modules:d.modules.map(m=>m.id===updated.id?updated:m)}))}
+        onUpdateModule={updated=>mutate(d=>({...d,modules:d.modules.map(m=>m.id===updated.id?{...updated,semesterIds:updated.status==='current'?[d.activeSemesterId]:updated.semesterIds}:m)}))}
+        moduleSemesterControl={<SemesterAssignment data={data} module={data.modules.find(m=>m.id===selectedModuleId)!} onMutate={mutate} onChange={updated=>mutate(d=>({...d,modules:d.modules.map(m=>m.id===updated.id?updated:m)}))}/>}
         onDeleteModule={()=>setConfirmDeleteModule(data.modules.find(m=>m.id===selectedModuleId)||null)}
         onChangeOfferings={updated=>mutate(d=>{
-          const isTarget=(o:Offering)=>o.moduleId===selectedModuleId&&o.semesterId===semester?.id&&!isAssessment(o.category)
+          const isTarget=(o:Offering)=>o.moduleId===selectedModuleId&&o.semesterId===moduleEditorSemester?.id&&!isAssessment(o.category)
           const previous=d.offerings.filter(isTarget)
           const next=[...new Map(updated.map(o=>[o.id,o])).values()]
           const keptIds=new Set(next.map(o=>o.id))
@@ -1791,7 +1798,7 @@ export default function App() {
         })}
         onChangeAssessments={assessments=>mutate(d=>({...d,assessments}))}
         onEditAssessment={setEditingAssessment}
-        onAddAssessment={type=>{const examEnd=examVisibilityEnd(semester!);const base=today()<semester!.start?semester!.start:today()>examEnd?examEnd:today();setAssessmentDraft({date:base,from:'10:00',to:'12:00',type,moduleId:selectedModuleId})}}
+        onAddAssessment={type=>{if(!moduleEditorSemester)return;const examEnd=examVisibilityEnd(moduleEditorSemester);const base=today()<moduleEditorSemester.start?moduleEditorSemester.start:today()>examEnd?examEnd:today();setAssessmentDraft({date:base,from:'10:00',to:'12:00',type,moduleId:selectedModuleId})}}
         onOpenOccurrence={setDetail}
         onClearException={(id,origin)=>mutate(d=>({...d,offerings:d.offerings.map(o=>o.id===id
           ?{...o,overrides:Object.fromEntries(Object.entries(o.overrides||{}).filter(([day])=>day!==origin))}
@@ -1824,19 +1831,19 @@ export default function App() {
       </div>
     </div>
     <nav className="mobile-navigation" aria-label="Hauptnavigation">{([{id:'overview' as const,name:'Dashboard',icon:House}, { id: 'dashboard' as const, name: 'Lernen', icon: Layers2 }, { id: 'calendar', name: 'Stundenplan', icon: CalendarDays }] as const).map(item => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => navigatePage(item.id)}><span className="nav-icon-wrap"><item.icon size={21} /></span><span>{item.name}</span></button>)}</nav>
-    {profileOpen&&<ProfileOverlay data={data} settings={settingsContent} onClose={closeProfile} onProfileChange={name=>mutate(d=>({...d,profile:name}))} onModule={module=>{const target=data.semesters.find(s=>s.id===data.activeSemesterId&&module.semesterIds.includes(s.id))||data.semesters.filter(s=>module.semesterIds.includes(s.id)).sort((a,b)=>b.start.localeCompare(a.start))[0];mutate(d=>({...d,activeDegreeId:module.degreeId,activeSemesterId:target?.id||d.activeSemesterId}));setSelectedModuleId(module.id);navigatePage('modules')}}/>}
+    {profileOpen&&<ProfileOverlay data={data} onMutate={mutate} onCreateModule={()=>{setNewModuleStatus('planned');setNewModuleSemesterIds([]);setNewModule(true)}} settings={settingsContent} onClose={closeProfile} onProfileChange={name=>mutate(d=>({...d,profile:name}))} onModule={module=>{mutate(d=>({...d,activeDegreeId:module.degreeId,activeSemesterId:d.semesters.find(item=>item.id===d.activeSemesterId&&item.degreeId===module.degreeId)?.id||d.semesters.find(item=>item.degreeId===module.degreeId&&item.start<=today()&&item.end>=today())?.id||d.semesters.find(item=>item.degreeId===module.degreeId)?.id||d.activeSemesterId}));setSelectedModuleId(module.id);navigatePage('modules')}}/>}
     {streakCelebration!==null&&<StreakCelebration count={streakCelebration} onClose={closeStreak}/>}
     {newModule&&<BottomSheet title="Neues Modul" onClose={()=>setNewModule(false)} footer={<button className="primary-action" onClick={saveNewModule}>Modul erstellen · +100 <Sparkles size={18}/></button>}>
-      <div className="uf-entry-form"><div className="editor-field"><span className="field-label">Modulname</span><input autoFocus className="line-input" value={newName} onChange={event=>setNewName(event.target.value)} placeholder="z. B. Geographie" /></div><div className="editor-field"><span className="field-label">Leistungspunkte</span><input className="line-input" type="number" min="0" step="0.5" value={newCredits} onChange={event=>setNewCredits(event.target.value)} /></div><p className="scope-intro">Dein neues Modul startet sofort mit einem Bonus von 100 Punkten.</p></div>
+      <div className="uf-entry-form"><div className="editor-field"><span className="field-label">Modulname</span><input autoFocus className="line-input" value={newName} onChange={event=>setNewName(event.target.value)} placeholder="z. B. Geographie" /></div><div className="editor-field"><span className="field-label">Leistungspunkte</span><input className="line-input" type="number" min="0" step="0.5" value={newCredits} onChange={event=>setNewCredits(event.target.value)} /></div><label className="editor-field">Status<UniflowPicker label="Modulstatus" value={newModuleStatus} onChange={value=>setNewModuleStatus(value as StudyModule['status'])} options={[{value:'planned',label:'Geplant'},{value:'current',label:'Aktuell'}]}/></label><SemesterAssignment data={data} module={{id:'draft',degreeId:data.activeDegreeId,name:newName,shortName:'',credits:Number(newCredits)||0,color:'#aaa',status:newModuleStatus,grade:'',counted:true,hidden:false,semesterIds:newModuleSemesterIds}} onMutate={mutate} onChange={module=>setNewModuleSemesterIds(module.semesterIds)}/><p className="scope-intro">Dein neues Modul startet sofort mit einem Bonus von 100 Punkten.</p></div>
     </BottomSheet>}
-    {assessmentDraft&&semester&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={semester} modules={semesterModules} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setAssessmentDraft(null);note(assessment.type==='exam'?'Prüfung hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
+    {assessmentDraft&&(page==='modules'?moduleEditorSemester:semester)&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={(page==='modules'?moduleEditorSemester:semester)!} modules={page==='modules'?degreeModules:semesterModules} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setAssessmentDraft(null);note(assessment.type==='exam'?'Prüfung hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
     {previewAssessment&&<AssessmentPreview item={previewAssessment}
       module={data.modules.find(m=>m.id===previewAssessment.moduleId)}
       onClose={()=>setPreviewAssessmentId(null)}
       onToggle={()=>mutate(d=>({...d,assessments:d.assessments.map(item=>
         item.id===previewAssessment.id?{...item,completed:!item.completed}:item)}))}
       onEdit={()=>{setEditingAssessment(previewAssessment);setPreviewAssessmentId(null)}}/>}
-    {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={semester} modules={semesterModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
+    {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={data.semesters.find(item=>item.id===editingAssessment.semesterId)||semester} modules={degreeModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
     {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Prüfung löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“{deletingAssessment.date?' am '+formDate(deletingAssessment.date):''} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>{const remaining=d.assessments.filter(x=>x.id!==deletingAssessment.id);return {...d,assessments:remaining}});setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
     {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { const now=new Date().toISOString(); mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }],scoreEvents:[...(d.scoreEvents||[]),makeScoreEvent({id:`module-created:${id}`,moduleId:id,type:'module-created',basePoints:SCORE_RULES.moduleCreated,occurredAt:now,sourceId:id,label:'Startbonus'})] })); note('Modul hinzugefügt · +100 Startpunkte') } return id }} />}
     {ratingLesson&&ratingOccurrence&&<BottomSheet title="Check-in" onClose={()=>setRatingOccurrence(null)} compactHeader

@@ -86,7 +86,7 @@ export function parseModuleQuickInput(raw:string, expectedModule:string):QuickPr
   return {topics,assessments:[],exceptions:[],errors}
 }
 type Props = {
-  module:StudyModule;semester?:Semester;offerings:Offering[];assessments:Assessment[];journey?:Journey;premium:boolean;
+  module:StudyModule;moduleSemesterControl?:import('react').ReactNode;semester?:Semester;offerings:Offering[];assessments:Assessment[];journey?:Journey;premium:boolean;
   onBack:()=>void;onUpdateModule:(next:StudyModule)=>void;onDeleteModule:()=>void;
   onChangeOfferings:(next:Offering[])=>void;
   onChangeAssessments:(next:Assessment[])=>void;
@@ -99,7 +99,7 @@ type Props = {
   onChangeLearningCheckins:(next:LearningCheckin[])=>void;
 }
 export default function ModuleScheduleEditor({
-  module,semester,offerings,assessments,premium,onBack,onUpdateModule,onDeleteModule,
+  module,moduleSemesterControl,semester,offerings,assessments,premium,onBack,onUpdateModule,onDeleteModule,
   onChangeOfferings,onChangeAssessments,onEditAssessment,onAddAssessment,onOpenOccurrence,onClearException
 }:Props) {
   const [quickText,setQuickText]=useState('')
@@ -390,7 +390,7 @@ export default function ModuleScheduleEditor({
         <label>Leistungspunkte<input type="number" min="0" step="0.5" value={module.credits} onChange={e=>onUpdateModule({...module,credits:Math.max(0,Number(e.target.value)||0)})}/></label>
         <label>Emoji<input value={module.emoji||''} maxLength={8} onChange={e=>onUpdateModule({...module,emoji:e.target.value})}/></label>
         <label>Status<UniflowPicker label="Modulstatus" value={module.status} onChange={value=>onUpdateModule({...module,status:value as StudyModule['status']})} options={([['current','Aktuell'],['planned','Geplant'],['open','Offen'],['passed','Bestanden'],['failed','Nicht bestanden'],['recognized','Anerkannt']] as const).map(([value,label])=>({value,label}))}/></label>
-        <label>Note<input value={module.grade} onChange={e=>onUpdateModule({...module,grade:e.target.value})}/></label>
+        {moduleSemesterControl}<label>Note<input value={module.grade} onChange={e=>onUpdateModule({...module,grade:e.target.value})}/></label>
       </div>
       <div className="module-fast-colors">{colors.map(c=><button key={c} title={c} aria-label={'Modulfarbe '+c} className={module.color===c?'picked':''} style={{background:c}} onClick={()=>onUpdateModule({...module,color:c})}>{module.color===c&&<Check size={15}/>}</button>)}</div>
       <button className="module-fast-remove" onClick={onDeleteModule}><Trash2 size={16}/> Modul löschen</button>

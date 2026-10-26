@@ -1,0 +1,87 @@
+/* Calm learning surface. Module colours remain accents, never a backdrop. */
+.app-root:has(.mlh-home,.mlh-empty) .app-main::before{display:none!important}
+.mlh-home{background:none!important}.mlh-glow{display:none!important}
+.mlh-module-head div>i{box-shadow:none!important}
+.mlh-module-head h1,.mlh-task,.mlh-exam-cards>*{animation:none!important}
+.uf-page-stage:has(.mlh-home,.mlh-empty){animation:none!important}
+.mlh-first-open>.mlh-module-head,.mlh-first-open>.mlh-score-banner{animation:learn-intro 450ms cubic-bezier(.2,.8,.2,1) both}
+@keyframes learn-intro{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.mlh-score-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:720px;margin:24px auto 32px;padding:18px 22px;border:1px solid #ffffff18;border-radius:24px;background:#ffffff03;box-sizing:border-box}
+.mlh-score-banner .mlh-score{flex:1;min-width:0;min-height:0;margin:0;padding:0;align-items:flex-start;text-align:left}
+.mlh-score-banner .mlh-score>span:first-child{font-size:10px;letter-spacing:.12em}
+.mlh-score-banner .mlh-score strong{font-size:clamp(2.7rem,9vw,5.8rem);text-shadow:none;overflow-wrap:anywhere;line-height:1.12}
+.mlh-score-banner .mlh-score-number{transform-origin:center center}
+.mlh-score-banner .mlh-actions{display:flex;flex-direction:column;align-items:flex-end;gap:7px;margin:0;flex:0 0 auto}
+.mlh-score-banner .mlh-actions>button{min-height:36px;min-width:36px;padding:8px;color:inherit}
+.mlh-score-banner .mlh-actions svg{width:17px;height:17px;flex-basis:17px}
+.mlh-score-banner .mlh-actions strong{font-size:11px}
+.profile-theme{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;font-size:13px}
+.profile-theme>.uf-picker-trigger{width:150px;background:var(--panel);border:1px solid #ffffff20;border-radius:13px;color:inherit}
+.profile-theme select,.study-goal-form input:not([type=checkbox]),.study-semester-create input{font:inherit;min-width:0;box-sizing:border-box;color:inherit;background:var(--panel);border:1px solid #ffffff20;border-radius:13px;padding:11px 13px}
+.study-add-module,.profile-goals>button,.profile-goals article>button,.study-goal-form>button,.study-semester>button,.study-semester-create>button{border:1px solid #ffffff25;border-radius:14px;padding:10px 14px;background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer}
+.study-add-module{margin-bottom:24px;width:100%}.profile-goals article>button{margin:12px 8px 0 0}
+.study-goal-form{display:grid;gap:16px;padding:18px;border:1px solid #ffffff20;border-radius:20px}
+.study-goal-form label,.study-semester label{display:grid;gap:8px;min-width:0;font-size:12px}
+.study-goal-form fieldset{display:grid;gap:12px;min-width:0;border:1px solid #ffffff18;border-radius:14px;padding:14px}
+.study-goal-form fieldset label{display:flex;align-items:center;gap:10px;overflow-wrap:anywhere}.study-goal-form input[type=checkbox]{accent-color:var(--module-accent,#aaa)}
+.study-semester{display:grid;gap:12px;min-width:0}.study-semester-create{display:grid;gap:10px}.study-semester small{color:var(--muted)}
+.overview-dashboard>.mlh-running-timer{max-width:none;margin:0 0 25px}.mlh-timer-controls{flex-wrap:wrap}
+.session-discard{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;border:1px solid #ffffff22;border-radius:16px;padding:14px;margin-top:12px;color:inherit}.session-discard p{width:100%;text-align:center;margin:0 0 5px;font-size:12px}.session-discard button{background:transparent;border:1px solid #ffffff30;border-radius:18px;color:inherit;padding:9px 13px;font:inherit;font-size:12px;cursor:pointer}
+
+/* One light palette for the shell, sheets and all newer app surfaces. */
+html[data-theme='light']{
+  color-scheme:light;--page:#f7f7f8;--panel:#fff;--muted:#666772;
+  --uf-color-canvas:#f7f7f8;--uf-color-surface-1:#fff;--uf-color-surface-2:#f0f0f2;--uf-color-surface-3:#e9e9ed;--uf-color-control:#ededf0;
+  --uf-color-text:#202126;--uf-color-text-secondary:#656671;--uf-color-action:#24252b;--uf-color-action-text:#fff;
+  --uf-primary:#35363d;--uf-secondary:#666772;--uniflow-accent:#3c3d45;--uniflow-accent-deep:#25262c;
+  --uf-field-background:#20212605;--uf-field-border:#20212626;
+}
+html[data-theme='light'] body,html[data-theme='light'] .app-root{background:var(--page)!important;color:#202126!important}
+html[data-theme='light'] .app-main::before{display:none!important}
+html[data-theme='light'] :is(.screen,.mlh-home,.overview-dashboard,.settings-screen,.module-fast,.profile-panel,.sheet,.mlh-sheet,.uf-picker-dialog){color:#202126!important}
+html[data-theme='light'] :is(.profile-panel,.sheet,.mlh-sheet,.uf-picker-dialog,.mini-popover,.uf-assessment-picker,.module-dropdown,.date-panel,.clock-menu){background:#fff!important;border-color:#20212620!important;color:#202126!important}
+html[data-theme='light'] :is(.app-top,.app-brand,.app-desktop-side){color:#202126!important}
+html[data-theme='light'] :is(.uf-logo-word,.wordmark){color:#202126!important}
+html[data-theme='light'] :is(.mobile-navigation,.app-desktop-side){background:#fafafad9!important;border-color:#20212620!important}
+html[data-theme='light'] :is(.mobile-navigation,.app-desktop-side) button{color:#72737d!important}
+html[data-theme='light'] :is(.mobile-navigation,.app-desktop-side) button.active{color:#202126!important}
+html[data-theme='light'] .mobile-navigation button.active::before{background:#2021260c!important}
+html[data-theme='light'] .mobile-navigation button.active svg{stroke:#202126!important;fill:transparent!important}
+html[data-theme='light'] :is(.mlh-score-banner,.overview-score,.overview-next>button,.overview-task,.overview-new-task,.profile-goals article,.profile-menu>button,.module-fast-course,.module-fast-panel,.module-fast-group,.wallet-choice-banner,.mlh-running-timer){background:#20212603!important;border-color:#20212620!important;color:#202126!important;box-shadow:none!important}
+html[data-theme='light'] :is(.mlh-tasks,.mlh-homework,.mlh-exams,.mlh-exam-cards,.overview-tasks,.profile-modules,.profile-goals,.module-fast) :is(h1,h2,h3,strong){color:#202126}
+html[data-theme='light'] :is(.overview-task>button,.overview-tasks>header>button,.overview-score form button,.profile-menu>button,.profile-modules button,.profile-goals button,.study-add-module,.study-semester button,.mlh-utility>button,.mlh-actions>button,.mlh-task,.mlh-homework-open,.mlh-exam-open){color:inherit!important;border-color:#20212625!important}
+html[data-theme='light'] :is(.mlh-task,.mlh-homework-row,.mlh-exam-row,.mlh-actions>button,.profile-modules section>button,.study-goal-form,.study-goal-form fieldset){border-color:#20212625!important}
+html[data-theme='light'] :is(.mlh-task>i,.mlh-homework-check>i,.mlh-exam-check>i,.overview-task i){border-color:#20212670!important}
+html[data-theme='light'] :is(.mlh-module-head h1,.mlh-score,.mlh-score strong,.mlh-tasks h2,.mlh-task strong){color:#202126!important}
+html[data-theme='light'] :is(.overview-next small,.overview-task small,.profile-menu small,.profile-modules small,.mlh-exam-open small,.module-fast small,.scope-intro,.quiet-copy,.field-label,.setting-hint){color:#666772!important}
+html[data-theme='light'] :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen,.profile-panel,.overview-dashboard) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea,.uf-picker-trigger,.big-choice,.uf-entry-module-choice){background:var(--uf-field-background)!important;border-color:var(--uf-field-border)!important;color:#202126!important;-webkit-text-fill-color:#202126!important}
+html[data-theme='light'] body :is(input,textarea)::placeholder,html[data-theme='light'] body .uf-picker-trigger>.uf-picker-placeholder{color:#20212666!important;-webkit-text-fill-color:#20212666!important;opacity:1!important}
+html[data-theme='light'] :is(.uf-picker-dialog,.sheet,.mlh-sheet) button:not(.primary-action):not(.mlh-primary):not(.picked):not(.selected):not(.chosen){color:inherit}
+html[data-theme='light'] :is(.mlh-primary,.primary-action){background:#292a31!important;color:#fff!important}
+html[data-theme='light'] :is(.uf-picker-option,.uf-picker-calendar-day,.uf-picker-time-option){color:#202126!important}
+html[data-theme='light'] :is(.uf-picker-option.is-selected,.uf-picker-calendar-day.is-selected){background:#20212612!important;color:#202126!important}
+html[data-theme='light'] .uf-assessment-picker button{color:#202126!important}
+html[data-theme='light'] :is(.wallet-choice-banner>button,.module-fast-header button,.module-fast-panel button,.module-fast-group button){color:inherit!important}
+html[data-theme='light'] :is(.calendar-page,.days-grid,.day-column,.calendar-lanes,.time-ruler,.ruler-track,.uf-week-strip){background:transparent!important}
+html[data-theme='light'] :is(.day-heading,.ruler-head,.uf-week-strip){color:#666772!important;border-color:#20212618!important}
+html[data-theme='light'] .calendar-compact-toolbar button{color:#202126!important}
+html[data-theme='light'] svg.lucide-plus{stroke:currentColor}
+html[data-theme='light'] .profile-theme>.uf-picker-trigger{background:#20212605;border-color:#20212620}
+html[data-theme='light'] :is(.mlh-timer-clock,.mlh-timer-controls>button,.mlh-start-timer,.mlh-timeline-now>span){color:#202126!important}
+html[data-theme='light'] :is(.mlh-timer-controls>button,.mlh-start-timer){border-color:#20212630!important}
+html[data-theme='light'] .mlh-score .mlh-score-number.is-rising strong{color:#198542!important}
+html[data-theme='light'] :is(.uf-wheel-shell,.uf-picker-option,.uf-picker-calendar button,.uf-picker-calendar-nav button,.uf-picker-close){background:#20212608!important;color:#202126!important}
+html[data-theme='light'] .uf-picker-option.selected{background:#20212615!important;border-color:#20212640!important}
+html[data-theme='light'] .uf-wheel-selected-area{background:#20212612!important;border-color:#20212625!important}
+html[data-theme='light'] .calendar-course-expansion .wallet-card{background:color-mix(in srgb,var(--wallet-accent) 8%,#fff)!important;color:#202126!important}
+html[data-theme='light'] :is(.wallet-scope button,.wallet-edit,.wallet-reset,.wallet-choice-banner button){color:#202126!important;border-color:#20212625!important}
+html[data-theme='light'] :is(.mlh-timeline-now>i,.settings-section,.module-fast-meta,.module-fast-exceptions,.module-fast-slot,.module-assessment-card){border-color:#20212620!important}
+html[data-theme='light'] .profile-backdrop{background:#20212644}
+html[data-theme='light'] .screen-calendar .calendar-sticky-header{background:var(--page)!important}
+html[data-theme='light'] .screen-calendar .course:not(.course-expanded):not(.course-inactive){background:#20212608!important;color:color-mix(in srgb,var(--course-accent) 55%,#202126)!important}
+html[data-theme='light'] .module-fast .module-fast-topic{background:#fff;border-color:#20212620}
+html[data-theme='light'] .settings-screen .settings-section h2{color:#4d4e58}
+html[data-theme='light'] :is(.session-discard,.session-discard button){border-color:#20212630}
+html[data-theme='light'] .mlh-primary{background:color-mix(in srgb,var(--mlh-accent,var(--module-accent)) 70%,#fff)!important;color:#202126!important}
+@media(min-width:800px){.mlh-score-banner{padding:24px 30px}.mlh-score-banner .mlh-actions{flex-direction:row;align-items:center}}
+@media(prefers-reduced-motion:reduce){.mlh-first-open>.mlh-module-head,.mlh-first-open>.mlh-score-banner{animation:none!important}}
