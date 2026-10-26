@@ -1,0 +1,19 @@
+.learning-reward{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;isolation:isolate;overflow:hidden;padding:24px;padding-top:max(24px,env(safe-area-inset-top));padding-bottom:max(24px,env(safe-area-inset-bottom));box-sizing:border-box;background:#09090bf5;color:#f8f8fa;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);animation:reward-arrive 260ms ease both}
+.learning-reward::before{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 50% 48%,color-mix(in srgb,var(--reward-accent) 12%,transparent),transparent 65%);pointer-events:none}
+.learning-reward-content{position:relative;z-index:1;text-align:center;width:min(100%,600px)}
+.learning-reward-content>p{font-size:14px;color:#a7a7b1;margin:0 0 14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.learning-reward-content h2{font-size:clamp(22px,5vw,36px);font-weight:500;letter-spacing:-.04em;margin:0 0 36px}
+.learning-reward-points>strong{position:relative;display:inline-block;font:400 min(66px,calc((100vw - 65px)/var(--reward-digits)))/1.6 StudyPixel,monospace;color:#55555d;letter-spacing:0}
+.learning-reward-points>strong>span{display:block}
+.learning-reward-points>strong>.learning-reward-fill{position:absolute;inset:0;color:var(--reward-accent);text-shadow:0 0 24px color-mix(in srgb,var(--reward-accent) 22%,transparent)}
+.learning-reward-points>span{display:block;margin-top:12px;font:400 12px/1.6 StudyPixel,monospace;color:var(--reward-accent);letter-spacing:.05em}
+.learning-reward-meter{height:5px;width:min(70%,260px);border-radius:99px;background:#ffffff12;overflow:hidden;margin:30px auto}
+.learning-reward-meter i{display:block;width:100%;height:100%;transform-origin:left;border-radius:inherit;background:var(--reward-accent)}
+.learning-reward-content>button{font:inherit;color:inherit;background:#ffffff08;border:1px solid #ffffff26;padding:12px 30px;min-height:44px;border-radius:999px;cursor:pointer}
+.learning-reward-content>button:focus-visible{outline:2px solid var(--reward-accent);outline-offset:4px}
+.learning-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.learning-confetti i{position:absolute;top:-18px;width:7px;height:12px;border-radius:2px;background:var(--confetti-color);opacity:0;animation:reward-confetti var(--confetti-duration) cubic-bezier(.12,.4,.5,1) var(--confetti-delay) both}
+.learning-confetti i:nth-child(4n){width:5px;height:5px;border-radius:50%}.learning-confetti i:nth-child(3n){width:4px;height:14px}
+@keyframes reward-arrive{from{opacity:0}to{opacity:1}}
+@keyframes reward-confetti{0%{opacity:0;transform:translate3d(0,-15px,0) rotate(0)}8%,78%{opacity:.85}100%{opacity:0;transform:translate3d(var(--confetti-drift),110dvh,0) rotate(var(--confetti-turn))}}
+@media(prefers-reduced-motion:reduce){.learning-reward{animation:none}.learning-confetti{display:none}}

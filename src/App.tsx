@@ -19,6 +19,8 @@ import OverviewDashboard from './OverviewDashboard'
 import StudyUtilities from './StudyUtilities'
 import ProfileOverlay from './ProfileOverlay'
 import StreakCelebration from './StreakCelebration'
+import LearningRewardCelebration from './LearningRewardCelebration'
+import {rewardPoints,type LearningReward} from './learning-reward'
 import {useStreakAudio} from './streak-audio'
 import {applyScoreAwards,streakCount} from './streaks'
 import { adviceContext } from './study-advice'
@@ -1256,6 +1258,19 @@ export default function App() {
   useStreakAudio(data.soundEffects!==false)
   const [profileOpen,setProfileOpen]=useState(false)
   const closeProfile=useCallback(()=>setProfileOpen(false),[])
+  const pendingRewards=useRef(new Map<string,{moduleId:string;kind:LearningReward['kind']}>())
+  const [learningRewards,setLearningRewards]=useState<LearningReward[]>([])
+  const closeLearningReward=useCallback(()=>setLearningRewards(queue=>queue.slice(1)),[])
+  useEffect(()=>{
+    const ready:LearningReward[]=[]
+    for(const [groupId,details] of pendingRewards.current){
+      if(!(data.scoreEvents||[]).some(event=>event.groupId===groupId))continue
+      pendingRewards.current.delete(groupId)
+      const points=rewardPoints(data.scoreEvents,groupId)
+      if(points>0)ready.push({id:groupId,...details,points})
+    }
+    if(ready.length)setLearningRewards(queue=>[...queue,...ready])
+  },[data.scoreEvents])
   const [streakCelebration,setStreakCelebration]=useState<number|null>(null)
   const closeStreak=useCallback(()=>setStreakCelebration(null),[])
   const [pageDirection,setPageDirection]=useState<'forward'|'backward'>('forward')
@@ -1543,13 +1558,14 @@ export default function App() {
     })))
   }
   const saveLearningSession=(session:Omit<LearningSession,'id'|'updatedAt'>)=>{
+    if(session.timerId&&(data.learningSessions||[]).some(old=>old.timerId===session.timerId))return
     const now=new Date().toISOString(),id=uid(),groupId=`study:${id}`
+    pendingRewards.current.set(groupId,{moduleId:session.moduleId,kind:'session'})
     mutate(workspace=>session.timerId&&(workspace.learningSessions||[]).some(old=>old.timerId===session.timerId)?workspace:({...workspace,
       studyTimer:session.timerId&&workspace.studyTimer?.id===session.timerId?undefined:workspace.studyTimer,
       learningSessions:[...(workspace.learningSessions||[]).filter(old=>!session.scheduledKey||old.scheduledKey!==session.scheduledKey),{...session,id,updatedAt:now}],
       scoreEvents:[...(workspace.scoreEvents||[]),makeScoreEvent({id:`study-minutes:${id}`,moduleId:session.moduleId,type:'study-minutes',basePoints:session.duration*SCORE_RULES.minute,occurredAt:now,sourceId:id,groupId,label:`${session.duration} Min. gelernt`})]
     }))
-    note(`Lernsession gespeichert · +${Math.round(session.duration*SCORE_RULES.minute)} Punkte`)
   }
   const updateLearningSession=(session:LearningSession)=>{
     const now=new Date().toISOString()
@@ -1561,6 +1577,7 @@ export default function App() {
   }
   const saveLearnedContent=(moduleId:string,lessons:NumberedLesson[],duration:number,rating:Exclude<LearningRating,'absent'>)=>{
     const now=new Date().toISOString(),id=uid(),groupId=`content-study:${id}`
+    pendingRewards.current.set(groupId,{moduleId,kind:'content'})
     mutate(workspace=>{
       let events=[...(workspace.scoreEvents||[]),makeScoreEvent({id:`study-minutes:${id}`,moduleId,type:'study-minutes',basePoints:duration*SCORE_RULES.minute,occurredAt:now,sourceId:id,groupId,label:`${lessons.length} Einheiten gelernt`})]
       for(const lesson of lessons){
@@ -1570,7 +1587,6 @@ export default function App() {
       }
       return {...workspace,learningSessions:[...(workspace.learningSessions||[]),{id,moduleId,date:today(),duration,kind:'review' as const,rating,lessonKeys:lessons.map(lesson=>lesson.key),updatedAt:now}],scoreEvents:events}
     })
-    note('Lernfortschritt gespeichert.')
   }
   const setNotificationPreference = async (enabled:boolean) => {
     const next={lessonFeedback:enabled}
@@ -1833,7 +1849,8 @@ export default function App() {
     </div>
     <nav className="mobile-navigation" aria-label="Hauptnavigation" style={{'--nav-position':page==='overview'?1/6:page==='calendar'?5/6:1/2,'--nav-highlight':(['overview','dashboard','calendar'] as Page[]).includes(page)?1:0} as CSSProperties}><span className="mobile-nav-indicator" aria-hidden="true"/>{([{id:'overview' as const,name:'Dashboard',icon:House}, { id: 'dashboard' as const, name: 'Lernen', icon: Layers2 }, { id: 'calendar', name: 'Stundenplan', icon: CalendarDays }] as const).map(item => <button key={item.id} className={page === item.id ? 'active' : ''} aria-current={page===item.id?'page':undefined} onClick={() => navigatePage(item.id)}><span className="nav-icon-wrap"><item.icon size={21} /></span><span>{item.name}</span></button>)}</nav>
     {profileOpen&&<ProfileOverlay data={data} onMutate={mutate} onCreateModule={()=>{setNewModuleStatus('planned');setNewModuleSemesterIds([]);setNewModule(true)}} settings={settingsContent} onClose={closeProfile} onProfileChange={name=>mutate(d=>({...d,profile:name}))} onModule={module=>{mutate(d=>({...d,activeDegreeId:module.degreeId,activeSemesterId:d.semesters.find(item=>item.id===d.activeSemesterId&&item.degreeId===module.degreeId)?.id||d.semesters.find(item=>item.degreeId===module.degreeId&&item.start<=today()&&item.end>=today())?.id||d.semesters.find(item=>item.degreeId===module.degreeId)?.id||d.activeSemesterId}));setSelectedModuleId(module.id);navigatePage('modules')}}/>}
-    {streakCelebration!==null&&<StreakCelebration soundEnabled={data.soundEffects!==false} count={streakCelebration} onClose={closeStreak}/>}
+    {learningRewards[0]&&<LearningRewardCelebration key={learningRewards[0].id} reward={learningRewards[0]} moduleName={data.modules.find(module=>module.id===learningRewards[0].moduleId)?.name||'Dein Lernfortschritt'} color={data.modules.find(module=>module.id===learningRewards[0].moduleId)?.color||'#a5d9bb'} soundEnabled={data.soundEffects!==false} onClose={closeLearningReward}/>}
+    {learningRewards.length===0&&streakCelebration!==null&&<StreakCelebration soundEnabled={data.soundEffects!==false} count={streakCelebration} onClose={closeStreak}/>}
     {newModule&&<BottomSheet title="Neues Modul" onClose={()=>setNewModule(false)} footer={<button className="primary-action" onClick={saveNewModule}>Modul erstellen · +100 <Sparkles size={18}/></button>}>
       <div className="uf-entry-form"><div className="editor-field"><span className="field-label">Modulname</span><input autoFocus className="line-input" value={newName} onChange={event=>setNewName(event.target.value)} placeholder="z. B. Geographie" /></div><div className="editor-field"><span className="field-label">Leistungspunkte</span><input className="line-input" type="number" min="0" step="0.5" value={newCredits} onChange={event=>setNewCredits(event.target.value)} /></div><label className="editor-field">Status<UniflowPicker label="Modulstatus" value={newModuleStatus} onChange={value=>setNewModuleStatus(value as StudyModule['status'])} options={[{value:'planned',label:'Geplant'},{value:'current',label:'Aktuell'}]}/></label><SemesterAssignment data={data} module={{id:'draft',degreeId:data.activeDegreeId,name:newName,shortName:'',credits:Number(newCredits)||0,color:'#aaa',status:newModuleStatus,grade:'',counted:true,hidden:false,semesterIds:newModuleSemesterIds}} onMutate={mutate} onChange={module=>setNewModuleSemesterIds(module.semesterIds)}/><p className="scope-intro">Dein neues Modul startet sofort mit einem Bonus von 100 Punkten.</p></div>
     </BottomSheet>}

@@ -1,21 +1,31 @@
 import {useEffect} from 'react'
 
 let context:AudioContext|undefined
-let bytes:Promise<ArrayBuffer>|undefined
-let decoded:Promise<AudioBuffer>|undefined
+const soundFiles={streak:'/audio/swoosh-fire.mp3',success:'/audio/success.wav'} as const
+type Sound=keyof typeof soundFiles
+const bytes=new Map<Sound,Promise<ArrayBuffer>>()
+const decoded=new Map<Sound,Promise<AudioBuffer>>()
 const playing=new Set<AudioBufferSourceNode>()
-function loadBytes(){
-  if(!bytes)bytes=fetch('/audio/swoosh-fire.mp3').then(response=>{
-    if(!response.ok)throw new Error('Sound unavailable')
-    return response.arrayBuffer()
-  }).catch(error=>{bytes=undefined;throw error})
-  return bytes
+function loadBytes(sound:Sound){
+  let promise=bytes.get(sound)
+  if(!promise){
+    promise=fetch(soundFiles[sound]).then(response=>{
+      if(!response.ok)throw new Error('Sound unavailable')
+      return response.arrayBuffer()
+    }).catch(error=>{bytes.delete(sound);throw error})
+    bytes.set(sound,promise)
+  }
+  return promise
 }
-function loadBuffer(){
+function loadBuffer(sound:Sound){
   if(!context)return Promise.reject(new Error('Audio not unlocked'))
   const audio=context
-  if(!decoded)decoded=loadBytes().then(value=>audio.decodeAudioData(value.slice(0))).catch(error=>{decoded=undefined;throw error})
-  return decoded
+  let promise=decoded.get(sound)
+  if(!promise){
+    promise=loadBytes(sound).then(value=>audio.decodeAudioData(value.slice(0))).catch(error=>{decoded.delete(sound);throw error})
+    decoded.set(sound,promise)
+  }
+  return promise
 }
 function stopSounds(){
   for(const source of playing){try{source.stop()}catch{/* Already ended. */}}
@@ -25,14 +35,14 @@ function stopSounds(){
 export function useStreakAudio(enabled:boolean){
   useEffect(()=>{
     if(!enabled){stopSounds();return}
-    void loadBytes().catch(()=>{/* Sound must never block the app. */})
+    for(const sound of ['streak','success'] as const)void loadBytes(sound).catch(()=>{/* Sound must never block the app. */})
     const unlock=()=>{
       try{
         const Constructor=window.AudioContext||(window as typeof window&{webkitAudioContext?:typeof AudioContext}).webkitAudioContext
         if(!Constructor)return
         context??=new Constructor()
         if(context.state==='suspended')void context.resume().catch(()=>{})
-        void loadBuffer().catch(()=>{})
+        for(const sound of ['streak','success'] as const)void loadBuffer(sound).catch(()=>{})
       }catch{/* Unsupported or blocked audio remains silent. */}
     }
     const onVisibility=()=>{if(document.hidden)stopSounds()}
@@ -48,12 +58,14 @@ export function useStreakAudio(enabled:boolean){
   },[enabled])
 }
 
-export function playStreakSound(){
+export const playStreakSound=()=>playSound('streak')
+export const playSuccessSound=()=>playSound('success')
+function playSound(sound:Sound){
   let cancelled=false
   let source:AudioBufferSourceNode|undefined
   const audio=context
   if(audio?.state==='running'){
-    void loadBuffer().then(buffer=>{
+    void loadBuffer(sound).then(buffer=>{
       if(cancelled||document.hidden||audio.state!=='running')return
       stopSounds()
       source=audio.createBufferSource()
