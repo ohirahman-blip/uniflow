@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ClipboardList, History, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
 import { dateString, formatDate, today, uid, type AppData, type Assessment, type Semester, type StudyModule } from './model'
-import StudyUtilities from './StudyUtilities'
+import LearningStickyHeader from './LearningStickyHeader'
+import PixelScoreScene from './PixelScoreScene'
 import ExamTimeline from './ExamTimeline'
 import UniflowPicker from './UniflowPicker'
 import LearningSessionForm,{type SessionValues} from './LearningSessionForm'
@@ -14,8 +15,6 @@ import type { LearningRating, LearningSession, ScoreEvent, StudyTask } from './l
 import './module-learning-home.css'
 
 type Props = {
-  onProfile: () => void
-  onStreak: () => void
   data: AppData
   semester?: Semester
   modules: StudyModule[]
@@ -111,7 +110,7 @@ function AnimatedScore({value,storageKey}:{value:number;storageKey:string}){
   return <span className={'mlh-score-number'+(rising?' is-rising':'')}><i aria-hidden="true">+</i><strong>{display.toLocaleString('de-DE')}</strong></span>
 }
 
-export default function ModuleLearningHome({ onProfile, onStreak, data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
+export default function ModuleLearningHome({ data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
   const visible = modules.filter(module => !module.hidden && !['passed','planned','recognized'].includes(module.status))
   const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
   const [firstOpen]=useState(()=>{try{const key='uniflow-learn-intro:'+storageKey;return !sessionStorage.getItem(key)}catch{return false}})
@@ -166,20 +165,20 @@ export default function ModuleLearningHome({ onProfile, onStreak, data, semester
     else onSession({...values,moduleId:active.id,kind:'review'})
     setModal(null);setFinishingTimer(null);setEditingSession(null)
   }
-  const utility=<StudyUtilities days={data.streakDays} onProfile={onProfile} onStreak={onStreak}/>
-  if (!visible.length) return <main className="screen mlh-empty">{utility}<Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
+
+  if (!visible.length) return <main className="screen mlh-empty"><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className={'screen mlh-home'+(firstOpen?' mlh-first-open':'')} style={accent} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
-    {utility}<div className="mlh-glow" aria-hidden="true" />
+    <LearningStickyHeader moduleId={active.id} title={active.name} color={active.color} score={scoreTotal(data.scoreEvents,active.id)} onHistory={()=>open('history')}/>
     <header className="mlh-module-head">
       <button disabled={safeIndex === 0} onClick={() => switchTo(safeIndex - 1)} aria-label="Vorheriges Modul"><ArrowLeft size={21} /></button>
-      <div><h1 key={active.id}>{active.name}</h1><i aria-hidden="true" /></div>
+      <div><h1 id="learning-module-title" key={active.id}>{active.name}</h1><i aria-hidden="true" /></div>
       <button disabled={safeIndex === visible.length - 1} onClick={() => switchTo(safeIndex + 1)} aria-label="Nächstes Modul"><ArrowRight size={21} /></button>
     </header>
     <div className="mlh-dots" aria-label={`Modul ${safeIndex + 1} von ${visible.length}`}>{visible.map((module, position) => <button key={module.id} onClick={() => open('modules')} className={position === safeIndex ? 'active' : ''} aria-label={`Modulübersicht öffnen, ${module.name}`} aria-haspopup="dialog" />)}<button className="mlh-add-module" onClick={onCreateModule} aria-label="Modul hinzufügen"><Plus size={13} /></button></div>
 
-    <div className="mlh-score-banner"><button className="mlh-score" onClick={() => {if(suppressScoreClick.current){suppressScoreClick.current=false;return}open('history')}} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
-      <span>DEIN SCORE</span><AnimatedScore key={active.id} value={scoreTotal(data.scoreEvents,active.id)} storageKey={`${storageKey}:score:${active.id}`}/>
+    <div className="mlh-score-banner"><button id="learning-module-score" className="mlh-score pixel-console" onClick={() => {if(suppressScoreClick.current){suppressScoreClick.current=false;return}open('history')}} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
+      <span className="pixel-score-display" style={{'--score-digits':scoreTotal(data.scoreEvents,active.id).toLocaleString('de-DE').length} as CSSProperties}><PixelScoreScene/><AnimatedScore key={active.id} value={scoreTotal(data.scoreEvents,active.id)} storageKey={`${storageKey}:score:${active.id}`}/></span><span className="pixel-console-speaker" aria-hidden="true"/>
     </button>
 
     <section className="mlh-actions" aria-label="Modulaktionen">
