@@ -6,13 +6,13 @@
 .uf-page-stage:has(.mlh-home,.mlh-empty){animation:none!important}
 .mlh-first-open>.mlh-module-head,.mlh-first-open>.mlh-score-banner{animation:learn-intro 450ms cubic-bezier(.2,.8,.2,1) both}
 @keyframes learn-intro{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.mlh-score-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:720px;margin:24px auto 32px;padding:18px 22px;border:1px solid #ffffff18;border-radius:24px;background:#ffffff03;box-sizing:border-box}
-.mlh-score-banner .mlh-score{flex:1;min-width:0;min-height:0;margin:0;padding:0;align-items:flex-start;text-align:left}
+.mlh-score-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:720px;margin:24px auto 32px;padding:0;border:0;border-radius:0;background:transparent;box-sizing:border-box}
+.mlh-score-banner .mlh-score{flex:1;min-width:0;min-height:148px;margin:0;padding:18px;align-items:center;justify-content:center;text-align:center;border:1px solid #ffffff18;border-radius:24px;background:#ffffff03!important;box-sizing:border-box}
 .mlh-score-banner .mlh-score>span:first-child{font-size:10px;letter-spacing:.12em}
 .mlh-score-banner .mlh-score strong{font-size:clamp(2.7rem,9vw,5.8rem);text-shadow:none;overflow-wrap:anywhere;line-height:1.12}
 .mlh-score-banner .mlh-score-number{transform-origin:center center}
-.mlh-score-banner .mlh-actions{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin:0;padding:7px;flex:0 0 146px;border:1px solid #ffffff20;border-radius:20px;background:#ffffff04;box-sizing:border-box}
-.mlh-score-banner .mlh-actions>button{min-height:36px;min-width:0;width:100%;max-width:none;padding:9px 10px;color:inherit;justify-content:flex-start;border:1px solid #ffffff1a;border-radius:13px;background:#ffffff07;gap:8px}
+.mlh-score-banner .mlh-actions{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:0;padding:0;flex:0 0 146px;border:0;border-radius:0;background:transparent;box-sizing:border-box}
+.mlh-score-banner .mlh-actions>button{min-height:36px;min-width:0;width:100%;max-width:none;padding:9px 10px;color:inherit;justify-content:flex-start;border:1px solid #ffffff22;border-radius:999px;background:transparent;gap:8px}
 .mlh-score-banner .mlh-actions svg{width:17px;height:17px;flex-basis:17px}
 .mlh-score-banner .mlh-actions strong,.mlh-score-banner .mlh-actions>button:hover strong,.mlh-score-banner .mlh-actions>button:focus-visible strong{font-size:11px;max-width:none;opacity:1;margin-left:0;white-space:normal;text-align:left}
 .mlh-score-banner .mlh-actions>.mlh-action-secondary{background:transparent;border-color:transparent;color:var(--muted);font-weight:400}
@@ -50,7 +50,7 @@ html[data-theme='light'] :is(.mobile-navigation,.app-desktop-side) button{color:
 html[data-theme='light'] :is(.mobile-navigation,.app-desktop-side) button.active{color:#202126!important}
 html[data-theme='light'] .mobile-navigation button.active::before{background:#2021260c!important}
 html[data-theme='light'] .mobile-navigation button.active svg{stroke:#202126!important;fill:transparent!important}
-html[data-theme='light'] :is(.mlh-score-banner,.overview-score,.overview-next>button,.overview-task,.overview-new-task,.profile-goals article,.profile-menu>button,.module-fast-course,.module-fast-panel,.module-fast-group,.wallet-choice-banner,.mlh-running-timer){background:#20212603!important;border-color:#20212620!important;color:#202126!important;box-shadow:none!important}
+html[data-theme='light'] :is(.overview-score,.overview-next>button,.overview-task,.overview-new-task,.profile-goals article,.profile-menu>button,.module-fast-course,.module-fast-panel,.module-fast-group,.wallet-choice-banner,.mlh-running-timer){background:#20212603!important;border-color:#20212620!important;color:#202126!important;box-shadow:none!important}
 html[data-theme='light'] :is(.mlh-tasks,.mlh-homework,.mlh-exams,.mlh-exam-cards,.overview-tasks,.profile-modules,.profile-goals,.module-fast) :is(h1,h2,h3,strong){color:#202126}
 html[data-theme='light'] :is(.overview-task>button,.overview-tasks>header>button,.overview-score form button,.profile-menu>button,.profile-modules button,.profile-goals button,.study-add-module,.study-semester button,.mlh-utility>button,.mlh-actions>button,.mlh-task,.mlh-homework-open,.mlh-exam-open){color:inherit!important;border-color:#20212625!important}
 html[data-theme='light'] :is(.mlh-task,.mlh-homework-row,.mlh-exam-row,.mlh-actions>button,.profile-modules section>button,.study-goal-form,.study-goal-form fieldset){border-color:#20212625!important}
@@ -112,9 +112,10 @@ html[data-theme='light'] :is(.uf-month-weekdays,.uf-month-grid){border-color:#20
 html[data-theme='light'] .uf-month-cell.is-today .uf-month-day{background:#202126;color:#fff}
 html[data-theme='light'] .uf-month-pill{background:color-mix(in srgb,var(--month-accent) 18%,#fff);color:#202126}
 html[data-theme='light'] .uf-month-pill.exam{background:color-mix(in srgb,var(--month-accent) 30%,#fff)}
-html[data-theme='light'] .mlh-score-banner .mlh-actions{background:#20212603;border-color:#20212625}
-html[data-theme='light'] .mlh-score-banner .mlh-actions>button{background:#20212606;color:#202126!important}
+html[data-theme='light'] .mlh-score-banner .mlh-score{background:#20212603!important;border-color:#20212625}
+html[data-theme='light'] .mlh-score-banner .mlh-actions{background:transparent;border:0}
+html[data-theme='light'] .mlh-score-banner .mlh-actions>button{background:transparent;color:#202126!important}
 html[data-theme='light'] .mlh-score-banner .mlh-actions>.mlh-action-secondary{background:transparent;border-color:transparent!important;color:#70717b!important}
-@media(min-width:800px){.mlh-score-banner{padding:24px 30px}.mlh-score-banner .mlh-actions{flex-basis:184px}}
-@media(max-width:380px){.mlh-score-banner{padding:15px;gap:10px}.mlh-score-banner .mlh-actions{flex-basis:136px}.mlh-score-banner .mlh-actions>button{padding:8px}.mlh-score-banner .mlh-score strong{font-size:clamp(2rem,8vw,3rem)}}
+@media(min-width:800px){.mlh-score-banner .mlh-score{padding:24px 30px}.mlh-score-banner .mlh-actions{flex-basis:184px}}
+@media(max-width:380px){.mlh-score-banner{padding:0;gap:12px}.mlh-score-banner .mlh-score{padding:15px 10px}.mlh-score-banner .mlh-actions{flex-basis:136px}.mlh-score-banner .mlh-actions>button{padding:8px}.mlh-score-banner .mlh-score strong{font-size:clamp(2rem,8vw,3rem)}}
 @media(prefers-reduced-motion:reduce){.mlh-first-open>.mlh-module-head,.mlh-first-open>.mlh-score-banner{animation:none!important}}
