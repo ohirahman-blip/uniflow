@@ -1,0 +1,28 @@
+.streak-celebration:has(.streak-fire){--fire-outer:#f06a25;--fire-middle:#ffae45;--fire-core:#fff0b7;animation:streak-fire-screen 4200ms ease both}
+.streak-celebration.is-purple{--fire-outer:#8652e6;--fire-middle:#c08aff;--fire-core:#f3dcff}
+.streak-fire{position:relative;width:clamp(155px,34vw,240px);aspect-ratio:4/5;flex-shrink:0;filter:drop-shadow(0 0 22px color-mix(in srgb,var(--flame) 50%,transparent));animation:fire-breathe 1700ms ease-in-out infinite alternate}
+.streak-fire-art{display:block;width:100%;height:100%;overflow:visible}
+.fire-silhouette{fill:color-mix(in srgb,var(--flame) 8%,transparent);stroke:color-mix(in srgb,var(--flame) 20%,transparent);stroke-width:1}
+.fire-layer{clip-path:inset(100% 0 0);animation:fire-fill 1250ms cubic-bezier(.16,.8,.2,1) both}
+.fire-layer path{transform-box:fill-box;transform-origin:50% 100%;animation:fire-flicker 1100ms ease-in-out infinite alternate}
+.fire-layer-outer{fill:var(--fire-outer);animation-delay:120ms}
+.fire-layer-middle{fill:var(--fire-middle);animation-delay:480ms}
+.fire-layer-middle path{animation-name:fire-flicker-inner;animation-duration:780ms;animation-delay:-230ms}
+.fire-layer-core{fill:var(--fire-core);animation-delay:860ms}
+.fire-layer-core path{animation-duration:630ms;animation-delay:-450ms}
+.fire-embers{position:absolute;inset:0;pointer-events:none}
+.fire-embers i{position:absolute;bottom:19%;left:25%;width:4px;height:9px;border-radius:70% 30% 60% 40%;background:var(--fire-middle);opacity:0;animation:fire-ember 1900ms ease-out infinite;animation-delay:700ms;--ember-drift:-22px}
+.fire-embers i:nth-child(2){left:64%;width:3px;height:7px;animation-delay:1100ms;animation-duration:2200ms;--ember-drift:30px}
+.fire-embers i:nth-child(3){left:48%;bottom:42%;animation-delay:1700ms;animation-duration:1700ms;--ember-drift:12px}
+.fire-embers i:nth-child(4){left:79%;bottom:26%;width:3px;height:5px;animation-delay:1400ms;--ember-drift:24px}
+.fire-embers i:nth-child(5){left:34%;bottom:32%;width:3px;height:6px;animation-delay:2200ms;animation-duration:1600ms;--ember-drift:-35px}
+.fire-embers i:nth-child(6){left:55%;bottom:18%;animation-delay:2500ms;animation-duration:2000ms;--ember-drift:-12px}
+.streak-celebration>.streak-aura{animation:fire-aura 1900ms ease-in-out infinite alternate}
+@keyframes fire-fill{0%{clip-path:inset(100% 0 0)}55%{clip-path:inset(28% 0 0)}100%{clip-path:inset(0 0 0)}}
+@keyframes fire-flicker{0%{transform:scale(.98,1) skewX(-2deg)}24%{transform:scale(1.025,.97) skewX(1deg)}55%{transform:scale(.97,1.035) skewX(-1deg)}78%{transform:scale(1.01,.99) skewX(2.5deg)}100%{transform:scale(.985,1.025) skewX(-1.5deg)}}
+@keyframes fire-flicker-inner{0%{transform:scale(1,.97) skewX(3deg)}37%{transform:scale(.95,1.04) skewX(-2deg)}73%{transform:scale(1.035,.98) skewX(1deg)}100%{transform:scale(.98,1.03) skewX(-3deg)}}
+@keyframes fire-breathe{0%{transform:translateY(2px) rotate(-1deg)}60%{transform:translateY(-3px) rotate(.7deg)}100%{transform:translateY(0) rotate(-.3deg)}}
+@keyframes fire-ember{0%,12%{opacity:0;transform:translate(0,0) scale(.6)}25%{opacity:.85}80%{opacity:.45}100%{opacity:0;transform:translate(var(--ember-drift),-155px) scale(.2) rotate(28deg)}}
+@keyframes fire-aura{from{opacity:.45;transform:scale(.9)}to{opacity:.8;transform:scale(1.18)}}
+@keyframes streak-fire-screen{0%{opacity:0}8%,88%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.streak-fire,.fire-layer,.fire-layer path,.fire-embers i,.streak-celebration>.streak-aura{animation:none!important}.fire-layer{clip-path:inset(0)}.fire-embers{display:none}}
