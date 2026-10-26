@@ -1,8 +1,8 @@
 @font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DM-Sans-Variable.ttf') format('truetype');
+  font-family: 'Google Sans';
+  src: url('/fonts/Google-Sans-Variable.woff2') format('woff2');
   font-style: normal;
-  font-weight: 100 1000;
+  font-weight: 400 700;
   font-display: swap;
 }
 /* Dashboard color is shared by every main app surface. */
@@ -22,12 +22,13 @@
   --uniflow-accent:#f94f72;
   --uniflow-accent-deep:#ff871a;
   --uf-page-background:#080808;
-  font-family: 'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-family: 'Google Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-weight: 400;
   font-size: 14px;
   color: #f5f5f5;
   background: var(--uf-page-background);
   font-synthesis: none;
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
