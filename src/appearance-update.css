@@ -17,6 +17,12 @@
 .mlh-score-banner .mlh-actions strong,.mlh-score-banner .mlh-actions>button:hover strong,.mlh-score-banner .mlh-actions>button:focus-visible strong{font-size:11px;max-width:none;opacity:1;margin-left:0;white-space:normal;text-align:left}
 .mlh-score-banner .mlh-actions>.mlh-action-secondary{background:transparent;border-color:transparent;color:var(--muted);font-weight:400}
 .mlh-score-banner .mlh-actions>.mlh-action-secondary:hover{border-color:#ffffff25;color:inherit}
+.mlh-score-banner .mlh-actions>button{transition:transform 220ms cubic-bezier(.2,.8,.2,1),border-color 220ms ease,background-color 220ms ease,color 220ms ease}
+.mlh-score-banner .mlh-actions>button:focus-visible{outline:2px solid var(--mlh-accent);outline-offset:3px;background:color-mix(in srgb,var(--mlh-accent) 8%,transparent);border-color:var(--mlh-accent);color:var(--mlh-accent);transform:translateY(-2px)}
+@media(hover:hover) and (pointer:fine){
+  .mlh-score-banner .mlh-actions>button:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--mlh-accent) 65%,transparent);background:color-mix(in srgb,var(--mlh-accent) 8%,transparent);color:var(--mlh-accent)}
+  .mlh-score-banner .mlh-actions>button:active{transform:translateY(0) scale(.98)}
+}
 .settings-theme{display:flex;align-items:center;justify-content:space-between;gap:18px;font-size:13px}.settings-theme>.uf-picker-trigger{width:min(55%,200px)}
 .profile-theme{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;font-size:13px}
 .profile-theme>.uf-picker-trigger{width:150px;background:var(--panel);border:1px solid #ffffff20;border-radius:13px;color:inherit}
@@ -38,7 +44,21 @@ html[data-theme='light']{
   --uf-color-text:#202126;--uf-color-text-secondary:#656671;--uf-color-action:#24252b;--uf-color-action-text:#fff;
   --uf-primary:#35363d;--uf-secondary:#666772;--uniflow-accent:#3c3d45;--uniflow-accent-deep:#25262c;
   --uf-field-background:#20212605;--uf-field-border:#20212626;
+  --uf-premium-surface:#ede3f0;--uf-premium-border:#d6c3de;--uf-premium-text:#64446d;
 }
+html[data-theme='light'] .uf-brandmark .uf-logo-word{color:#202126!important;-webkit-text-fill-color:#202126!important}
+html[data-theme='light'] .uf-brandmark .uf-logo-plus::before,html[data-theme='light'] .uf-brandmark .uf-logo-plus::after{background:#805489}
+html[data-theme='light'] .settings-screen .settings-ai-inline{border-bottom-color:#20212620}
+html[data-theme='light'] .settings-screen .settings-ai-label{color:#4d4e58}
+html[data-theme='light'] .settings-screen .settings-ai-badge{color:var(--uf-premium-text);background:var(--uf-premium-surface);border-color:var(--uf-premium-border);-webkit-text-fill-color:currentColor}
+html[data-theme='light'] .settings-screen .settings-ai-toggle:not(.is-on){background:#d1d1d8}
+html[data-theme='light'] .settings-screen .settings-ai-toggle.is-on{background:color-mix(in srgb,var(--module-accent) 50%,#202126)}
+html[data-theme='light'] .settings-screen .settings-ai-toggle span{background:#fff;box-shadow:0 1px 3px #20212630}
+html[data-theme='light'] .settings-screen .settings-ai-toggle:focus-visible{outline-color:#805489}
+html[data-theme='light'] .settings-screen .settings-ai-status{color:#704769}
+html[data-theme='light'] .settings-screen .settings-ai-result{background:#f0eaf2;color:#202126}
+html[data-theme='light'] .settings-screen .settings-ai-result>span{color:#704769}
+html[data-theme='light'] .settings-screen .settings-ai-result>p{color:#625868}
 html[data-theme='light'] body,html[data-theme='light'] .app-root{background:var(--page)!important;color:#202126!important}
 html[data-theme='light'] .app-main::before{display:none!important}
 html[data-theme='light'] :is(.screen,.mlh-home,.overview-dashboard,.settings-screen,.module-fast,.profile-panel,.sheet,.mlh-sheet,.uf-picker-dialog){color:#202126!important}
@@ -119,3 +139,17 @@ html[data-theme='light'] .mlh-score-banner .mlh-actions>.mlh-action-secondary{ba
 @media(min-width:800px){.mlh-score-banner .mlh-score{padding:24px 30px}.mlh-score-banner .mlh-actions{flex-basis:184px}}
 @media(max-width:380px){.mlh-score-banner{padding:0;gap:12px}.mlh-score-banner .mlh-score{padding:15px 10px}.mlh-score-banner .mlh-actions{flex-basis:136px}.mlh-score-banner .mlh-actions>button{padding:8px}.mlh-score-banner .mlh-score strong{font-size:clamp(2rem,8vw,3rem)}}
 @media(prefers-reduced-motion:reduce){.mlh-first-open>.mlh-module-head,.mlh-first-open>.mlh-score-banner{animation:none!important}}
+html[data-theme='light'] .mlh-score-banner .mlh-actions>button:focus-visible{background:#20212607;border-color:#805489!important;color:#202126!important}
+@media(hover:hover) and (pointer:fine){html[data-theme='light'] .mlh-score-banner .mlh-actions>button:hover{background:color-mix(in srgb,var(--mlh-accent) 12%,transparent);border-color:color-mix(in srgb,var(--mlh-accent) 60%,#202126)!important;color:#202126!important}}
+@media(prefers-reduced-motion:reduce){.mlh-score-banner .mlh-actions>button{transition:none!important}.mlh-score-banner .mlh-actions>button:hover,.mlh-score-banner .mlh-actions>button:focus-visible,.mlh-score-banner .mlh-actions>button:active{transform:none!important}}
+
+.overview-advice{margin:0 0 24px;padding:22px 24px;border:1px solid #ffffff18;border-radius:24px;background:#ffffff03;color:var(--uf-color-text);min-width:0}
+.overview-advice>header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.overview-advice>header>span:first-child{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:500;color:var(--uf-color-text-secondary)}
+.overview-advice h2{font-size:18px;font-weight:550;line-height:1.4;letter-spacing:-.3px;overflow-wrap:anywhere}
+.overview-advice>p{margin-top:10px;font-size:13px;line-height:1.7;color:var(--uf-color-text-secondary);overflow-wrap:anywhere}
+.overview-advice>footer{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin-top:17px;font-size:11px;color:var(--uf-color-text-secondary)}
+.overview-advice>footer>span{overflow-wrap:anywhere}
+html[data-theme='light'] .overview-advice{background:#20212603;border-color:#20212620;color:#202126}
+html[data-theme='light'] .overview-advice>footer>span:first-child{color:#55515d!important}
+@media(max-width:420px){.overview-advice{padding:19px}.overview-advice h2{font-size:17px}}
