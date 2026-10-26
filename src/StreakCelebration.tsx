@@ -1,8 +1,10 @@
 import {useEffect,useId} from 'react'
 import {createPortal} from 'react-dom'
 import './streak-flame.css'
-export default function StreakCelebration({count,onClose}:{count:number;onClose:()=>void}){
+import {playStreakSound} from './streak-audio'
+export default function StreakCelebration({count,onClose,soundEnabled=true}:{count:number;onClose:()=>void;soundEnabled?:boolean}){
   const clipId=useId()
+  useEffect(()=>{if(soundEnabled)return playStreakSound()},[soundEnabled])
   useEffect(()=>{
     const timer=window.setTimeout(onClose,4200)
     const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()}

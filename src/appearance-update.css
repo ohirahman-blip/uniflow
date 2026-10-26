@@ -24,6 +24,7 @@
   .mlh-score-banner .mlh-actions>button:active{transform:translateY(0) scale(.98)}
 }
 .settings-theme{display:flex;align-items:center;justify-content:space-between;gap:18px;font-size:13px}.settings-theme>.uf-picker-trigger{width:min(55%,200px)}
+.settings-sound-row{display:flex;align-items:center;justify-content:space-between;gap:18px;font-size:13px}
 .profile-theme{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;font-size:13px}
 .profile-theme>.uf-picker-trigger{width:150px;background:var(--panel);border:1px solid #ffffff20;border-radius:13px;color:inherit}
 .profile-theme select,.study-goal-form input:not([type=checkbox]),.study-semester-create input{font:inherit;min-width:0;box-sizing:border-box;color:inherit;background:var(--panel);border:1px solid #ffffff20;border-radius:13px;padding:11px 13px}
