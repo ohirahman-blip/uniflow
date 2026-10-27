@@ -1,0 +1,82 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript')
+const cache=new Map()
+function load(name){
+  if(cache.has(name))return cache.get(name)
+  const exports={};cache.set(name,exports)
+  const code=ts.transpileModule(fs.readFileSync('src/'+name+'.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText
+  new Function('exports','require',code)(exports,id=>id.startsWith('./')?load(id.slice(2)):require(id))
+  return exports
+}
+const {emptyData,addDays,weekday,minutes}=load('model')
+const {buildStudyPlan,studyFreeWindows,studyGapSuggestions,studyPreferences}=load('adaptive-study-plan')
+const reference='2026-10-27'
+const semester={id:'s',degreeId:'d',name:'WS',start:'2026-10-01',lectureEnd:'2026-12-31',end:'2027-03-31',archived:false}
+const subject=(id)=>({id,degreeId:'d',name:id,shortName:id,credits:6,color:'#88aaee',status:'current',grade:'',counted:true,hidden:false,semesterIds:['s']})
+const offer=(id,moduleId,date='2026-10-20',from='10:00',to='12:00',extra={})=>({id,semesterId:'s',moduleId,name:id,category:'Vorlesung',contentId:id,date,endDate:date,from,to,recurrence:'once',overrides:{},room:'',selected:true,...extra})
+const exam=(id,moduleId,date='2026-11-10',extra={})=>({id,moduleId,semesterId:'s',type:'exam',title:id,date,...extra})
+const data=(extra={})=>({...emptyData,activeDegreeId:'d',activeSemesterId:'s',semesters:[semester],modules:[subject('a'),subject('b')],offerings:[offer('l1','a'),offer('l2','a','2026-10-21'),offer('l3','b')],assessments:[exam('ea','a'),exam('eb','b','2026-11-12')],...extra})
+const pending=plan=>plan.bundles.filter(bundle=>!bundle.completed)
+const source=data(),before=JSON.stringify(source),plan=buildStudyPlan(source,reference)
+assert.ok(pending(plan).length>0)
+assert.equal(JSON.stringify(source),before,'Planner is pure and does not write source data')
+assert.deepEqual(buildStudyPlan(source,reference),plan,'Same input gives the same plan')
+for(const date of new Set(pending(plan).map(bundle=>bundle.date))){
+  const bundles=pending(plan).filter(bundle=>bundle.date===date)
+  assert.ok(bundles.reduce((sum,bundle)=>sum+bundle.minutes,0)<=60,'Daily budget is shared by modules')
+  assert.equal(new Set(bundles.map(bundle=>bundle.moduleId)).size,bundles.length,'One module/day banner')
+}
+assert.ok(pending(plan).filter(bundle=>bundle.moduleId==='b').some(bundle=>bundle.date<'2026-11-10'),'Close exams prepare in parallel, not only after first exam')
+for(const bundle of pending(plan))assert.ok(bundle.date<(bundle.moduleId==='a'?'2026-11-10':'2026-11-12'))
+const weekend=buildStudyPlan(data({studySchedule:{weekdays:[0,2],excludedDates:['2026-10-28']}}),reference)
+assert.ok(pending(weekend).every(bundle=>[0,2].includes(weekday(bundle.date))&&bundle.date!=='2026-10-28'))
+assert.ok(pending(buildStudyPlan(source,addDays(reference,1))).every(bundle=>bundle.date>reference),'A missed day redistributes only into remaining days')
+assert.equal(pending(buildStudyPlan(data({studySchedule:{enabled:false}}),reference)).length,0)
+assert.ok(buildStudyPlan(data({studySchedule:{weekdays:[]}}),reference).notices.some(notice=>notice.severity==='warning'))
+const noExam=buildStudyPlan(data({assessments:[]}),reference)
+assert.equal(pending(noExam).length,0);assert.ok(noExam.notices.length)
+assert.equal(pending(buildStudyPlan(data({assessments:[exam('ea','a',reference)]}),reference)).length,0,'No work scheduled after the exam deadline')
+assert.ok(buildStudyPlan(data({assessments:[exam('loose','a','')]}),reference).notices.some(notice=>notice.message.includes('Ohne Prüfungstermin')))
+const loose=buildStudyPlan(data({offerings:Array.from({length:30},(_,i)=>offer('loose'+i,'a')),assessments:[exam('loose','a','')]}),reference)
+assert.ok(new Set(pending(loose).map(bundle=>weekday(bundle.date))).size<=2,'Undated exams remain a gentle weekly plan, not an invented urgent deadline')
+const key=plan.lessons.find(lesson=>lesson.occurrence.offering.id==='l1').key
+const excluded=buildStudyPlan(data({studySchedule:{excludedByExam:{ea:[key]}}}),reference)
+assert.ok(pending(excluded).every(bundle=>bundle.items.every(item=>item.key!==key)))
+const mastered=[{id:'s1',moduleId:'a',date:'2026-10-23',duration:30,kind:'review',rating:'understood',lessonKeys:[key],updatedAt:'2026-10-23T12:00:00Z'},{id:'s2',moduleId:'a',date:'2026-10-24',duration:30,kind:'review',rating:'understood',lessonKeys:[key],updatedAt:'2026-10-24T12:00:00Z'}]
+const ahead=buildStudyPlan(data({learningSessions:mastered}),reference)
+assert.ok(pending(ahead).every(bundle=>bundle.items.every(item=>item.key!==key)),'Extra learned work drops out of future packages')
+assert.ok(ahead.bundles.some(bundle=>bundle.completed&&bundle.items.some(item=>item.key===key)),'Completed learning stays visible')
+const used=buildStudyPlan(data({learningSessions:[{...mastered[0],id:'unlinked',date:reference,duration:45,lessonKeys:[]}]}),reference)
+assert.ok(pending(used).filter(bundle=>bundle.date===reference).reduce((sum,bundle)=>sum+bundle.minutes,0)<=15,'Unlinked study sessions still use today’s budget')
+const future=buildStudyPlan(data({offerings:[offer('future','a','2026-11-02','10:00','12:00')]}),reference)
+assert.ok(pending(future).every(bundle=>bundle.date>='2026-11-02'),'Future teaching is not studied before release')
+const late=buildStudyPlan(data({offerings:[offer('late','a',reference,'18:00','21:00')]}),reference)
+assert.ok(pending(late).every(bundle=>bundle.date>reference),'Late teaching cannot consume free time before the class')
+const cancelled=buildStudyPlan(data({offerings:[offer('gone','a',reference,'10:00','12:00',{overrides:{[reference]:{cancelled:true}}})]}),reference)
+assert.equal(pending(cancelled).length,0)
+const tight=buildStudyPlan(data({offerings:Array.from({length:12},(_,i)=>offer('many'+i,'a')),assessments:[exam('soon','a','2026-10-29')],studySchedule:{minutesPerDay:15}}),reference)
+assert.ok(tight.notices.some(notice=>notice.severity==='warning'),'Impossible first coverage is explicit, not silently overbooked')
+const parallelOffers=[...Array.from({length:3},(_,i)=>offer('near'+i,'a')),...Array.from({length:7},(_,i)=>offer('later'+i,'b'))]
+const parallelBase=data({offerings:parallelOffers,assessments:[exam('near-exam','a','2026-10-28',{from:'09:00',to:'10:00'}),exam('later-exam','b','2026-10-31')]})
+const nearKeys=buildStudyPlan(parallelBase,reference).lessons.filter(lesson=>lesson.moduleId==='a').map(lesson=>lesson.key)
+const constrained=buildStudyPlan({...parallelBase,learningSessions:nearKeys.map((key,i)=>({id:'already'+i,moduleId:'a',date:'2026-10-24',duration:60,kind:'review',rating:'understood',lessonKeys:[key],updatedAt:'2026-10-24T12:00:00Z'}))},reference)
+assert.ok(!constrained.notices.some(notice=>notice.moduleId==='b'&&notice.severity==='warning'),'Optional mastery of the first exam cannot steal the time needed for first coverage of a close second exam')
+const blocked=data({offerings:[offer('morning','a',reference,'10:00','12:00'),offer('afternoon','a',reference,'14:00','16:00')]})
+const windows=studyFreeWindows(blocked,reference)
+assert.deepEqual(windows,[{from:540,to:590},{from:730,to:830},{from:970,to:1200}],'Gaps include travel/pause buffers')
+const gapPlan={...plan,bundles:[{id:'test',date:reference,moduleId:'a',examId:'ea',minutes:45,items:[{key:'other',label:'Vorlesung 1',minutes:45,target:1}]}]}
+const gaps=studyGapSuggestions(blocked,gapPlan,reference,12*60+10)
+assert.ok(gaps.length>0&&gaps.length<=2)
+for(const gap of gaps){
+  assert.ok(gap.from>=12*60+20&&gap.to<=1200)
+  for(const occ of blocked.offerings)assert.ok(gap.to<=minutes(occ.from)-10||gap.from>=minutes(occ.to)+10,'Hints never overlap real teaching')
+}
+const holiday=studyGapSuggestions({...blocked,studySchedule:{excludedDates:[reference]}},{...gapPlan,preferences:studyPreferences({studySchedule:{excludedDates:[reference]}})},reference)
+assert.equal(holiday.length,0)
+assert.doesNotThrow(()=>studyPreferences({studySchedule:{weekdays:'bad',excludedByExam:{ea:7},lessonMinutes:'bad'}}),'Malformed optional backup settings fall back safely')
+const moved=buildStudyPlan(data({assessments:[exam('ea','a','2026-10-30')]}),reference)
+assert.ok(pending(moved).every(bundle=>bundle.date<'2026-10-30'))
+const big=data({offerings:Array.from({length:160},(_,i)=>offer('perf'+i,i%2?'a':'b')),assessments:[exam('ea','a','2026-12-15'),exam('eb','b','2026-12-20')]})
+const started=performance.now();buildStudyPlan(big,reference);const elapsed=performance.now()-started
+assert.ok(elapsed<5000,'Realistic larger semester stays responsive')
+assert.ok(!/fetch\(|deepseek|openai/i.test(fs.readFileSync('src/adaptive-study-plan.ts','utf8')),'Planner makes no AI or network calls')
+console.log('PASS: deterministic planning, daily budgets, bundled work, exam overlap/deadlines, weekdays/holidays, missing dates, scope, mastery, completed history, extra study, future/late/cancelled lessons, overload, buffered gaps and replanning; 160-unit calculation '+Math.round(elapsed)+'ms')
