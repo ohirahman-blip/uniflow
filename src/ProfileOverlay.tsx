@@ -6,8 +6,8 @@ import {ArrowLeft,ChevronRight,GraduationCap,Layers2,Settings2,Target,UserRound,
 import type {AppData,StudyModule} from './model'
 import {scoreTotal} from './score'
 type Section='home'|'modules'|'goals'|'settings'
-export default function ProfileOverlay({data,settings,onClose,onModule,onProfileChange,onMutate,onCreateModule}:{data:AppData;onMutate:WorkspaceChange;onCreateModule:()=>void;settings:ReactNode;onClose:()=>void;onModule:(module:StudyModule)=>void;onProfileChange:(name:string)=>void}){
-  const [section,setSection]=useState<Section>('home')
+export default function ProfileOverlay({initialSection='home',data,settings,onClose,onModule,onProfileChange,onMutate,onCreateModule}:{initialSection?:'home'|'modules';data:AppData;onMutate:WorkspaceChange;onCreateModule:()=>void;settings:ReactNode;onClose:()=>void;onModule:(module:StudyModule)=>void;onProfileChange:(name:string)=>void}){
+  const [section,setSection]=useState<Section>(initialSection)
   const panel=useRef<HTMLElement>(null)
   useSwipeToDismiss(panel,onClose)
   useEffect(()=>{

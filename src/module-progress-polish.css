@@ -1,0 +1,15 @@
+.module-fast>.module-editor-back{width:40px;height:40px;display:grid;place-items:center;padding:0;border:1px solid #8883;border-radius:50%;background:transparent;color:inherit;margin-bottom:18px}
+.module-fast>.module-editor-back:focus-visible{outline:2px solid var(--module-accent);outline-offset:3px}
+.module-fast-meta-grid>.study-semester{grid-column:1/-1;display:grid;gap:14px}
+.study-semester>label{display:grid;gap:9px;min-width:0}
+.study-semester>button{justify-self:start;padding:8px 12px;border:1px solid #8883;border-radius:12px;background:transparent;color:inherit;font:inherit}
+.mlh-lesson-list .mlh-progress-bars{display:flex;align-items:center;gap:4px;margin-top:6px;width:92px}
+.mlh-lesson-list .mlh-progress-bars>i{display:block;flex:1;height:3px;border:0;border-radius:99px;background:#8883}
+.mlh-lesson-list .mlh-progress-bars>i.is-yellow{background:#dbb754}
+.mlh-lesson-list .mlh-progress-bars>i.is-green{background:#70bd91}
+/* Size queries use the actual rendered card height, not the appointment duration. */
+.screen-calendar .course{container-type:size}
+.screen-calendar .course :is(.course-head,.course-meta,.course-place){flex-shrink:0}
+@container (max-height:89px){.course-place,.course-hours{display:none!important}}
+@container (max-height:64px){.course-meta,.course-head-badges{display:none!important}.course-title{-webkit-line-clamp:1!important;line-clamp:1!important;max-height:1.25em!important}}
+@container (max-height:29px){.course-head,.course-meta,.course-place,.course-hours{display:none!important}}

@@ -378,7 +378,7 @@ export default function ModuleScheduleEditor({
   }
 
   return <div className="screen secondary-screen module-detail-screen module-fast" style={{'--module-accent':module.color,'--mlh-accent':module.color} as CSSProperties}>
-    <button className="text-back" onClick={onBack}><ArrowLeft size={18}/> Alle Module</button>
+    <button className="text-back module-editor-back" onClick={onBack} aria-label="Zurück"><ArrowLeft size={20}/></button>
     <div className="module-detail-heading">
       <div><h1>{module.name}</h1></div>
     </div>

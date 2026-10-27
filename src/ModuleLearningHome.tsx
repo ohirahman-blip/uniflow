@@ -6,6 +6,7 @@ import { dateString, formatDate, today, uid, type AppData, type Assessment, type
 import LearningStickyHeader from './LearningStickyHeader'
 import PixelScoreScene from './PixelScoreScene'
 import AnimatedScore from './AnimatedScore'
+import {lessonProgressMap} from './lesson-progress'
 import ExamTimeline from './ExamTimeline'
 import UniflowPicker from './UniflowPicker'
 import LearningSessionForm,{type SessionValues} from './LearningSessionForm'
@@ -115,8 +116,7 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
     return()=>{window.removeEventListener('focus',openCurrent);document.removeEventListener('visibilitychange',openCurrent)}
   },[currentModuleId])
   const allLessons = useMemo(() => numberedLessons(data, semester, active?.id), [data.offerings, semester, active?.id])
-  const checkins = useMemo(() => new Map((data.learningCheckins || []).map(item => [item.key, item])), [data.learningCheckins])
-  const learned = useMemo(() => new Set((data.scoreEvents || []).filter(event => event.type === 'content-learned' && !event.reversedAt).map(event => event.sourceId)), [data.scoreEvents])
+  const progressByLesson=useMemo(()=>lessonProgressMap(data),[data.learningCheckins,data.learningSessions,data.scoreEvents])
   const tasks = (data.studyTasks || []).filter(task => task.moduleId === active?.id)
   const pending = tasks.filter(task => !task.completedAt).sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999') || a.createdAt.localeCompare(b.createdAt))
   const completed = tasks.filter(task => !!task.completedAt).sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''))
@@ -190,11 +190,10 @@ export default function ModuleLearningHome({ data, semester, modules, onAddTask,
     {modal === 'content' && <Overlay title="Stoff gelernt" onClose={() => setModal(null)}><div className="mlh-form mlh-content-form">
       <p className="mlh-content-intro">Wähle Vorlesungen oder Übungen – unabhängig davon, ob du sie besucht hast.</p>
       <div className="mlh-lesson-list">{allLessons.map(lesson => {
-        const checkin = checkins.get(lesson.key)
-        const attended = !!checkin && (checkin.attended ?? checkin.rating !== 'absent')
-        const done = learned.has(lesson.key), selected = selectedLessons.includes(lesson.key)
+        const progress=progressByLesson.get(lesson.key)||{green:0,yellow:0,label:'Noch nicht gelernt'}
+        const selected = selectedLessons.includes(lesson.key)
         return <button key={lesson.key} className={selected ? 'selected' : ''} onClick={() => setSelectedLessons(current => current.includes(lesson.key) ? current.filter(key => key !== lesson.key) : [...current, lesson.key])}>
-          <i>{selected ? <Check size={15} /> : null}</i><span><strong>{lesson.label}</strong><small>{formatDate(lesson.occurrence.date, { day: 'numeric', month: 'short' })} · {attended ? 'Besucht' : 'Nicht als besucht markiert'}{done ? ' · Bonus schon erhalten' : ''}</small></span>
+          <i>{selected ? <Check size={15} /> : null}</i><span><strong>{lesson.label}</strong><small>{formatDate(lesson.occurrence.date, { day: 'numeric', month: 'short' })}</small><span className="mlh-progress-bars" role="img" aria-label={progress.label} title={progress.label}>{[1,2,3,4].map(level=><i key={level} className={progress.green>=level?'is-green':progress.yellow>=level?'is-yellow':''}/>)}</span></span>
         </button>
       })}{!allLessons.length && <p className="mlh-empty-copy">Für dieses Modul sind noch keine Vorlesungen oder Übungen im Stundenplan.</p>}</div>
       <label><span>Lernzeit in Minuten</span><input type="number" min="5" max="360" step="5" value={duration} onChange={event => setDuration(Math.max(5, Math.min(360, Number(event.target.value) || 5)))} /></label>
