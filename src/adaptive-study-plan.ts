@@ -3,9 +3,9 @@ import {numberedLessons,type NumberedLesson} from './score'
 import {lessonProgressMap} from './lesson-progress'
 
 export type LessonDifficulty='easy'|'medium'|'hard'
-export const difficultyMinutes:Record<LessonDifficulty,number>={easy:45,medium:60,hard:90}
+export const difficultyMinutes:Record<LessonDifficulty,number>={easy:30,medium:60,hard:120}
 export type StudySchedulePreferences={
-  enabled:boolean;weekdays:number[];minutesPerDay:number;windowStart:number;windowEnd:number
+  enabled:boolean;weekdays:number[];minutesPerDay:number;windowStart:number;windowEnd:number // minutesPerDay is legacy-only; never limits planning
   excludedDates:string[];excludedByExam:Record<string,string[]>;lessonMinutes:Record<string,number>;lessonDifficulty:Record<string,LessonDifficulty>;reviewAfter:Record<string,string>
 }
 export const defaultStudySchedule:StudySchedulePreferences={enabled:true,weekdays:[0,1,2,3,4,5,6],minutesPerDay:60,windowStart:9*60,windowEnd:20*60,excludedDates:[],excludedByExam:{},lessonMinutes:{},lessonDifficulty:{},reviewAfter:{}}
@@ -46,7 +46,6 @@ export type StudyPlan={reference:string;preferences:StudySchedulePreferences;bun
 export type StudyGap={id:string;date:string;moduleId:string;from:number;to:number;labels:string[]}
 type Window={from:number;to:number}
 const dayDistance=(a:string,b:string)=>Math.round((fromDate(b).getTime()-fromDate(a).getTime())/86400000)
-const rounded=(value:number)=>Math.ceil(value/15)*15
 const weekdaysOpen=(date:string,prefs:StudySchedulePreferences)=>prefs.weekdays.includes(weekday(date))&&!prefs.excludedDates.includes(date)
 
 /** Real calendar obligations, independent of a currently selected display filter. */
@@ -78,13 +77,13 @@ export function buildStudyPlan(data:AppData,reference=today()):StudyPlan{
   const progress=lessonProgressMap(data),reviews=pendingReviewKeys(data,preferences)
   const reversed=new Set((data.scoreEvents||[]).filter(event=>event.type==='study-minutes'&&event.reversedAt).map(event=>event.sourceId))
   const sessions=(data.learningSessions||[]).filter(session=>!reversed.has(session.id))
-  const history=new Map<string,{minutes:number;count:number;latest:string}>()
+  const history=new Map<string,string>()
   for(const session of sessions){
     const keys=[...new Set([...(session.lessonKeys||[]),...(session.lessonKey?[session.lessonKey]:[])])]
-    for(const key of keys){const old=history.get(key)||{minutes:0,count:0,latest:''};old.minutes+=session.duration/keys.length;old.count++;old.latest=old.latest>session.date?old.latest:session.date;history.set(key,old)}
+    for(const key of keys)if(session.date>(history.get(key)||''))history.set(key,session.date)
   }
   const semesterLessons=new Map<string,NumberedLesson[]>()
-  type Unit={lesson:NumberedLesson;examId:string;deadline:string;loose:boolean;release:string;level:number;remaining:number;base:number;last:string;moduleId:string}
+  type Unit={lesson:NumberedLesson;examId:string;deadline:string;loose:boolean;release:string;level:number;base:number;last:string;moduleId:string}
   const units:Unit[]=[],seen=new Set<string>(),lessonMap=new Map<string,NumberedLesson>()
   for(const exam of exams){
     const semester=data.semesters.find(item=>item.id===exam.semesterId)
@@ -104,89 +103,87 @@ export function buildStudyPlan(data:AppData,reference=today()):StudyPlan{
       if(level>=4)continue
       const historic=history.get(lesson.key)
       const base=difficultyMinutes[lessonDifficultyFor(preferences,lesson.key)]
-      const remaining=level===0?base:rounded(base*(level>=3?0.5:0.6))
-      units.push({lesson,examId:exam.id,deadline:exam.date?addDays(exam.date,-1):addDays(reference,13),loose:!exam.date,release:lesson.occurrence.date>reference?lesson.occurrence.date:reference,level,remaining,base,last:historic?.latest||'',moduleId:lesson.moduleId})
+      units.push({lesson,examId:exam.id,deadline:exam.date?addDays(exam.date,-1):addDays(reference,13),loose:!exam.date,release:lesson.occurrence.date>reference?lesson.occurrence.date:reference,level,base,last:reviews.has(lesson.key)?'':historic||'',moduleId:lesson.moduleId})
     }
   }
   result.lessons=[...lessonMap.values()]
   const dated=exams.filter(exam=>exam.date).map(exam=>addDays(exam.date,-1))
   const end=[...dated,addDays(reference,exams.some(exam=>!exam.date)?13:0)].sort().pop()||reference
   const horizon=end<addDays(reference,365)?end:addDays(reference,365)
-  const capacities=new Map<string,number>()
+  // Minutes are planning weights, never a daily allowance. Keep whole tasks intact.
+  const dates:string[]=[],windowsByDate=new Map<string,Window[]>(),loads=new Map<string,number>()
   for(let date=reference;date<=horizon;date=addDays(date,1)){
-    const free=studyFreeWindows(data,date,preferences).reduce((sum,window)=>sum+window.to-window.from,0)
-    const done=sessions.filter(session=>session.date===date).reduce((sum,session)=>sum+Math.max(0,session.duration),0)
-    capacities.set(date,Math.max(0,Math.floor((Math.min(preferences.minutesPerDay,free)-done)/15)*15))
+    dates.push(date)
+    const windows=studyFreeWindows(data,date,preferences).map(window=>({...window}))
+    // Actual work already done uses real free time, not a configurable daily budget.
+    let done=sessions.filter(session=>session.date===date).reduce((sum,session)=>sum+Math.max(0,session.duration),0)
+    loads.set(date,done)
+    for(const window of windows){const spent=Math.min(done,window.to-window.from);window.from+=spent;done-=spent}
+    windowsByDate.set(date,windows)
   }
-  const dates=[...capacities.keys()],bundles=new Map<string,StudyDayBundle>()
-  for(const date of dates){
-    let budget=capacities.get(date)||0
-    if(budget<15)continue
-    const windows=studyFreeWindows(data,date,preferences)
-    const allocated=new Map<string,number>()
-    const coverageByModule=new Map<string,number>(),coverageByDeadline=new Map<string,number>(),availableByDeadline=new Map<string,number>()
-    for(const unit of units){
-      if(unit.level===0){
-        coverageByModule.set(unit.moduleId,(coverageByModule.get(unit.moduleId)||0)+unit.remaining)
-        if(!unit.loose)coverageByDeadline.set(unit.deadline,(coverageByDeadline.get(unit.deadline)||0)+unit.remaining)
+  // Deadline-specific balancing weights, never caps. Reserve room for feedback/reviews.
+  const balancingLoads=new Map<string,number>()
+  for(const deadline of new Set(units.map(unit=>unit.deadline))){
+    const availableDays=dates.filter(date=>date<=deadline&&windowsByDate.get(date)?.some(window=>window.to-window.from>=30)).length
+    const firstWork=units.filter(unit=>unit.level<3&&unit.deadline<=deadline).reduce((sum,unit)=>sum+unit.base,0)
+    balancingLoads.set(deadline,Math.max(60,firstWork/Math.max(1,availableDays*0.45)))
+  }
+  const bundles=new Map<string,StudyDayBundle>(),firstDates=new Map<string,string>()
+  const ordered=units.sort((a,b)=>a.deadline.localeCompare(b.deadline)||a.lesson.occurrence.date.localeCompare(b.lesson.occurrence.date)||a.lesson.occurrence.from.localeCompare(b.lesson.occurrence.from)||a.lesson.key.localeCompare(b.lesson.key))
+  const allocated=new Map<string,string>(),plannedLevels=new Map<string,number>(),missing=new Map<string,number>()
+  const schedule=(unit:Unit,target:number,earliest:string,optional=false)=>{
+    let chosen:string|undefined,best=Infinity,chosenWindow:Window|undefined
+    for(const date of dates){
+      if(date<earliest||date<unit.release||date>unit.deadline)continue
+      if(unit.loose){
+        const hash=[...unit.moduleId].reduce((sum,char)=>sum+char.charCodeAt(0),0)
+        const index=preferences.weekdays.indexOf(weekday(date)),offset=hash%preferences.weekdays.length
+        if(index!==offset&&index!==(offset+Math.ceil(preferences.weekdays.length/2))%preferences.weekdays.length)continue
       }
-      if(!availableByDeadline.has(unit.deadline))availableByDeadline.set(unit.deadline,dates.reduce((sum,day)=>sum+(day>=date&&day<=unit.deadline?(capacities.get(day)||0):0),0))
+      const releaseMinute=unit.lesson.occurrence.date===date?minutes(unit.lesson.occurrence.to)+10:preferences.windowStart
+      const window=windowsByDate.get(date)?.find(window=>window.to-Math.max(window.from,releaseMinute)>=unit.base)
+      if(!window)continue
+      // Start early, spread whole tasks, and keep nearby exams from monopolizing a day.
+      const score=dayDistance(earliest,date)*20+(loads.get(date)||0)/balancingLoads.get(unit.deadline)!*24
+      if(score<best){chosen=date;best=score;chosenWindow=window}
     }
-    while(budget>=15){
-      let choice:Unit|undefined,best=-Infinity
-      const eligibleFirst=units.some(unit=>!unit.loose&&unit.level===0&&date>=unit.release&&date<=unit.deadline&&unit.last<date&&windows.some(window=>window.to-Math.max(window.from,unit.lesson.occurrence.date===date?minutes(unit.lesson.occurrence.to)+10:preferences.windowStart)>=15))
-      const coverageIsTight=[...availableByDeadline].some(([deadline,available])=>{
-        const required=[...coverageByDeadline].reduce((sum,[due,needed])=>sum+(due<=deadline?needed:0),0)
-        return required>available-((capacities.get(date)||0)-budget)-15
-      })
-      for(const unit of units){
-        if(unit.level>=4||date<unit.release||date>unit.deadline||unit.last>=date)continue
-        if((unit.level>0||unit.loose)&&coverageIsTight&&eligibleFirst)continue
-        const releaseMinute=unit.lesson.occurrence.date===date?minutes(unit.lesson.occurrence.to)+10:preferences.windowStart
-        if(!windows.some(window=>window.to-Math.max(window.from,releaseMinute)>=15))continue
-        const distance=dayDistance(date,unit.deadline)
-        // Low-pressure distant subjects start twice weekly; close/heavy ones do not wait.
-        const coverage=coverageByModule.get(unit.moduleId)||0
-        const available=availableByDeadline.get(unit.deadline)||0
-        const pressure=coverage/Math.max(15,available)
-        if(unit.loose||distance>28&&pressure<.3&&!(unit.level===0&&coverageIsTight)){
-          const hash=[...unit.moduleId].reduce((sum,char)=>sum+char.charCodeAt(0),0)
-          const index=preferences.weekdays.indexOf(weekday(date)),offset=hash%preferences.weekdays.length
-          if(index!==offset&&index!==(offset+Math.ceil(preferences.weekdays.length/2))%preferences.weekdays.length)continue
-        }
-        const tier=unit.level===0?140:unit.level===1?55:unit.level===2?48:28
-        const priority=tier/Math.max(3,distance+1)*(1+Math.min(2,pressure))/(1+(allocated.get(unit.moduleId)||0)/30)*(unit.loose?0.35:1)
-        if(priority>best||priority===best&&unit.lesson.key<(choice?.lesson.key||'')){best=priority;choice=unit}
-      }
-      if(!choice)break
-      const spent=Math.min(15,budget,choice.remaining),id=date+':'+choice.moduleId
-      const releaseMinute=choice.lesson.occurrence.date===date?minutes(choice.lesson.occurrence.to)+10:preferences.windowStart
-      const window=windows.find(window=>window.to-Math.max(window.from,releaseMinute)>=spent)!
-      const allocationStart=Math.max(window.from,releaseMinute)
-      if(allocationStart>window.from)windows.push({from:window.from,to:allocationStart})
-      window.from=allocationStart+spent
-      windows.sort((a,b)=>a.from-b.from)
-      let bundle=bundles.get(id)
-      if(!bundle){bundle={id,date,moduleId:choice.moduleId,examId:choice.examId,minutes:0,items:[]};bundles.set(id,bundle)}
-      let item=bundle.items.find(item=>item.key===choice!.lesson.key)
-      if(!item){item={key:choice.lesson.key,label:choice.lesson.label,minutes:0,target:choice.level+1};bundle.items.push(item)}
-      item.minutes+=spent;bundle.minutes+=spent;budget-=spent;choice.remaining-=spent
-      if(choice.level===0){
-        coverageByModule.set(choice.moduleId,Math.max(0,(coverageByModule.get(choice.moduleId)||0)-spent))
-        if(!choice.loose)coverageByDeadline.set(choice.deadline,Math.max(0,(coverageByDeadline.get(choice.deadline)||0)-spent))
-      }
-      allocated.set(choice.moduleId,(allocated.get(choice.moduleId)||0)+spent)
-      if(choice.remaining<=0){
-        choice.level++;choice.last=date
-        choice.remaining=rounded(choice.base*(choice.level>=3?0.5:0.6))
-      }
+    if(!chosen||!chosenWindow){
+      if(!optional)missing.set(unit.moduleId,(missing.get(unit.moduleId)||0)+1)
+      return undefined
     }
+    const from=Math.max(chosenWindow.from,unit.lesson.occurrence.date===chosen?minutes(unit.lesson.occurrence.to)+10:preferences.windowStart)
+    if(from>chosenWindow.from)windowsByDate.get(chosen)!.push({from:chosenWindow.from,to:from})
+    chosenWindow.from=from+unit.base
+    windowsByDate.get(chosen)!.sort((a,b)=>a.from-b.from)
+    loads.set(chosen,(loads.get(chosen)||0)+unit.base)
+    const id=chosen+':'+unit.moduleId
+    const bundle=bundles.get(id)||{id,date:chosen,moduleId:unit.moduleId,examId:unit.examId,minutes:0,items:[]}
+    bundle.items.push({key:unit.lesson.key,label:unit.lesson.label,minutes:unit.base,target})
+    bundle.minutes+=unit.base;bundles.set(id,bundle);allocated.set(unit.lesson.key,chosen);plannedLevels.set(unit.lesson.key,target)
+    return chosen
+  }
+  // Required learning comes first. Calendar chronology interleaves lectures/exercises/tutorials.
+  for(const unit of ordered.filter(unit=>unit.level<3)){
+    const last=unit.last?addDays(unit.last,1):reference
+    const previous=firstDates.get(unit.moduleId)||reference
+    const earliest=[reference,last,previous,unit.release].sort().pop()!
+    const date=schedule(unit,unit.level<2?2:3,earliest)
+    if(date)firstDates.set(unit.moduleId,date)
+  }
+  // Initial learning assumes partial understanding, then reserves a full deepening block.
+  for(const unit of ordered.filter(unit=>unit.level<2)){
+    const first=allocated.get(unit.lesson.key)
+    if(first&&!schedule(unit,3,addDays(first,3),true))schedule(unit,3,addDays(first,1))
+  }
+  // Good understanding needs only a spaced review; in tight periods this is optional.
+  for(const unit of ordered){
+    const last=allocated.get(unit.lesson.key)||unit.last
+    if((plannedLevels.get(unit.lesson.key)||unit.level)<3)continue
+    const earliest=last?addDays(last,unit.level===3?3:7):reference
+    schedule(unit,4,earliest,true)
   }
   result.bundles=[...bundles.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.moduleId.localeCompare(b.moduleId))
-  for(const moduleId of new Set(units.map(unit=>unit.moduleId))){
-    const remaining=units.filter(unit=>unit.moduleId===moduleId&&!unit.loose&&unit.level===0)
-    if(remaining.length)result.notices.push({moduleId,severity:'warning',message:`${remaining.length} Stoffeinheiten schaffen es mit diesen Lerntagen und dem Zeitbudget nicht bis zur Prüfung auf den ersten grünen Strich. Passe Budget oder Prüfungsumfang an.`})
-  }
+  for(const [moduleId,count] of missing)result.notices.push({moduleId,severity:'warning',message:`${count} vollständige Lernblöcke passen vor der Prüfung nicht mehr auf die verfügbaren Lerntage. Gib weitere Lerntage frei oder prüfe den Stoffumfang.`})
   // Finished sessions remain visible as history; no historical plan is rewritten.
   const completed=new Map<string,StudyDayBundle>()
   for(const session of sessions.filter(session=>modules.has(session.moduleId)&&session.date>=addDays(reference,-14)&&session.date<=reference)){
@@ -215,14 +212,18 @@ export function studyGapSuggestions(data:AppData,plan:StudyPlan,date:string,nowM
   })
   const result:StudyGap[]=[]
   for(const bundle of bundles){
-    if(result.length>=2||bundle.minutes<15)break
-    const latestContent=Math.max(0,...bundle.items.map(item=>{const lesson=plan.lessons.find(lesson=>lesson.key===item.key);return lesson?.occurrence.date===date?minutes(lesson.occurrence.to)+10:0}))
-    const window=candidates.find(window=>window.to-Math.max(window.from,latestContent)>=30)
-    if(!window)continue
-    const duration=Math.min(45,Math.max(30,bundle.minutes)),start=Math.max(window.from,latestContent)
+    if(result.length>=2)break
+    const match=bundle.items.map(item=>{
+      const lesson=plan.lessons.find(lesson=>lesson.key===item.key)
+      const release=lesson?.occurrence.date===date?minutes(lesson.occurrence.to)+10:0
+      const window=candidates.find(window=>window.to-Math.max(window.from,release)>=item.minutes)
+      return {item,release,window}
+    }).find(match=>match.window&&match.item.minutes>=15)
+    if(!match?.window)continue
+    const {window,item,release}=match,duration=item.minutes,start=Math.max(window.from,release)
     const beforeClass=obligations.some(item=>Math.abs(minutes(item.from)-window.to)<=15)
     const length=Math.min(duration,window.to-start),from=beforeClass?window.to-length:start,to=from+length
-    result.push({id:date+':'+bundle.moduleId,date,moduleId:bundle.moduleId,from,to,labels:bundle.items.map(item=>item.label)})
+    result.push({id:date+':'+bundle.moduleId,date,moduleId:bundle.moduleId,from,to,labels:[item.label]})
     window.from=to+10
   }
   return result
