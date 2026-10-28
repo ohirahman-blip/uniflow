@@ -40,7 +40,6 @@ export default function ModuleStudyPlan({timeline=false,onExamOpen,data,module,p
       {!timeline&&completed.length>0&&<details className="study-plan-more"><summary>Bereits gelernt</summary>{completed.map(render)}</details>}
       {exam&&lessons.length>0&&<details className="study-plan-scope"><summary><span>Prüfungsstoff</span><ChevronDown size={16}/></summary><div className="study-scope-content">
         {exams.length>1&&<UniflowPicker label="Prüfung für den Stoffumfang" value={exam.id} onChange={setExamId} options={exams.map(exam=>({value:exam.id,label:exam.title+(exam.date?' · '+formatDate(exam.date,{day:'numeric',month:'short'}):'') }))}/>}
-        <p className="quiet-copy">Haken = prüfungsrelevant. Leicht 45, Mittel 60, Schwer 90 Minuten sind nur grobe Planungsschätzungen – keine Voraussetzung für grüne Striche oder Punkte.</p>
         <ul className="study-scope-list">{openLessons.map(lesson=>renderLesson(lesson))}</ul>
         {!openLessons.length&&<p className="quiet-copy">Kein offener Stoff in dieser Auswahl.</p>}
         {masteredLessons.length>0&&<details className="study-mastered"><summary><span>Gefestigter Stoff · {masteredLessons.length}</span><ChevronDown size={15}/></summary><ul className="study-scope-list">{masteredLessons.map(lesson=>renderLesson(lesson,true))}</ul></details>}
