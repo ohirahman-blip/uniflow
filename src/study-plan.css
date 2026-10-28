@@ -1,4 +1,37 @@
 .module-study-plan{max-width:720px;margin:38px auto 0;padding-top:22px;border-top:1px solid #8882}
+.semester-overview-heading{max-width:720px;margin:30px auto 22px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
+.semester-overview-heading h3{font-size:14px;font-weight:500;margin:0}
+.semester-overview-tabs{display:flex;gap:4px;padding:3px;border:1px solid #8883;border-radius:999px}
+.semester-overview-tabs>button{font:inherit;font-size:11px;color:var(--muted);background:transparent;border:0;padding:8px 12px;border-radius:999px;cursor:pointer;transition:background 180ms ease,color 180ms ease}
+.semester-overview-tabs>button[aria-selected=true]{background:color-mix(in srgb,var(--mlh-accent) 13%,transparent);color:var(--mlh-accent)}
+.semester-overview-tabs>button:focus-visible{outline:2px solid var(--mlh-accent);outline-offset:2px}
+.semester-overview-panel{max-width:720px;margin:0 auto}
+.semester-overview-panel:focus-visible{outline:1px solid #8885;outline-offset:5px;border-radius:16px}
+.semester-overview-panel>.module-study-plan{margin:0;border:0;padding:0}
+.study-plan-date-axis{position:relative;padding-left:17px;border-left:1px solid color-mix(in srgb,var(--mlh-accent) 35%,transparent)}
+.study-plan-axis-month{margin:0 0 26px}
+.study-plan-axis-month>h4{position:relative;font-size:11px;color:var(--muted);font-weight:500;margin:24px 0 14px}
+.study-plan-axis-month>h4::before{content:'';position:absolute;left:-21px;top:4px;width:6px;height:6px;border-radius:50%;background:var(--mlh-accent)}
+.study-plan-axis-date{position:relative}
+.study-plan-axis-now{display:flex;gap:10px;align-items:center;color:var(--mlh-accent);font-size:10px;margin:14px 0}
+.study-plan-axis-now>i{height:1px;flex:1;background:color-mix(in srgb,var(--mlh-accent) 40%,transparent)}
+.study-plan-axis-exam{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;padding:13px;margin:12px 0;border:1px solid color-mix(in srgb,var(--mlh-accent) 35%,transparent);border-radius:16px;background:color-mix(in srgb,var(--mlh-accent) 6%,transparent);color:var(--mlh-accent);font:inherit}
+.study-plan-axis-exam strong{font-size:12px;font-weight:500}.study-plan-axis-exam small{display:block;font-size:10px;color:var(--muted);margin-top:5px}
+.overview-next .overview-next-lesson .overview-lesson-module{font-size:16px;font-weight:550;line-height:1.45}
+.overview-next .overview-next-lesson .overview-lesson-room{display:block;font-size:14px;font-weight:500;color:inherit;line-height:1.5;margin:2px 0 6px}
+.study-plan-axis-exam.is-completed{opacity:.55}.study-plan-axis-exam.is-completed strong{text-decoration:line-through}
+.overview-next .overview-next-lesson .overview-lesson-secondary{font-size:10px;opacity:.65;margin-top:5px}
+.overview-study-plan{margin:28px 0 32px}
+.overview-study-plan>header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.overview-study-plan h2{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500;margin:0}
+.overview-study-plan>header>span{font-size:10px;color:var(--muted)}
+.overview-study-bundle{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:9px 0;padding:15px;border:1px solid #8883;border-radius:18px;background:transparent}
+.overview-study-bundle>div{min-width:0}.overview-study-bundle strong{display:block;font-size:13px;font-weight:500;line-height:1.5}
+.overview-study-bundle>div>span{display:block;font-size:12px;line-height:1.6;margin-top:5px;overflow-wrap:anywhere}
+.overview-study-bundle small{display:block;font-size:10px;color:var(--muted);margin-top:5px}
+.overview-study-bundle>button{display:flex;align-items:center;gap:6px;flex-shrink:0;border:1px solid #8883;border-radius:99px;padding:9px 11px;background:transparent;color:var(--task-color);font:inherit;font-size:11px}
+.overview-study-bundle.is-completed{opacity:.55}.overview-study-bundle.is-completed>div>span{text-decoration:line-through}
+@media(prefers-reduced-motion:reduce){.semester-overview-tabs>button{transition:none}}
 .module-study-plan>header{display:flex;gap:9px;align-items:center;color:var(--mlh-accent);margin-bottom:10px}
 .module-study-plan h2{margin:0;font-size:12px;font-weight:550;letter-spacing:.09em;text-transform:uppercase}
 .study-plan-caption{font-size:11px;color:var(--muted);line-height:1.6;margin:0 0 22px}

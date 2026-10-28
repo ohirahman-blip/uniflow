@@ -19,7 +19,7 @@ import OverviewDashboard from './OverviewDashboard'
 import StudyUtilities from './StudyUtilities'
 import ProfileOverlay from './ProfileOverlay'
 import StudyPlanSettings from './StudyPlanSettings'
-import {buildStudyPlan,studyGapSuggestions,type StudyPlan} from './adaptive-study-plan'
+import {buildStudyPlan,studyGapSuggestions,type StudyDayBundle,type StudyPlan} from './adaptive-study-plan'
 import StreakCelebration from './StreakCelebration'
 import LearningRewardCelebration from './LearningRewardCelebration'
 import {rewardPoints,type LearningReward} from './learning-reward'
@@ -1288,6 +1288,8 @@ export default function App() {
   const [initialLocal]=useState<AppData>(()=>supabase?{...emptyData}:normalizeBigUpdate(loadData()))
   const [data, setData] = useState<AppData>(initialLocal), [onboarding, setOnboarding] = useState(() => supabase ? true : !initialLocal.activeDegreeId), [page, setPage] = useState<Page>(pageFromUrl), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
   useStreakAudio(data.soundEffects!==false)
+  const [requestedStudyBundle,setRequestedStudyBundle]=useState<StudyDayBundle|null>(null)
+  const consumeStudyBundle=useCallback(()=>setRequestedStudyBundle(null),[])
   const [profileOpen,setProfileOpen]=useState(false)
   const [profileSection,setProfileSection]=useState<'home'|'modules'>('home')
   const moduleReturn=useRef<{page:Page;profile:boolean}>({page:'dashboard',profile:false})
@@ -1810,8 +1812,14 @@ export default function App() {
   return <div className="app-root"><div className="app-desktop-side"><div className="brand-side"><BrandMark premium={premium} page={page}/></div><nav>{([{id:'overview' as const,title:'Dashboard',icon:House}, { id: 'dashboard' as const, title: 'Lernen', icon: Layers2 }, { id: 'calendar', title: 'Stundenplan', icon: CalendarDays }, ...(admin ? [{ id:'admin' as const, title:'Admin', icon:Settings2 }] : [])] as const).map(n => <button key={n.id} className={page === n.id ? 'active' : ''} onClick={() => navigatePage(n.id)}><span className="nav-icon-wrap"><n.icon size={19} /></span>{n.title}</button>)}</nav><div className="sidebar-profile"><StudyUtilities days={data.streakDays} name={data.profile} degree={degree?.name||'Dein Studium'} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))}/></div></div>
     <div className="app-main">{page!=='dashboard'&&page!=='overview'&&!(page==='modules'&&selectedModuleId)&&<header className="app-top"><button className="app-brand" onClick={() => navigatePage('dashboard')}><BrandMark premium={premium} page={page}/></button></header>}
       <div key={page} className={"uf-page-stage uf-page-"+page+" uf-page-enter-"+pageDirection}>
-      {page==='overview'&&<OverviewDashboard data={data} advice={ai.advice} aiEnabled={premium&&ai.consent} aiWorking={ai.working} aiError={ai.errorMessage} aiGeneratedAt={ai.generatedAt} aiStale={ai.isStale} onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))} onSession={saveLearningSession} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onDeleteTask={deleteStudyTask} onGoal={goal=>mutate(d=>({...d,dailyScoreGoal:goal}))} onAssessment={item=>setPreviewAssessmentId(item.id)} onCalendar={occ=>{setFocusModuleId(occ.offering.moduleId);navigatePage('calendar')}}/>}
-      {page === 'dashboard' && <ModuleLearningHome studyPlan={deterministicPlan} onStudyScheduleChange={studySchedule=>mutate(workspace=>({...workspace,studySchedule}))} data={data} semester={semester} modules={semesterModules}
+      {page==='overview'&&<OverviewDashboard studyPlan={deterministicPlan} onStudyPlan={bundle=>{
+        const subject=data.modules.find(module=>module.id===bundle.moduleId)
+        const semesterId=subject?.semesterIds.includes(data.activeSemesterId)?data.activeSemesterId:subject?.semesterIds.find(id=>data.semesters.some(semester=>semester.id===id))
+        if(!semesterId){note('Bitte ordne dem Modul zuerst ein Semester zu.');return}
+        if(semesterId!==data.activeSemesterId)mutate(workspace=>({...workspace,activeSemesterId:semesterId}))
+        setRequestedStudyBundle(bundle);navigatePage('dashboard')
+      }} data={data} advice={ai.advice} aiEnabled={premium&&ai.consent} aiWorking={ai.working} aiError={ai.errorMessage} aiGeneratedAt={ai.generatedAt} aiStale={ai.isStale} onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))} onSession={saveLearningSession} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onDeleteTask={deleteStudyTask} onGoal={goal=>mutate(d=>({...d,dailyScoreGoal:goal}))} onAssessment={item=>setPreviewAssessmentId(item.id)} onCalendar={occ=>{setFocusModuleId(occ.offering.moduleId);navigatePage('calendar')}}/>}
+      {page === 'dashboard' && <ModuleLearningHome requestedStudyBundle={requestedStudyBundle} onStudyBundleOpened={consumeStudyBundle} studyPlan={deterministicPlan} onStudyScheduleChange={studySchedule=>mutate(workspace=>({...workspace,studySchedule}))} data={data} semester={semester} modules={semesterModules}
         currentModuleId={currentModuleId}
         onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
         onToggleHomework={item=>{

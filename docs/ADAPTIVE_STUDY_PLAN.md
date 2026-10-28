@@ -6,7 +6,8 @@ Der Lernplan arbeitet vollständig lokal und deterministisch. Er nutzt weder KI 
 
 - Profil → Einstellungen → Lernplan: Lerntage, gemeinsames Tagesbudget, früheste/späteste Lernzeit und einzelne freie Tage.
 - Standard: täglich bis zu 60 Minuten zwischen 09:00 und 20:00 Uhr. Diese Zeiten begrenzen mögliche Lernfenster, nicht feste Termine.
-- Lernen → unter dem Semesterzeitstrahl: ein Tagespaket je Modul mit allen zugehörigen Stoffeinheiten.
+- Dashboard: heutige Tagespakete aller Module, mit direktem Einstieg in „Stoff gelernt“.
+- Lernen → „Dein Semester im Blick“ → „Lernplan“: vollständige, nach Monaten gruppierte Tagespakete des gewählten Moduls. Die Prüfungsansicht bleibt als Vergleich über alle Module erhalten; die Lernplanansicht zeigt nur eigene Prüfungen.
 - „Lernen“ öffnet „Stoff gelernt“ mit vorausgewähltem Stoff. Auch ein zukünftiges Paket kann freiwillig früher bearbeitet werden.
 - „Prüfungsstoff & Aufwand“: Stoff je Prüfung ausschließen und Aufwand je Einheit anpassen. Leeres Minutenfeld bedeutet automatische Schätzung.
 - Kalender: höchstens drei Hinweise je Woche bzw. zwei je Tag in Tages-/Zwei-Tage-Ansicht. Ein X blendet den Hinweis für dieses Modul und diesen Tag zwei Stunden lang aus. Der Tagesplan bleibt unverändert.
