@@ -2,6 +2,8 @@
 .study-learning-timeline{height:auto;isolation:isolate}
 .module-study-plan>p+.study-learning-timeline{margin-top:28px}
 .study-plan-scope>.study-scope-content{padding-top:16px}
+.semester-overview>.mlh-exams{border-top:0;padding-top:0}
+.semester-overview>.semester-overview-heading{border-top:1px solid #8882;padding-top:22px}
 .study-learning-timeline .study-plan-timeline-row{position:relative;left:auto;right:auto;transform:none;min-height:58px;padding:0 0 16px;box-sizing:border-box}
 .study-plan-timeline-row::before{content:'';position:absolute;left:76px;top:0;bottom:0;width:5px;background:var(--study-line-color);opacity:.55;z-index:-1}
 .study-learning-timeline .study-plan-timeline-row>time{color:var(--muted);line-height:1.5;padding-top:4px}
