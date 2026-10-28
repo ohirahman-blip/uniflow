@@ -109,6 +109,12 @@ for(const gap of gaps){
   assert.ok(gap.from>=12*60+20&&gap.to<=1200)
   for(const occ of blocked.offerings)assert.ok(gap.to<=minutes(occ.from)-10||gap.from>=minutes(occ.to)+10,'Hints never overlap real teaching')
 }
+assert.deepEqual(studyGapSuggestions({...blocked,calendarPreferences:{showStudySuggestions:false}},gapPlan,reference),[],'Settings can hide calendar suggestions')
+assert.ok(studyGapSuggestions({...blocked,calendarPreferences:{showStudySuggestions:true}},gapPlan,reference,12*60+10).length>0,'Suggestions can be restored')
+assert.deepEqual(buildStudyPlan({...source,calendarPreferences:{showAlternatives:false,showStudySuggestions:false}},reference).bundles,plan.bundles,'Display switches never change learning tasks or appointments')
+const calendarSource=fs.readFileSync('src/App.tsx','utf8')
+assert.ok(calendarSource.includes('if(data.calendarPreferences?.showAlternatives===false)return []'))
+assert.ok(calendarSource.includes('Alternativtermine anzeigen')&&calendarSource.includes('Lernvorschläge anzeigen'))
 const holiday=studyGapSuggestions({...blocked,studySchedule:{excludedDates:[reference]}},{...gapPlan,preferences:studyPreferences({studySchedule:{excludedDates:[reference]}})},reference)
 assert.equal(holiday.length,0)
 assert.doesNotThrow(()=>studyPreferences({studySchedule:{weekdays:'bad',excludedByExam:{ea:7},lessonMinutes:'bad'}}),'Malformed optional backup settings fall back safely')

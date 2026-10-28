@@ -201,7 +201,7 @@ export function buildStudyPlan(data:AppData,reference=today()):StudyPlan{
 
 /** Informational windows only: never writes an appointment or removes planned work. */
 export function studyGapSuggestions(data:AppData,plan:StudyPlan,date:string,nowMinutes=0):StudyGap[]{
-  if(!plan.preferences.enabled||date<plan.reference)return []
+  if(data.calendarPreferences?.showStudySuggestions===false||!plan.preferences.enabled||date<plan.reference)return []
   const bundles=plan.bundles.filter(bundle=>!bundle.completed&&bundle.date===date)
   const free=studyFreeWindows(data,date,plan.preferences)
   const obligations=occurrencesOn(data.offerings,date).filter(item=>!item.cancelled)

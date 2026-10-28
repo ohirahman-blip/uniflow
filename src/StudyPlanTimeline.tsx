@@ -8,7 +8,7 @@ export default function StudyPlanTimeline({data,module,plan,exams,onStudy,onExam
   const rows=learningTimelineRows(plan,module.id,exams,semester?.start||plan.reference)
   return <div className="mlh-timeline study-learning-timeline" aria-label="Lernzeitstrahl mit zusammengefassten freien Zeiträumen">
     <div className="mlh-timeline-axis" aria-hidden="true"/>
-    {rows.map(row=><div key={(row.gap?'gap:':'day:')+row.date} className={'mlh-timeline-month study-plan-timeline-row'+(row.gap?' is-gap':'')+(row.today?' is-today':'')} data-intensity={row.intensity} style={{'--study-line-color':row.intensity===2?'var(--mlh-accent)':row.intensity===1?'color-mix(in srgb,var(--mlh-accent) 38%,var(--muted))':'var(--muted)'} as CSSProperties}>
+    {rows.map(row=><div key={(row.gap?'gap:':'day:')+row.date} data-timeline-date={row.date} className={'mlh-timeline-month study-plan-timeline-row'+(row.gap?' is-gap':'')+(row.today?' is-today':'')} data-intensity={row.intensity} style={{'--study-line-color':row.intensity===2?'var(--mlh-accent)':row.intensity===1?'color-mix(in srgb,var(--mlh-accent) 38%,var(--muted))':'var(--muted)'} as CSSProperties}>
       <time dateTime={row.date}>{formatDate(row.date,{day:'numeric',month:'short'})}{row.to&&<><br/>– {formatDate(row.to,{day:'numeric',month:'short'})}</>}{row.today&&<small>Heute</small>}</time><i aria-hidden="true"/>
       <div className="study-plan-timeline-content">
         {row.gap?<span className="mlh-timeline-break" aria-label="Zeitraum ohne Lernpakete zusammengefasst">···</span>:<>

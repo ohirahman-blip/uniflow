@@ -51,10 +51,20 @@
 .semester-overview-tabs>button:active{transform:scale(.96)}
 .semester-overview-tabs>button[aria-selected=true]{color:var(--mlh-accent)}
 .semester-overview-tabs>button:focus-visible{outline:2px solid var(--mlh-accent);outline-offset:2px}
-.semester-overview-panel{max-width:720px;margin:0 auto;animation:semester-timeline-enter 300ms cubic-bezier(.22,1,.36,1) both;--timeline-enter-x:-10px}
-.semester-overview-panel[data-view=plan]{--timeline-enter-x:10px}
-@keyframes semester-timeline-enter{from{opacity:0;transform:translate3d(var(--timeline-enter-x),6px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
-@media(prefers-reduced-motion:reduce){.semester-overview-panel{animation:none}.semester-overview-tabs::before,.semester-overview-tabs>button{transition:none}.semester-overview-tabs>button:active{transform:none}}
+.semester-overview-panel{position:relative;max-width:720px;margin:0 auto}
+.semester-shared-axis{display:none;position:absolute;width:5px;border-radius:99px;overflow:hidden;pointer-events:none;background:#8882;z-index:1;transition:top 420ms cubic-bezier(.22,1,.36,1),left 420ms cubic-bezier(.22,1,.36,1),height 420ms cubic-bezier(.22,1,.36,1)}
+.semester-overview-panel[data-shared-axis=true]>.semester-shared-axis{display:block}
+.semester-overview-panel[data-shared-axis=true] .mlh-timeline-axis{visibility:hidden}
+.semester-overview-panel[data-shared-axis=true] .study-plan-timeline-row::before{visibility:hidden}
+.semester-shared-axis>i{position:absolute;left:0;right:0;transition:top 420ms cubic-bezier(.22,1,.36,1),height 420ms cubic-bezier(.22,1,.36,1)}
+.semester-shared-axis>i:nth-child(1){top:0;height:var(--phase-one);background:#777780}
+.semester-shared-axis>i:nth-child(2){top:var(--phase-one);height:calc(var(--phase-two) - var(--phase-one));background:color-mix(in srgb,var(--mlh-accent) 38%,#777780)}
+.semester-shared-axis>i:nth-child(3){top:var(--phase-two);height:calc(var(--phase-end) - var(--phase-two));background:var(--mlh-accent)}
+.semester-overview-panel :is(.mlh-timeline-month>div,.study-plan-caption,.module-study-plan>p,.study-plan-scope,.mlh-timeline-now>i){transition:opacity 140ms ease}
+.semester-overview-panel.phase-exit :is(.mlh-timeline-month>div,.study-plan-caption,.module-study-plan>p,.study-plan-scope,.mlh-timeline-now>i){opacity:0;pointer-events:none}
+.semester-overview-panel.phase-enter :is(.mlh-timeline-month>div,.study-plan-caption,.module-study-plan>p,.study-plan-scope,.mlh-timeline-now>i){animation:semester-content-enter 260ms ease both}
+@keyframes semester-content-enter{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.semester-shared-axis,.semester-shared-axis>i,.semester-overview-tabs::before,.semester-overview-tabs>button{transition:none}.semester-overview-panel :is(.mlh-timeline-month>div,.study-plan-caption,.module-study-plan>p,.study-plan-scope,.mlh-timeline-now>i){animation:none;transition:none}.semester-overview-tabs>button:active{transform:none}}
 .semester-overview-panel:focus-visible{outline:1px solid #8885;outline-offset:5px;border-radius:16px}
 .semester-overview-panel>.module-study-plan{margin:0;border:0;padding:0}
 .study-plan-date-axis{position:relative;padding-left:17px;border-left:1px solid color-mix(in srgb,var(--mlh-accent) 35%,transparent)}
