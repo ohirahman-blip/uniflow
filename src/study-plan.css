@@ -1,4 +1,39 @@
 .module-study-plan{max-width:720px;margin:38px auto 0;padding-top:22px;border-top:1px solid #8882}
+.study-learning-timeline{height:auto;isolation:isolate}
+.study-learning-timeline .study-plan-timeline-row{position:relative;left:auto;right:auto;transform:none;min-height:58px;padding:0 0 16px;box-sizing:border-box}
+.study-plan-timeline-row::before{content:'';position:absolute;left:76px;top:0;bottom:0;width:5px;background:var(--study-line-color);opacity:.55;z-index:-1}
+.study-learning-timeline .study-plan-timeline-row>time{color:var(--muted);line-height:1.5;padding-top:4px}
+.study-plan-timeline-row>time small{display:block;color:var(--mlh-accent);font-size:9px}
+.study-learning-timeline .study-plan-timeline-row>i{background:var(--study-line-color)}
+.study-learning-timeline .study-plan-timeline-row.is-gap{min-height:38px;padding-bottom:8px}
+.study-learning-timeline .is-gap>time{font-size:8px}
+.study-plan-timeline-content{min-width:0}
+.study-learning-timeline .study-plan-axis-now{margin:5px 0 8px}
+.study-plan-timeline-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-left:2px solid var(--study-line-color);color:var(--study-line-color);border-radius:0 7px 7px 0;background:transparent}
+.study-plan-timeline-row[data-intensity='1'] .study-plan-timeline-item{background:color-mix(in srgb,var(--mlh-accent) 3%,transparent)}
+.study-plan-timeline-row[data-intensity='2'] .study-plan-timeline-item{background:color-mix(in srgb,var(--mlh-accent) 7%,transparent)}
+.study-plan-timeline-item>div{min-width:0}
+.study-plan-timeline-item strong{font-size:11px;font-weight:500;line-height:1.6;overflow-wrap:anywhere}
+.study-plan-timeline-item small,.study-plan-start{display:block;color:var(--muted);font-size:10px;line-height:1.6}
+.study-learning-timeline .study-plan-timeline-item>button{flex-shrink:0;display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:50%;color:var(--study-line-color);background:transparent}
+.study-plan-timeline-item.is-completed{opacity:.5}.study-plan-timeline-item.is-completed strong,.study-plan-timeline-exam.is-completed strong{text-decoration:line-through}
+.study-plan-timeline-exam.is-completed{opacity:.5}
+.study-plan-scope>summary,.study-mastered>summary{display:flex;justify-content:space-between;align-items:center;list-style:none;cursor:pointer;font-size:12px;color:var(--muted);padding:10px 0}
+.study-plan-scope>summary::-webkit-details-marker,.study-mastered>summary::-webkit-details-marker{display:none}
+.study-plan-scope>summary svg,.study-mastered>summary svg{transition:transform 180ms ease}
+.study-plan-scope[open]>summary svg,.study-mastered[open]>summary svg{transform:rotate(180deg)}
+.study-plan-scope[open]>.study-scope-content{animation:study-scope-open 180ms ease-out}
+.study-scope-list{padding:0;margin:0;list-style:none}
+.study-scope-list-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #8882}
+.study-scope-list-row>label{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.study-scope-list-row input[type=checkbox]{width:16px;height:16px;flex-shrink:0;accent-color:var(--mlh-accent)}
+.study-scope-list-row strong{display:block;font-size:12px;font-weight:500;line-height:1.5}
+.study-scope-list-row small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.study-scope-list-row.is-excluded strong{opacity:.45}
+.study-scope-list-row>.uf-picker-trigger{width:108px;min-height:32px;padding:7px 9px;border-radius:10px;background:transparent;border:1px solid #8883;font-size:11px}
+.study-review-again{display:flex;align-items:center;gap:5px;background:transparent;color:var(--muted);border:0;font:inherit;font-size:10px;padding:7px 0;flex-shrink:0}
+@keyframes study-scope-open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.study-plan-scope[open]>.study-scope-content{animation:none}.study-plan-scope>summary svg,.study-mastered>summary svg{transition:none}}
 .semester-overview-heading{max-width:720px;margin:30px auto 22px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
 .semester-overview-heading h3{font-size:14px;font-weight:500;margin:0}
 .semester-overview-tabs{display:flex;gap:4px;padding:3px;border:1px solid #8883;border-radius:999px}

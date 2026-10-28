@@ -9,7 +9,7 @@ Der Lernplan arbeitet vollständig lokal und deterministisch. Er nutzt weder KI 
 - Dashboard: heutige Tagespakete aller Module, mit direktem Einstieg in „Stoff gelernt“.
 - Lernen → „Dein Semester im Blick“ → „Lernplan“: vollständige, nach Monaten gruppierte Tagespakete des gewählten Moduls. Die Prüfungsansicht bleibt als Vergleich über alle Module erhalten; die Lernplanansicht zeigt nur eigene Prüfungen.
 - „Lernen“ öffnet „Stoff gelernt“ mit vorausgewähltem Stoff. Auch ein zukünftiges Paket kann freiwillig früher bearbeitet werden.
-- „Prüfungsstoff & Aufwand“: Stoff je Prüfung ausschließen und Aufwand je Einheit anpassen. Leeres Minutenfeld bedeutet automatische Schätzung.
+- „Prüfungsstoff“: schlichte Liste mit Relevanz-Checkboxen und Leicht/Mittel/Schwer (45/60/90 Minuten) als grobe Planungsschätzung. Gefestigter Stoff ist separat einklappbar; „Wieder einplanen“ erzeugt eine neue Wiederholung ohne Fortschritt oder Punkte zurückzusetzen.
 - Kalender: höchstens drei Hinweise je Woche bzw. zwei je Tag in Tages-/Zwei-Tage-Ansicht. Ein X blendet den Hinweis für dieses Modul und diesen Tag zwei Stunden lang aus. Der Tagesplan bleibt unverändert.
 
 ## Berechnung
@@ -20,7 +20,7 @@ Alle gewählten, offenen Prüfungen aktueller/nicht ausgeblendeter Module des ak
 
 Künftiger Stoff wird frühestens nach Ende seiner Veranstaltung berücksichtigt. Kalendertermine und Prüfungen werden als belegte Zeit behandelt, einschließlich zehn Minuten Puffer um Veranstaltungen und fünfzehn Minuten um Klausuren. Bei einer Klausur ohne Uhrzeit bleibt der Tag vorsichtshalber frei. Bereits eingetragene Lernminuten werden vom Tagesbudget abgezogen, auch ohne Stoffzuordnung.
 
-Zuerst wird Erstlern-Kapazität über die Prüfungsfristen hinweg gesichert. Danach werden Nacharbeit, gutes Verständnis und Wiederholung eingeplant. Nahe oder aufwendige Fächer bekommen mehr Priorität; weit entfernte Fächer mit geringer Belastung beginnen auf zwei der gewählten Wochentage. Innerhalb von vier Wochen vor der Prüfung wird diese frühe Begrenzung aufgehoben. Aufwand startet bei 30 Minuten und wird aus bisherigen stoffbezogenen Lernzeiten abgeleitet, begrenzt auf 15–120 Minuten. Manuelle Werte haben Vorrang.
+Zuerst wird Erstlern-Kapazität über die Prüfungsfristen hinweg gesichert. Danach werden Nacharbeit, gutes Verständnis und Wiederholung eingeplant. Nahe oder aufwendige Fächer bekommen mehr Priorität; weit entfernte Fächer mit geringer Belastung beginnen auf zwei der gewählten Wochentage. Innerhalb von vier Wochen vor der Prüfung wird diese frühe Begrenzung aufgehoben. Der Aufwand wird über Leicht/Mittel/Schwer auf 45/60/90 Minuten pro grobem Erstlernblock geschätzt. Vertiefungs- und Wiederholungsblöcke werden entsprechend kürzer geplant. Alte manuelle Minutenangaben bleiben gespeichert und werden als Schwierigkeitsstufe interpretiert; historische Lernzeit ist keine Voraussetzung für Verständnis.
 
 Die Planung simuliert Lernschritte, verändert aber niemals tatsächliche grüne/gelbe Fortschrittsstriche oder Scores. Verständnis bleibt eine Rückmeldung des Nutzers, keine Garantie des Planers. Bei nicht ausreichender Erstlernzeit wird eine Warnung angezeigt; Tage werden nicht überbucht.
 
@@ -29,3 +29,7 @@ Erledigte Lerneinträge bleiben gespeichert; die Ansicht zeigt zusätzlich die l
 ## Tests
 
 npm run test:study-plan prüft Budgets, mehrere nahe Prüfungen, Lerntage/Urlaub, fehlende Termine, ausgeschlossenen Stoff, zusätzliches Lernen, künftige/späte/abgesagte Veranstaltungen, Überlastung, echte Kalenderlücken und deterministische Neuberechnung.
+
+Die neueste Rückmeldung bestimmt die grünen Striche: Verständnis offen = 1, teilweise = 2, gut = 3. Zweimal hintereinander gut verstanden ergibt 4, ohne Mindestminuten. Teilweise oder offen setzt die gute Serie zurück; verdiente Punkte und gelbe Besuchsstriche bleiben unverändert. Vier grüne Striche entfernen Stoff aus der offenen Planung, außer eine neue Wiederholung wurde angefordert.
+
+Der Lernzeitstrahl übernimmt das Prüfungsdesign: Datum links, zusammengefasste freie Intervalle, neutrale/leichte/kräftige Modulfarbe in den drei Phasen bis zur nächsten eigenen Prüfung. Andere Module werden in dieser Ansicht ausgeblendet; Tagespakete bleiben pro Modul gebündelt.

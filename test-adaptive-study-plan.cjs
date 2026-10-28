@@ -45,6 +45,22 @@ const mastered=[{id:'s1',moduleId:'a',date:'2026-10-23',duration:30,kind:'review
 const ahead=buildStudyPlan(data({learningSessions:mastered}),reference)
 assert.ok(pending(ahead).every(bundle=>bundle.items.every(item=>item.key!==key)),'Extra learned work drops out of future packages')
 assert.ok(ahead.bundles.some(bundle=>bundle.completed&&bundle.items.some(item=>item.key===key)),'Completed learning stays visible')
+const {difficultyMinutes,lessonDifficultyFor,pendingReviewKeys}=load('adaptive-study-plan')
+assert.deepEqual(difficultyMinutes,{easy:45,medium:60,hard:90})
+assert.equal(lessonDifficultyFor(studyPreferences({studySchedule:{lessonMinutes:{[key]:45}}}),key),'easy')
+assert.equal(lessonDifficultyFor(studyPreferences({studySchedule:{lessonDifficulty:{[key]:'hard'}}}),key),'hard')
+for(const [difficulty,estimate] of Object.entries(difficultyMinutes)){
+  const simple=data({offerings:[offer('l1','a')],assessments:[exam('ea','a')],studySchedule:{minutesPerDay:120,lessonDifficulty:{[key]:difficulty}}})
+  const first=pending(buildStudyPlan(simple,reference)).flatMap(bundle=>bundle.items).filter(item=>item.key===key&&item.target===1)
+  assert.equal(first.reduce((sum,item)=>sum+item.minutes,0),estimate,'Difficulty controls only rough first-learning estimates')
+}
+const requested=data({learningSessions:mastered,studySchedule:{reviewAfter:{[key]:'2026-10-26T12:00:00Z'}}})
+assert.ok(pendingReviewKeys(requested,studyPreferences(requested)).has(key))
+assert.ok(pending(buildStudyPlan(requested,reference)).some(bundle=>bundle.items.some(item=>item.key===key)),'Mastered content can be planned again without resetting bars')
+const finished={...requested,learningSessions:[...mastered,{...mastered[1],id:'s3',updatedAt:'2026-10-27T12:00:00Z',date:reference}]}
+assert.ok(!pendingReviewKeys(finished,studyPreferences(finished)).has(key),'New learning satisfies requested review')
+const regressed=data({learningSessions:[...mastered,{...mastered[1],id:'s3',rating:'partial',date:'2026-10-25',updatedAt:'2026-10-25T12:00:00Z'}]})
+assert.ok(pending(buildStudyPlan(regressed,reference)).some(bundle=>bundle.items.some(item=>item.key===key)),'Lower understanding puts material back in the plan')
 const used=buildStudyPlan(data({learningSessions:[{...mastered[0],id:'unlinked',date:reference,duration:45,lessonKeys:[]}]}),reference)
 assert.ok(pending(used).filter(bundle=>bundle.date===reference).reduce((sum,bundle)=>sum+bundle.minutes,0)<=15,'Unlinked study sessions still use today’s budget')
 const future=buildStudyPlan(data({offerings:[offer('future','a','2026-11-02','10:00','12:00')]}),reference)
@@ -55,7 +71,7 @@ const cancelled=buildStudyPlan(data({offerings:[offer('gone','a',reference,'10:0
 assert.equal(pending(cancelled).length,0)
 const tight=buildStudyPlan(data({offerings:Array.from({length:12},(_,i)=>offer('many'+i,'a')),assessments:[exam('soon','a','2026-10-29')],studySchedule:{minutesPerDay:15}}),reference)
 assert.ok(tight.notices.some(notice=>notice.severity==='warning'),'Impossible first coverage is explicit, not silently overbooked')
-const parallelOffers=[...Array.from({length:3},(_,i)=>offer('near'+i,'a')),...Array.from({length:7},(_,i)=>offer('later'+i,'b'))]
+const parallelOffers=[...Array.from({length:3},(_,i)=>offer('near'+i,'a')),...Array.from({length:3},(_,i)=>offer('later'+i,'b'))]
 const parallelBase=data({offerings:parallelOffers,assessments:[exam('near-exam','a','2026-10-28',{from:'09:00',to:'10:00'}),exam('later-exam','b','2026-10-31')]})
 const nearKeys=buildStudyPlan(parallelBase,reference).lessons.filter(lesson=>lesson.moduleId==='a').map(lesson=>lesson.key)
 const constrained=buildStudyPlan({...parallelBase,learningSessions:nearKeys.map((key,i)=>({id:'already'+i,moduleId:'a',date:'2026-10-24',duration:60,kind:'review',rating:'understood',lessonKeys:[key],updatedAt:'2026-10-24T12:00:00Z'}))},reference)

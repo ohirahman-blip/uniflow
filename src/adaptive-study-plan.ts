@@ -2,11 +2,13 @@ import {addDays,dateString,fromDate,minutes,occurrencesOn,selectedAssessment,tod
 import {numberedLessons,type NumberedLesson} from './score'
 import {lessonProgressMap} from './lesson-progress'
 
+export type LessonDifficulty='easy'|'medium'|'hard'
+export const difficultyMinutes:Record<LessonDifficulty,number>={easy:45,medium:60,hard:90}
 export type StudySchedulePreferences={
   enabled:boolean;weekdays:number[];minutesPerDay:number;windowStart:number;windowEnd:number
-  excludedDates:string[];excludedByExam:Record<string,string[]>;lessonMinutes:Record<string,number>
+  excludedDates:string[];excludedByExam:Record<string,string[]>;lessonMinutes:Record<string,number>;lessonDifficulty:Record<string,LessonDifficulty>;reviewAfter:Record<string,string>
 }
-export const defaultStudySchedule:StudySchedulePreferences={enabled:true,weekdays:[0,1,2,3,4,5,6],minutesPerDay:60,windowStart:9*60,windowEnd:20*60,excludedDates:[],excludedByExam:{},lessonMinutes:{}}
+export const defaultStudySchedule:StudySchedulePreferences={enabled:true,weekdays:[0,1,2,3,4,5,6],minutesPerDay:60,windowStart:9*60,windowEnd:20*60,excludedDates:[],excludedByExam:{},lessonMinutes:{},lessonDifficulty:{},reviewAfter:{}}
 export function studyPreferences(data:Pick<AppData,'studySchedule'>):StudySchedulePreferences{
   const raw=data.studySchedule
   const weekdays=!Array.isArray(raw?.weekdays)?defaultStudySchedule.weekdays:[...new Set(raw.weekdays)].filter(day=>Number.isInteger(day)&&day>=0&&day<7).sort()
@@ -14,9 +16,28 @@ export function studyPreferences(data:Pick<AppData,'studySchedule'>):StudySchedu
   const windowStart=bound(raw?.windowStart,540,0,1410)
   const excludedByExam=raw?.excludedByExam&&typeof raw.excludedByExam==='object'?Object.fromEntries(Object.entries(raw.excludedByExam).filter(([,keys])=>Array.isArray(keys)).map(([id,keys])=>[id,keys.filter(key=>typeof key==='string')])):{}
   const lessonMinutes=raw?.lessonMinutes&&typeof raw.lessonMinutes==='object'?Object.fromEntries(Object.entries(raw.lessonMinutes).filter(([,value])=>typeof value==='number'&&Number.isFinite(value)&&value>0)):{}
+  const lessonDifficulty=raw?.lessonDifficulty&&typeof raw.lessonDifficulty==='object'?Object.fromEntries(Object.entries(raw.lessonDifficulty).filter(([,value])=>['easy','medium','hard'].includes(value))) as Record<string,LessonDifficulty>:{}
+  const reviewAfter=raw?.reviewAfter&&typeof raw.reviewAfter==='object'?Object.fromEntries(Object.entries(raw.reviewAfter).filter(([,value])=>typeof value==='string'&&Number.isFinite(Date.parse(value)))):{}
   return {enabled:raw?.enabled!==false,weekdays,minutesPerDay:Math.round(bound(raw?.minutesPerDay,60,15,480)/15)*15,windowStart,windowEnd:bound(raw?.windowEnd,1200,windowStart+30,1440),
     excludedDates:Array.isArray(raw?.excludedDates)?raw.excludedDates.filter(day=>/^\d{4}-\d{2}-\d{2}$/.test(day)):[],
-    excludedByExam,lessonMinutes}
+    excludedByExam,lessonMinutes,lessonDifficulty,reviewAfter}
+}
+export function lessonDifficultyFor(preferences:StudySchedulePreferences,key:string):LessonDifficulty{
+  const choice=preferences.lessonDifficulty[key]
+  if(choice)return choice
+  const legacy=preferences.lessonMinutes[key]
+  return legacy?legacy<=45?'easy':legacy<=75?'medium':'hard':'medium'
+}
+export function pendingReviewKeys(data:Pick<AppData,'scoreEvents'|'learningSessions'>,preferences:StudySchedulePreferences){
+  const created=new Map((data.scoreEvents||[]).filter(event=>event.type==='study-minutes'&&!event.reversedAt).map(event=>[event.sourceId,event.occurredAt]))
+  const reversed=new Set((data.scoreEvents||[]).filter(event=>event.type==='study-minutes'&&event.reversedAt).map(event=>event.sourceId))
+  const latest=new Map<string,string>()
+  for(const session of data.learningSessions||[]){
+    if(reversed.has(session.id))continue
+    const when=created.get(session.id)||session.endedAt||session.updatedAt
+    for(const key of new Set([...(session.lessonKeys||[]),...(session.lessonKey?[session.lessonKey]:[])]))if(when>(latest.get(key)||''))latest.set(key,when)
+  }
+  return new Set(Object.entries(preferences.reviewAfter).filter(([key,when])=>when>(latest.get(key)||'')).map(([key])=>key))
 }
 export type StudyPlanItem={key:string;label:string;minutes:number;target:number}
 export type StudyDayBundle={id:string;date:string;moduleId:string;examId:string;minutes:number;items:StudyPlanItem[];completed?:boolean}
@@ -54,7 +75,7 @@ export function buildStudyPlan(data:AppData,reference=today()):StudyPlan{
   const modules=new Set(data.modules.filter(module=>module.degreeId===data.activeDegreeId&&!module.hidden&&!['planned','passed','recognized'].includes(module.status)).map(module=>module.id))
   const exams=data.assessments.filter(exam=>exam.type==='exam'&&!exam.completed&&modules.has(exam.moduleId)&&selectedAssessment(exam,data.assessments)&&(!exam.date||exam.date>=reference)).sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999')||a.id.localeCompare(b.id))
   if(!exams.length){result.notices.push({severity:'info',message:'Mit einer anstehenden Prüfung entsteht hier dein Lernplan.'});return result}
-  const progress=lessonProgressMap(data)
+  const progress=lessonProgressMap(data),reviews=pendingReviewKeys(data,preferences)
   const reversed=new Set((data.scoreEvents||[]).filter(event=>event.type==='study-minutes'&&event.reversedAt).map(event=>event.sourceId))
   const sessions=(data.learningSessions||[]).filter(session=>!reversed.has(session.id))
   const history=new Map<string,{minutes:number;count:number;latest:string}>()
@@ -78,13 +99,12 @@ export function buildStudyPlan(data:AppData,reference=today()):StudyPlan{
     for(const lesson of scope){
       if(seen.has(lesson.key)||excluded.has(lesson.key))continue
       seen.add(lesson.key)
-      const level=progress.get(lesson.key)?.green||0
+      const actualLevel=progress.get(lesson.key)?.green||0
+      const level=actualLevel>=4&&reviews.has(lesson.key)?3:actualLevel
       if(level>=4)continue
       const historic=history.get(lesson.key)
-      const observed=historic?.count?historic.minutes/historic.count:30
-      const custom=preferences.lessonMinutes[lesson.key]
-      const base=rounded(Math.max(15,Math.min(120,Number.isFinite(custom)?custom:observed)))
-      const remaining=level===0?base:level<3?rounded(Math.max(15,base*.6)):rounded(Math.max(15,60-(historic?.minutes||0)))
+      const base=difficultyMinutes[lessonDifficultyFor(preferences,lesson.key)]
+      const remaining=level===0?base:rounded(base*(level>=3?0.5:0.6))
       units.push({lesson,examId:exam.id,deadline:exam.date?addDays(exam.date,-1):addDays(reference,13),loose:!exam.date,release:lesson.occurrence.date>reference?lesson.occurrence.date:reference,level,remaining,base,last:historic?.latest||'',moduleId:lesson.moduleId})
     }
   }
@@ -158,7 +178,7 @@ export function buildStudyPlan(data:AppData,reference=today()):StudyPlan{
       allocated.set(choice.moduleId,(allocated.get(choice.moduleId)||0)+spent)
       if(choice.remaining<=0){
         choice.level++;choice.last=date
-        choice.remaining=choice.level<3?rounded(Math.max(15,choice.base*.6)):rounded(Math.max(15,60-(history.get(choice.lesson.key)?.minutes||0)-choice.base))
+        choice.remaining=rounded(choice.base*(choice.level>=3?0.5:0.6))
       }
     }
   }

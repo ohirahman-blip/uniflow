@@ -1,7 +1,10 @@
-import {useState} from 'react'
-import {BookOpenCheck,CalendarDays,Check} from 'lucide-react'
+import {useMemo,useState} from 'react'
+import {BookOpenCheck,CalendarDays,Check,ChevronDown,RotateCcw} from 'lucide-react'
 import {addDays,formatDate,selectedAssessment,type AppData,type Assessment,type StudyModule} from './model'
 import UniflowPicker from './UniflowPicker'
+import StudyPlanTimeline from './StudyPlanTimeline'
+import {lessonProgressMap} from './lesson-progress'
+import {lessonDifficultyFor,pendingReviewKeys,type LessonDifficulty} from './adaptive-study-plan'
 import type {StudyDayBundle,StudyPlan,StudySchedulePreferences} from './adaptive-study-plan'
 export default function ModuleStudyPlan({timeline=false,onExamOpen,data,module,plan,onChange,onStudy}:{timeline?:boolean;onExamOpen?:(exam:Assessment)=>void;data:AppData;module:StudyModule;plan:StudyPlan;onChange:(preferences:StudySchedulePreferences)=>void;onStudy:(keys:string[],duration:number)=>void}){
   const [examId,setExamId]=useState('')
@@ -12,6 +15,10 @@ export default function ModuleStudyPlan({timeline=false,onExamOpen,data,module,p
   const completed=bundles.filter(bundle=>bundle.completed).sort((a,b)=>b.date.localeCompare(a.date))
   const notices=plan.notices.filter(notice=>!notice.moduleId||notice.moduleId===module.id)
   const lessons=plan.lessons.filter(lesson=>lesson.moduleId===module.id&&(!exam?.date||lesson.occurrence.date<exam.date))
+  const progress=useMemo(()=>lessonProgressMap(data),[data.learningSessions,data.learningCheckins,data.scoreEvents])
+  const reviews=useMemo(()=>pendingReviewKeys(data,preferences),[data.learningSessions,data.scoreEvents,preferences.reviewAfter])
+  const openLessons=lessons.filter(lesson=>(progress.get(lesson.key)?.green||0)<4||reviews.has(lesson.key))
+  const masteredLessons=lessons.filter(lesson=>(progress.get(lesson.key)?.green||0)>=4&&!reviews.has(lesson.key))
   const excluded=preferences.excludedByExam[exam?.id||'']||[]
   const render=(bundle:StudyDayBundle)=><article key={bundle.id} className={'study-plan-bundle'+(bundle.completed?' is-completed':'')}>
     <time dateTime={bundle.date}>{bundle.date===plan.reference?'Heute':formatDate(bundle.date,{weekday:'short',day:'numeric',month:'short'})}</time>
@@ -19,25 +26,25 @@ export default function ModuleStudyPlan({timeline=false,onExamOpen,data,module,p
     {bundle.completed?<Check size={17}/>:<button type="button" aria-label={'Lernpaket für '+formatDate(bundle.date)+' öffnen'} onClick={()=>onStudy(bundle.items.map(item=>item.key),bundle.minutes)}><BookOpenCheck size={16}/><span>Lernen</span></button>}
   </article>
   const timelineExams=data.assessments.filter(exam=>exam.moduleId===module.id&&exam.type==='exam'&&exam.date&&exam.date>=addDays(plan.reference,-14)&&selectedAssessment(exam,data.assessments))
-  const timelineDates=[...new Set([...bundles.map(bundle=>bundle.date),...timelineExams.map(exam=>exam.date),plan.reference])].filter(date=>date>=addDays(plan.reference,-14)).sort()
-  const monthGroups=new Map<string,string[]>()
-  for(const date of timelineDates){const key=date.slice(0,7);monthGroups.set(key,[...(monthGroups.get(key)||[]),date])}
+  const renderLesson=(lesson:typeof lessons[number],mastered=false)=><li key={lesson.key} className={'study-scope-list-row'+(excluded.includes(lesson.key)?' is-excluded':'')}>
+    <label><input type="checkbox" checked={!excluded.includes(lesson.key)} onChange={event=>onChange({...preferences,excludedByExam:{...preferences.excludedByExam,[exam!.id]:event.target.checked?excluded.filter(key=>key!==lesson.key):[...excluded,lesson.key]}})}/><span><strong>{lesson.label}</strong><small>{mastered?'Gefestigt':reviews.has(lesson.key)?'Wiederholung eingeplant':progress.get(lesson.key)?.label||'Noch nicht gelernt'}</small></span></label>
+    {mastered?<button className="study-review-again" type="button" aria-label={lesson.label+' wieder einplanen'} onClick={()=>onChange({...preferences,reviewAfter:{...preferences.reviewAfter,[lesson.key]:new Date().toISOString()}})}><RotateCcw size={14}/><span>Wieder einplanen</span></button>:<UniflowPicker label={'Lernaufwand für '+lesson.label} value={lessonDifficultyFor(preferences,lesson.key)} onChange={value=>onChange({...preferences,lessonDifficulty:{...preferences.lessonDifficulty,[lesson.key]:value as LessonDifficulty}})} options={[{value:'easy',label:'Leicht',detail:'45 Min. Planungsschätzung'},{value:'medium',label:'Mittel',detail:'60 Min. Planungsschätzung'},{value:'hard',label:'Schwer',detail:'90 Min. Planungsschätzung'}]}/>}
+  </li>
   return <section className={'module-study-plan'+(timeline?' is-timeline':'')} aria-label="Dein adaptiver Lernplan">
     {!timeline&&<header><CalendarDays size={17}/><h2>Dein Lernplan</h2></header>}<p className="study-plan-caption">Tage statt fester Uhrzeiten · wird mit deinem Fortschritt neu verteilt</p>
     {!preferences.enabled?<p className="quiet-copy">Aktiviere deinen Lernplan unter Profil → Einstellungen → Lernplan.</p>:<>
       {notices.map((notice,index)=><p key={index} className={notice.severity==='warning'?'study-plan-warning':'quiet-copy'} role={notice.severity==='warning'?'status':undefined}>{notice.message}</p>)}
-      {timeline?<div className="study-plan-date-axis">{[...monthGroups].map(([month,dates])=><section className="study-plan-axis-month" key={month}><h4>{formatDate(month+'-01',{month:'long',year:'numeric'})}</h4>{dates.map(date=><div className="study-plan-axis-date" key={date}>
-        {date===plan.reference&&<div className="study-plan-axis-now"><span>Heute</span><i/></div>}
-        {bundles.filter(bundle=>bundle.date===date).sort((a,b)=>Number(!!b.completed)-Number(!!a.completed)).map(render)}
-        {timelineExams.filter(exam=>exam.date===date).map(exam=><button className={'study-plan-axis-exam'+(exam.completed?' is-completed':'')} key={exam.id} onClick={()=>onExamOpen?.(exam)} aria-label={exam.title+(exam.completed?', erledigt':'')}><CalendarDays size={15}/><span><strong>{exam.title}</strong><small>{formatDate(exam.date,{weekday:'short',day:'numeric',month:'short'})}{exam.from?' · '+exam.from:''}</small></span></button>)}
-      </div>)}</section>)}</div>:pending.slice(0,7).map(render)}
+      {timeline?<StudyPlanTimeline data={data} module={module} plan={plan} exams={timelineExams} onStudy={onStudy} onExamOpen={onExamOpen}/>:pending.slice(0,7).map(render)}
       {!timeline&&pending.length>7&&<details className="study-plan-more"><summary>Weitere {pending.length-7} Tagespakete</summary>{pending.slice(7).map(render)}</details>}
       {!pending.length&&exams.length>0&&<p className="quiet-copy">Aktuell kein offenes Tagespaket. Dein Plan berücksichtigt Lerntage, verfügbaren Stoff und das tägliche Budget.</p>}
       {!timeline&&completed.length>0&&<details className="study-plan-more"><summary>Bereits gelernt</summary>{completed.map(render)}</details>}
-      {exam&&lessons.length>0&&<details className="study-plan-scope"><summary>Prüfungsstoff & Aufwand</summary>
+      {exam&&lessons.length>0&&<details className="study-plan-scope"><summary><span>Prüfungsstoff</span><ChevronDown size={16}/></summary><div className="study-scope-content">
         {exams.length>1&&<UniflowPicker label="Prüfung für den Stoffumfang" value={exam.id} onChange={setExamId} options={exams.map(exam=>({value:exam.id,label:exam.title+(exam.date?' · '+formatDate(exam.date,{day:'numeric',month:'short'}):'') }))}/>}
-        <p className="quiet-copy">Nicht relevanten Stoff abwählen. Zeitaufwand pro Einheit optional anpassen; sonst zählt deine bisherige Lerndauer.</p>
-        {lessons.map(lesson=><div key={lesson.key} className="study-plan-scope-row"><label><input type="checkbox" checked={!excluded.includes(lesson.key)} onChange={event=>onChange({...preferences,excludedByExam:{...preferences.excludedByExam,[exam.id]:event.target.checked?excluded.filter(key=>key!==lesson.key):[...excluded,lesson.key]}})}/><span>{lesson.label}</span></label><label><input key={lesson.key+':'+(preferences.lessonMinutes[lesson.key]||'auto')} aria-label={'Minuten für '+lesson.label} type="number" min="15" max="120" step="15" placeholder="Auto" defaultValue={preferences.lessonMinutes[lesson.key]||''} onBlur={event=>{const value=event.target.value,parsed=Number(value);const next={...preferences.lessonMinutes};if(!value)delete next[lesson.key];else if(Number.isFinite(parsed)&&parsed>0)next[lesson.key]=Math.max(15,Math.min(120,Math.round(parsed/15)*15));onChange({...preferences,lessonMinutes:next})}}/><span>Min.</span></label></div>)}
+        <p className="quiet-copy">Haken = prüfungsrelevant. Leicht 45, Mittel 60, Schwer 90 Minuten sind nur grobe Planungsschätzungen – keine Voraussetzung für grüne Striche oder Punkte.</p>
+        <ul className="study-scope-list">{openLessons.map(lesson=>renderLesson(lesson))}</ul>
+        {!openLessons.length&&<p className="quiet-copy">Kein offener Stoff in dieser Auswahl.</p>}
+        {masteredLessons.length>0&&<details className="study-mastered"><summary><span>Gefestigter Stoff · {masteredLessons.length}</span><ChevronDown size={15}/></summary><ul className="study-scope-list">{masteredLessons.map(lesson=>renderLesson(lesson,true))}</ul></details>}
+        </div>
       </details>}
     </>}
   </section>
