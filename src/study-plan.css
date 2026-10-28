@@ -33,6 +33,10 @@
 .study-scope-list-row input[type=checkbox]{width:16px;height:16px;flex-shrink:0;accent-color:var(--mlh-accent)}
 .study-scope-list-row strong{display:block;font-size:12px;font-weight:500;line-height:1.5}
 .study-scope-list-row small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.study-scope-list-row .mlh-progress-bars{display:flex;align-items:center;gap:4px;margin-top:6px;width:92px}
+.study-scope-list-row .mlh-progress-bars>i{display:block;flex:1;height:3px;border:0;border-radius:99px;background:#8883}
+.study-scope-list-row .mlh-progress-bars>i.is-yellow{background:#dbb754}
+.study-scope-list-row .mlh-progress-bars>i.is-green{background:#70bd91}
 .study-scope-list-row.is-excluded strong{opacity:.45}
 .study-scope-list-row>.uf-picker-trigger{width:108px;min-height:32px;padding:7px 9px;border-radius:10px;background:transparent;border:1px solid #8883;font-size:11px}
 .study-review-again{display:flex;align-items:center;gap:5px;background:transparent;color:var(--muted);border:0;font:inherit;font-size:10px;padding:7px 0;flex-shrink:0}
@@ -40,11 +44,17 @@
 @media(prefers-reduced-motion:reduce){.study-plan-scope[open]>.study-scope-content{animation:none}.study-plan-scope>summary svg,.study-mastered>summary svg{transition:none}}
 .semester-overview-heading{max-width:720px;margin:30px auto 22px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
 .semester-overview-heading h3{font-size:14px;font-weight:500;margin:0}
-.semester-overview-tabs{display:flex;gap:4px;padding:3px;border:1px solid #8883;border-radius:999px}
-.semester-overview-tabs>button{font:inherit;font-size:11px;color:var(--muted);background:transparent;border:0;padding:8px 12px;border-radius:999px;cursor:pointer;transition:background 180ms ease,color 180ms ease}
-.semester-overview-tabs>button[aria-selected=true]{background:color-mix(in srgb,var(--mlh-accent) 13%,transparent);color:var(--mlh-accent)}
+.semester-overview-tabs{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(2,1fr);gap:4px;padding:3px;border:1px solid #8883;border-radius:999px}
+.semester-overview-tabs::before{content:'';position:absolute;z-index:-1;left:3px;top:3px;bottom:3px;width:calc((100% - 10px)/2);border-radius:999px;background:color-mix(in srgb,var(--mlh-accent) 13%,transparent);transition:transform 320ms cubic-bezier(.22,1,.36,1);pointer-events:none}
+.semester-overview-tabs[data-view=plan]::before{transform:translateX(calc(100% + 4px))}
+.semester-overview-tabs>button{font:inherit;font-size:11px;color:var(--muted);background:transparent;border:0;padding:8px 12px;border-radius:999px;cursor:pointer;transition:color 220ms ease,transform 180ms ease}
+.semester-overview-tabs>button:active{transform:scale(.96)}
+.semester-overview-tabs>button[aria-selected=true]{color:var(--mlh-accent)}
 .semester-overview-tabs>button:focus-visible{outline:2px solid var(--mlh-accent);outline-offset:2px}
-.semester-overview-panel{max-width:720px;margin:0 auto}
+.semester-overview-panel{max-width:720px;margin:0 auto;animation:semester-timeline-enter 300ms cubic-bezier(.22,1,.36,1) both;--timeline-enter-x:-10px}
+.semester-overview-panel[data-view=plan]{--timeline-enter-x:10px}
+@keyframes semester-timeline-enter{from{opacity:0;transform:translate3d(var(--timeline-enter-x),6px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@media(prefers-reduced-motion:reduce){.semester-overview-panel{animation:none}.semester-overview-tabs::before,.semester-overview-tabs>button{transition:none}.semester-overview-tabs>button:active{transform:none}}
 .semester-overview-panel:focus-visible{outline:1px solid #8885;outline-offset:5px;border-radius:16px}
 .semester-overview-panel>.module-study-plan{margin:0;border:0;padding:0}
 .study-plan-date-axis{position:relative;padding-left:17px;border-left:1px solid color-mix(in srgb,var(--mlh-accent) 35%,transparent)}
