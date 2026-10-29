@@ -3,8 +3,6 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ClipboardList, History, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
 import { dateString, formatDate, today, uid, type AppData, type Assessment, type Semester, type StudyModule } from './model'
-import LearningStickyHeader from './LearningStickyHeader'
-import ScoreTrend from './ScoreTrend'
 import AnimatedScore from './AnimatedScore'
 import {lessonProgressMap} from './lesson-progress'
 import SemesterOverview from './SemesterOverview'
@@ -165,18 +163,16 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   if (!visible.length) return <main className="screen mlh-empty"><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className={'screen mlh-home'+(firstOpen?' mlh-first-open':'')} style={accent} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
-    <LearningStickyHeader moduleId={active.id} title={active.name} color={active.color} score={scoreTotal(data.scoreEvents,active.id)} onHistory={()=>open('history')}/>
     <header className="mlh-module-head">
       <button disabled={safeIndex === 0} onClick={() => switchTo(safeIndex - 1)} aria-label="Vorheriges Modul"><ArrowLeft size={21} /></button>
-      <div><h1 id="learning-module-title" key={active.id}>{active.name}</h1><i aria-hidden="true" /></div>
+      <div><h1 id="learning-module-title" key={active.id}>{active.name}</h1><i aria-hidden="true" /><button id="learning-module-score" className="mlh-score clean-score" onClick={() => {if(suppressScoreClick.current){suppressScoreClick.current=false;return}open('history')}} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
+      <span className="clean-score-value" style={{'--score-digits':scoreTotal(data.scoreEvents,active.id).toLocaleString('de-DE').length} as CSSProperties}><AnimatedScore key={active.id} value={scoreTotal(data.scoreEvents,active.id)} storageKey={`${storageKey}:score:${active.id}`}/></span>
+    </button></div>
       <button disabled={safeIndex === visible.length - 1} onClick={() => switchTo(safeIndex + 1)} aria-label="Nächstes Modul"><ArrowRight size={21} /></button>
     </header>
     <div className="mlh-dots" aria-label={`Modul ${safeIndex + 1} von ${visible.length}`}>{visible.map((module, position) => <button key={module.id} onClick={() => open('modules')} className={position === safeIndex ? 'active' : ''} aria-label={`Modulübersicht öffnen, ${module.name}`} aria-haspopup="dialog" />)}<button className="mlh-add-module" onClick={onCreateModule} aria-label="Modul hinzufügen"><Plus size={13} /></button></div>
 
-    <div className="mlh-score-banner"><div className="mlh-score-column"><button id="learning-module-score" className="mlh-score clean-score" onClick={() => {if(suppressScoreClick.current){suppressScoreClick.current=false;return}open('history')}} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
-      <span className="clean-score-value" style={{'--score-digits':scoreTotal(data.scoreEvents,active.id).toLocaleString('de-DE').length} as CSSProperties}><AnimatedScore key={active.id} value={scoreTotal(data.scoreEvents,active.id)} storageKey={`${storageKey}:score:${active.id}`}/></span>
-    </button>
-    <ScoreTrend data={data} moduleId={active.id} semester={semester}/></div>
+    <div className="mlh-score-banner">
 
     <section className="mlh-actions" aria-label="Modulaktionen">
       <button aria-label="Lernsession starten" onClick={() => open('session')}><Timer size={20} /><strong>Lernsession</strong></button>
