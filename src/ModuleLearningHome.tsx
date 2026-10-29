@@ -167,7 +167,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
       <button disabled={safeIndex === 0} onClick={() => switchTo(safeIndex - 1)} aria-label="Vorheriges Modul"><ArrowLeft size={21} /></button>
       <div><h1 id="learning-module-title" key={active.id}>{active.name}</h1><button id="learning-module-score" className="mlh-score clean-score" onClick={() => {if(suppressScoreClick.current){suppressScoreClick.current=false;return}open('history')}} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
       <span className="clean-score-value" style={{'--score-digits':scoreTotal(data.scoreEvents,active.id).toLocaleString('de-DE').length} as CSSProperties}><AnimatedScore key={active.id} value={scoreTotal(data.scoreEvents,active.id)} storageKey={`${storageKey}:score:${active.id}`}/></span>
-    </button><i aria-hidden="true" /></div>
+    </button></div>
       <button disabled={safeIndex === visible.length - 1} onClick={() => switchTo(safeIndex + 1)} aria-label="Nächstes Modul"><ArrowRight size={21} /></button>
     </header>
     <div className="mlh-dots" aria-label={`Modul ${safeIndex + 1} von ${visible.length}`}>{visible.map((module, position) => <button key={module.id} onClick={() => open('modules')} className={position === safeIndex ? 'active' : ''} aria-label={`Modulübersicht öffnen, ${module.name}`} aria-haspopup="dialog" />)}<button className="mlh-add-module" onClick={onCreateModule} aria-label="Modul hinzufügen"><Plus size={13} /></button></div>
