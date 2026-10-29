@@ -173,16 +173,16 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
     </header>
     <div className="mlh-dots" aria-label={`Modul ${safeIndex + 1} von ${visible.length}`}>{visible.map((module, position) => <button key={module.id} onClick={() => open('modules')} className={position === safeIndex ? 'active' : ''} aria-label={`Modulübersicht öffnen, ${module.name}`} aria-haspopup="dialog" />)}<button className="mlh-add-module" onClick={onCreateModule} aria-label="Modul hinzufügen"><Plus size={13} /></button></div>
 
-    <div className="mlh-score-banner"><button id="learning-module-score" className="mlh-score clean-score" onClick={() => {if(suppressScoreClick.current){suppressScoreClick.current=false;return}open('history')}} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
+    <div className="mlh-score-banner"><div className="mlh-score-column"><button id="learning-module-score" className="mlh-score clean-score" onClick={() => {if(suppressScoreClick.current){suppressScoreClick.current=false;return}open('history')}} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
       <span className="clean-score-value" style={{'--score-digits':scoreTotal(data.scoreEvents,active.id).toLocaleString('de-DE').length} as CSSProperties}><AnimatedScore key={active.id} value={scoreTotal(data.scoreEvents,active.id)} storageKey={`${storageKey}:score:${active.id}`}/></span>
     </button>
+    <ScoreTrend data={data} moduleId={active.id} semester={semester}/></div>
 
     <section className="mlh-actions" aria-label="Modulaktionen">
       <button aria-label="Lernsession starten" onClick={() => open('session')}><Timer size={20} /><strong>Lernsession</strong></button>
       <button aria-label="Stoff gelernt" onClick={() => open('content')}><BookOpenCheck size={20} /><strong>Stoff gelernt</strong></button>
       <button className="mlh-action-secondary" aria-label="Modul bearbeiten" onClick={() => onEditModule(active.id)}><PenLine size={20} /><strong>Bearbeiten</strong></button>
     </section></div>
-    <ScoreTrend data={data} moduleId={active.id} semester={semester}/>
 
     {data.studyTimer&&<StudyTimerCard timer={data.studyTimer} moduleName={data.modules.find(module=>module.id===data.studyTimer?.moduleId)?.name||'Lernsession'} color={data.modules.find(module=>module.id===data.studyTimer?.moduleId)?.color||active.color} onChange={onTimerChange} onDiscard={()=>onTimerChange(undefined)} onFinish={timer=>{onTimerChange(timer);setFinishingTimer(timer);setEditingSession(null);setModal('session')}}/>}
     <section className="mlh-tasks">

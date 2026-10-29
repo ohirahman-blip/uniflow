@@ -1,7 +1,14 @@
-.mlh-home .mlh-score-banner .mlh-score.clean-score{background:transparent!important;border:0;border-radius:0;box-shadow:none;padding:12px 0;overflow:visible}
-.clean-score-value{position:relative;display:flex;align-items:center;justify-content:center;width:100%;min-height:124px;container-type:inline-size;background:transparent}
+.mlh-home .mlh-score-banner{align-items:flex-start}
+.mlh-score-column{flex:1;min-width:0}
+.mlh-score-column .score-trend{margin:10px 0 0}
+.mlh-score-column .score-trend svg{height:clamp(82px,14vw,110px)}
+.mlh-score-column .score-trend figcaption{font-size:10px;margin-bottom:8px}
+.mlh-score-column .score-trend figcaption small{display:none}
+.mlh-score-column .score-trend-dates{font-size:9px;gap:6px}
+.mlh-home .mlh-score-banner .mlh-score.clean-score{width:100%;min-height:0;align-items:flex-start;justify-content:flex-start;text-align:left;background:transparent!important;border:0;border-radius:0;box-shadow:none;padding:0;overflow:visible}
+.clean-score-value{position:relative;display:flex;align-items:center;justify-content:flex-start;width:100%;min-height:56px;container-type:inline-size;background:transparent}
 .mlh-home .mlh-score-banner .clean-score-value .mlh-score-number{display:block;position:relative;width:max-content;max-width:100%;transform-origin:center;transition:transform 520ms cubic-bezier(.22,.8,.2,1);filter:none}
-.mlh-home .mlh-score-banner .clean-score-value strong{font-family:inherit;font-size:min(80px,calc((100cqw - 24px)/var(--score-digits)*1.6));font-weight:500;line-height:1.15;letter-spacing:-.04em;white-space:nowrap;color:var(--mlh-accent)!important;-webkit-text-fill-color:var(--mlh-accent)!important;text-shadow:none;animation:none}
+.mlh-home .mlh-score-banner .clean-score-value strong{font-family:inherit;font-size:min(46px,calc((100cqw - 16px)/var(--score-digits)*1.6));font-weight:500;line-height:1.15;letter-spacing:-.04em;white-space:nowrap;color:var(--mlh-accent)!important;-webkit-text-fill-color:var(--mlh-accent)!important;text-shadow:none;animation:none}
 .mlh-home .mlh-score-banner .clean-score-value .mlh-score-number.is-rising{transform:scale(1.045);filter:none}
 .mlh-home .mlh-score-banner .clean-score-value .is-rising strong{color:#70bd91!important;-webkit-text-fill-color:#70bd91!important}
 .clean-score-value .mlh-score-number>i{right:calc(100% + 4px);font-family:inherit;font-size:20px}
