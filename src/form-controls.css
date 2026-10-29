@@ -24,7 +24,7 @@ body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen)
   border-radius:var(--uf-field-radius)!important;
   background:var(--uf-field-background)!important;
   box-shadow:none!important;
-  font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
+  font-family:'Aeonik Pro',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
   font-size:var(--uf-field-font)!important;
   font-weight:500!important;
   font-style:normal!important;
@@ -55,7 +55,7 @@ body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen)
 }
 body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen) textarea{
   box-sizing:border-box;max-width:100%;min-width:0;
-  font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
+  font-family:'Aeonik Pro',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
   font-size:var(--uf-field-font)!important;font-weight:500!important;line-height:1.4!important;
   border:1px solid var(--uf-field-border);border-radius:var(--uf-field-radius);background:var(--uf-field-background);
 }
