@@ -1,0 +1,11 @@
+.score-trend{max-width:720px;margin:0 auto 32px;color:var(--mlh-accent)}
+.score-trend figcaption{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;color:var(--muted);margin-bottom:12px}
+.score-trend figcaption small{font-size:10px}
+.score-trend-plot{position:relative;padding:0 5px}
+.score-trend svg{display:block;width:100%;height:150px;overflow:visible}
+.score-trend-grid{stroke:#8882;stroke-width:1;vector-effect:non-scaling-stroke}
+.score-trend-today{stroke:currentColor;stroke-opacity:.22;stroke-dasharray:3 5;vector-effect:non-scaling-stroke}
+.score-trend-line{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.score-trend-dot{fill:currentColor}
+.score-trend-ceiling{position:absolute;top:0;right:5px;color:var(--muted);font-size:9px}
+.score-trend-dates{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin-top:6px}

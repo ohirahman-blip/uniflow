@@ -3,10 +3,10 @@
 .learning-reward-content{position:relative;z-index:1;text-align:center;width:min(100%,600px)}
 .learning-reward-content>p{font-size:14px;color:#a7a7b1;margin:0 0 14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .learning-reward-content h2{font-size:clamp(22px,5vw,36px);font-weight:500;letter-spacing:-.04em;margin:0 0 36px}
-.learning-reward-points>strong{position:relative;display:inline-block;font:400 min(66px,calc((100vw - 65px)/var(--reward-digits)))/1.6 StudyPixel,monospace;color:#55555d;letter-spacing:0}
+.learning-reward-points>strong{position:relative;display:inline-block;font-family:inherit;font-weight:500;font-size:min(88px,calc((100vw - 65px)/var(--reward-digits)*1.6));line-height:1.2;color:#55555d;letter-spacing:0}
 .learning-reward-points>strong>span{display:block}
 .learning-reward-points>strong>.learning-reward-fill{position:absolute;inset:0;color:var(--reward-accent);text-shadow:0 0 24px color-mix(in srgb,var(--reward-accent) 22%,transparent)}
-.learning-reward-points>span{display:block;margin-top:12px;font:400 12px/1.6 StudyPixel,monospace;color:var(--reward-accent);letter-spacing:.05em}
+.learning-reward-points>span{display:block;margin-top:12px;font-family:inherit;font-weight:400;font-size:12px;line-height:1.6;color:var(--reward-accent);letter-spacing:.05em}
 .learning-reward-meter{height:5px;width:min(70%,260px);border-radius:99px;background:#ffffff12;overflow:hidden;margin:30px auto}
 .learning-reward-meter i{display:block;width:100%;height:100%;transform-origin:left;border-radius:inherit;background:var(--reward-accent)}
 .learning-reward-content>button{font:inherit;color:inherit;background:#ffffff08;border:1px solid #ffffff26;padding:12px 30px;min-height:44px;border-radius:999px;cursor:pointer}
