@@ -13,3 +13,13 @@
 @container (max-height:89px){.course-place,.course-hours{display:none!important}}
 @container (max-height:64px){.course-meta,.course-head-badges{display:none!important}.course-title{-webkit-line-clamp:1!important;line-clamp:1!important;max-height:1.25em!important}}
 @container (max-height:29px){.course-head,.course-meta,.course-place,.course-hours{display:none!important}}
+/* Weekly cards have compact typography: reveal type/room earlier than day cards. */
+@container (min-height:32px){
+  .mode-week .course .course-meta{display:flex!important;line-height:1.25}
+}
+@container (min-height:48px){
+  .mode-week .course .course-place{display:flex!important;line-height:1.2}
+}
+@container (max-width:88px){
+  .mode-week .course .course-meta :is(.course-organizer,.course-meta-divider){display:none}
+}
