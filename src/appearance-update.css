@@ -177,6 +177,28 @@ html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-too
 /* Flat light controls: the offset-shadow experiment has been removed. */
 html[data-theme='light'] button{box-shadow:none!important}
 
+/* Hovered controls grow subtly in place instead of jumping upward. */
+@media(hover:hover) and (pointer:fine){
+  :is(
+    .profile-menu>button,
+    .mlh-score-banner .mlh-actions>button,
+    .mlh-actions>button,
+    .mlh-module-head>button,
+    .mlh-slider-window .mlh-directory-list>button,
+    .mlh-slider-window .mlh-module-rail>button:not(.mlh-rail-home),
+    .overview-next>button,
+    .overview-attendance,
+    .overview-now-grid button:not(:disabled),
+    .friends-page .friends-sharing>button[role=switch],
+    .friends-page .friends-pause,
+    .friends-page .friends-add>button,
+    .friends-page .friend-requests article button,
+    .friends-page .friends-list>header button,
+    .friends-page .friend-card header>button,
+    .friends-page .friend-day-toggle>button
+  ):hover{transform:scale(1.005)!important;transform-origin:center!important}
+}
+
 /* Give mobile controls breathing room without exposing the scrolled calendar
    above the sticky header, including in installed home-screen mode. */
 @media(max-width:720px){

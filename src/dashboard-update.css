@@ -63,6 +63,10 @@ html[data-theme='light'] .overview-attendance-overlay,html[data-theme='light'] .
 @media(max-width:480px){.overview-attendance{padding:14px;border-radius:23px}.overview-attendance>div{gap:4px}.overview-attendance>div>div{padding:9px 1px;border-radius:14px}.overview-attendance>div i{width:24px;height:24px}.overview-attendance>div small{font-size:8px}.overview-now-grid{grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:9px}.overview-upcoming-stack{gap:9px}.overview-current-event{padding:16px;border-radius:25px}.overview-current-event>svg{width:21px;height:21px}.overview-current-event strong{font-size:17px}.overview-current-event b{font-size:11px}.overview-current-event time{font-size:9px}.overview-upcoming{padding:13px 12px;border-radius:19px;gap:8px}.overview-upcoming>svg{width:17px;height:17px}.overview-upcoming small{font-size:8px}.overview-upcoming strong{font-size:11px}.overview-upcoming b{font-size:8px}}
 @media(max-width:700px){.overview-attendance-months{grid-template-columns:1fr}.overview-attendance-months>article{padding:17px;border-radius:23px}.overview-month-grid>div{border-radius:11px}}
 @media(prefers-reduced-motion:reduce){.overview-now-grid button{transition:none!important}}
+
+/* Dashboard surfaces rely on spacing and fill, not hairline frames. */
+.overview-dashboard-clean :is(.overview-attendance,.overview-attendance>div>div,.overview-upcoming,.overview-task,.overview-new-task){border:0!important}
+.overview-attendance-months>article{border:0!important}
 /* One neutral black surface for contextual menus and module selection. */
 body :is(.mini-popover,.uf-assessment-picker,.module-dropdown,.uf-picker-dialog){background:#080808!important;color:#efeff2;border:1px solid #ffffff18}
 body :is(.mini-popover,.uf-assessment-picker,.module-dropdown){border-radius:18px}
