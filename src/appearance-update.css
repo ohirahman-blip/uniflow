@@ -225,3 +225,55 @@ html[data-theme='light'] button{box-shadow:none!important}
   html[data-theme='light'] .app-root nav.mobile-navigation .mobile-nav-indicator{background:#20212610;border-color:#20212609;box-shadow:inset 0 1px 0 #ffffffb0}
 }
 @media(prefers-reduced-motion:reduce){.app-root nav.mobile-navigation .mobile-nav-indicator{transition:none!important}}
+
+/* Complete light palette for the module editor, including premium quick entry. */
+html[data-theme='light'] .module-detail-screen.module-fast{background:#fff!important;color:#202126!important;color-scheme:light}
+html[data-theme='light'] .module-fast :is(
+  .module-fast-meta,.module-fast-quick,.module-fast-quick-premium,.module-fast-quick-locked,
+  .module-learning-history,.module-assessment-card,.module-fast-exceptions,.module-fast-topic
+){background:#fff!important;background-image:none!important;border-color:#dedee2!important;color:#202126!important}
+html[data-theme='light'] .module-fast :is(
+  .module-fast-slot,.module-fast-slot.is-editing,.module-fast-preview,.module-fast-ai-summary,
+  .module-quick-thinking,.module-fast-ai-topic,.module-fast-ai-slot
+){background:#f5f5f6!important;background-image:none!important;border-color:#dedee2!important;color:#202126!important}
+html[data-theme='light'] .module-fast :is(
+  .module-detail-heading,.module-fast-state,.module-fast-meta>summary,.module-fast-quick>summary,
+  .module-fast-topic-toggle,.module-fast-slot-preview,.module-learning-summary,.module-learning-preview,
+  .module-assessment-title,.module-homework-state,.module-fast-exceptions>summary,
+  .module-fast-ai-extras>summary,.module-fast-ai-summary>span,.module-quick-thinking strong
+){color:#202126!important}
+html[data-theme='light'] .module-fast :is(
+  label,small,.module-fast-intro,.module-fast-quick-body p,.module-fast-slot-copy small,
+  .module-fast-slot-copy strong em,.module-fast-edit-label,.module-fast-link,.module-fast-undo,
+  .module-learning-empty,.module-learning-preview small,.module-assessment-title small,
+  .module-assessment-weight em,.module-homework-state small,.module-fast-exceptions>p,
+  .module-fast-exception small,.module-fast-ai-extras>summary small,.module-fast-ai-summary small,
+  .module-quick-thinking>div>span,.module-fast-quick-lock-label
+){color:#66676f!important}
+html[data-theme='light'] .module-fast :is(h1,h2,h3,strong){color:#202126!important}
+html[data-theme='light'] .module-fast .module-fast-quick-premium>summary>svg:first-child,
+html[data-theme='light'] .module-fast .module-quick-premium-label{color:#704769!important}
+html[data-theme='light'] .module-fast .module-quick-premium-label{background:#ede3f0!important}
+html[data-theme='light'] .module-fast :is(input,select,textarea,.uf-picker-trigger,.big-choice,.uf-entry-module-choice){background:#fff!important;border-color:#d8d8dd!important;color:#202126!important;-webkit-text-fill-color:#202126!important;color-scheme:light!important}
+html[data-theme='light'] .module-fast :is(input,textarea)::placeholder{color:#20212666!important;-webkit-text-fill-color:#20212666!important}
+html[data-theme='light'] .module-fast .module-fast-quick textarea{background:#fff!important;border:1px solid #d8d8dd!important}
+html[data-theme='light'] .module-fast :is(.module-fast-topic,.module-fast-slot,.module-fast-meta,.module-fast-quick,.module-learning-history,.module-assessment-card,.module-fast-exceptions){box-shadow:none!important}
+html[data-theme='light'] .module-fast :is(.module-fast-topic,.module-fast-slot,.module-fast-meta,.module-fast-quick,.module-learning-history,.module-assessment-card,.module-fast-exceptions,.module-fast-preview){border:1px solid #dedee2!important}
+html[data-theme='light'] .module-fast :is(.module-fast-slot .module-slot-edit-form,.module-fast-ai-topic,.module-fast-ai-extras,.module-learning-row,.module-fast-exception){border-color:#dedee2!important}
+html[data-theme='light'] .module-fast :is(
+  .module-fast-slot-actions button,.module-learning-filters button,.module-assessment-add button,
+  .module-fast-add-exception,.module-exception-actions button,.module-fast-link button
+){background:#ededf0!important;border:1px solid #d8d8dd!important;color:#303137!important}
+html[data-theme='light'] .module-fast :is(
+  .module-fast-preview-button,.module-fast-section-head>button,.module-learning-topic-actions button:first-child,
+  .module-exception-actions button.primary
+){background:#24252b!important;border-color:#24252b!important;color:#fff!important}
+html[data-theme='light'] .module-fast .module-fast-remove,
+html[data-theme='light'] .module-fast :is(.module-fast-slot-actions button.danger,.module-learning-delete){color:#b14f58!important}
+html[data-theme='light'] .module-fast .module-fast-dot{background:#9a9aa1!important}
+html[data-theme='light'] .module-fast .module-fast-dot.active{background:#303137!important}
+html[data-theme='light'] .module-fast .module-fast-quick-locked-icon{color:#66676f!important}
+html[data-theme='light'] .module-fast .module-quick-thinking{border:1px solid #dfd2dc!important}
+html[data-theme='light'] .module-fast .module-quick-thinking-symbol{color:#805489!important}
+html[data-theme='light'] .module-fast .module-quick-thinking-track{background:#e4d8e1!important}
+html[data-theme='light'] .module-fast .module-quick-thinking-track>i{background:linear-gradient(90deg,transparent,#805489,transparent)!important}
