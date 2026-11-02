@@ -147,6 +147,9 @@
 .module-goal-card-wrap:nth-child(2){animation-delay:35ms}.module-goal-card-wrap:nth-child(3){animation-delay:70ms}.module-goal-card-wrap:nth-child(4){animation-delay:105ms}
 @keyframes module-goal-enter { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
 
+/* Editing should feel immediate and quiet; keep only functional state changes. */
+.module-detail-screen.module-fast :is(.module-detail-heading,.module-fast-journey,.module-assessment-card,.module-fast-slot,.module-learning-history,.module-fast-meta,.module-fast-exceptions,.module-tab-panel,.module-goal-card-wrap){animation:none!important}.module-detail-screen.module-fast :is(button,.module-fast-topic-toggle svg,.module-fast-quick>summary svg:last-child){transition-duration:100ms!important}.module-detail-screen.module-fast button:hover{transform:none!important}
+
 /* uniflow module refresh — intentionally scoped; calendar CSS unchanged. */
 .module-hub .page-title-row{margin-bottom:30px}
 .module-hub .page-title-row h1{margin:10px 0}
