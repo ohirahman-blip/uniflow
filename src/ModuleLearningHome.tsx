@@ -146,7 +146,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const setModuleScroller=(node:HTMLElement|null,kind:'directory'|'rail')=>{if(kind==='directory')directoryScroll.current=node as HTMLDivElement|null;else railScroll.current=node;if(node){const maximum=Math.max(0,node.scrollHeight-node.clientHeight);node.scrollTop=moduleScroll.current*maximum}}
   const syncModuleScroll=(source:HTMLElement,target:HTMLElement|null)=>{if(scrollSyncing.current)return;const maximum=Math.max(0,source.scrollHeight-source.clientHeight);moduleScroll.current=maximum?source.scrollTop/maximum:0;if(!target)return;scrollSyncing.current=true;const targetMaximum=Math.max(0,target.scrollHeight-target.clientHeight);target.scrollTop=moduleScroll.current*targetMaximum;cancelAnimationFrame(scrollSyncFrame.current);scrollSyncFrame.current=requestAnimationFrame(()=>{scrollSyncing.current=false})}
   const enterModule=(id:string)=>{if(openingModule)return;setSelectedModule(id);setSelectedLessons([]);setModal(null);setOpeningModule(id);setDirectoryOpen(false);window.setTimeout(()=>setOpeningModule(''),520)}
-  const switchRail=(id:string)=>{if(id===active?.id||detailMotion)return;const nextIndex=visible.findIndex(module=>module.id===id);setSwitchDirection(nextIndex>safeIndex?'down':'up');setDetailMotion('out');window.setTimeout(()=>{setSelectedModule(id);setSelectedLessons([]);setModal(null);setDetailMotion('in');window.setTimeout(()=>setDetailMotion(''),380)},190)}
+  const switchRail=(id:string)=>{if(id===active?.id||detailMotion)return;const nextIndex=visible.findIndex(module=>module.id===id);setSwitchDirection(nextIndex<safeIndex?'up':'down');setSelectedModule(id);setSelectedLessons([]);setModal(null);setDetailMotion('in');window.setTimeout(()=>setDetailMotion(''),380)}
   const open = (next: Modal) => { setModal(next); setDuration(45); setRating('understood'); if(next==='session'){setFinishingTimer(null);setEditingSession(null)} if (next === 'content') setSelectedLessons([]) }
   const startTimer=(minutes:number)=>{
     if(data.studyTimer||!active)return
@@ -171,11 +171,11 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
       </section>
       <section className="mlh-module-pane mlh-slider-pane" aria-hidden={directoryOpen}>
         <aside ref={node=>setModuleScroller(node,'rail')} onScroll={event=>syncModuleScroll(event.currentTarget,directoryScroll.current)} className="mlh-module-rail mlh-module-rail-fixed" aria-label="Module"><button className="mlh-rail-home" onClick={()=>{setModal(null);setDirectoryOpen(true)}} aria-label="Zurück zur Modulübersicht"><ArrowLeft size={17}/></button>{visible.map(module=><button key={module.id} className={module.id===active.id?'active':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>switchRail(module.id)} aria-label={module.name}>{module.shortName||module.name.slice(0,3).toUpperCase()}</button>)}</aside>
-        <div className={'mlh-home mlh-module-open motion-'+switchDirection+(detailMotion?` is-switching-${detailMotion}`:'')}>
+        <div className={'mlh-home mlh-module-open motion-'+switchDirection+(detailMotion?` is-switching-${detailMotion}`:'')} style={accent}>
     <header className="mlh-module-head mlh-module-head-simple">
-      <div><h1 id="learning-module-title" key={active.id}>{active.name}</h1><button id="learning-module-score" className="mlh-score clean-score" onClick={() => open('history')} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
+      <h1 id="learning-module-title" key={active.id}>{active.name}</h1><button id="learning-module-score" className="mlh-score clean-score" onClick={() => open('history')} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
       <span className="clean-score-value" style={{'--score-digits':scoreTotal(data.scoreEvents,active.id).toLocaleString('de-DE').length} as CSSProperties}><AnimatedScore key={active.id} value={scoreTotal(data.scoreEvents,active.id)} storageKey={`${storageKey}:score:${active.id}`}/></span>
-    </button></div>
+    </button>
     </header>
 
     <div className="mlh-score-banner">
