@@ -96,6 +96,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const visible = modules.filter(module => !module.hidden && !['passed','planned','recognized'].includes(module.status))
   const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
   const [directoryOpen,setDirectoryOpen]=useState(true),[openingModule,setOpeningModule]=useState('')
+  const [detailMotion,setDetailMotion]=useState<'out'|'in'|''>('')
   const [firstOpen]=useState(()=>{try{const key='uniflow-learn-intro:'+storageKey;return !sessionStorage.getItem(key)}catch{return false}})
   useEffect(()=>{try{sessionStorage.setItem('uniflow-learn-intro:'+storageKey,'1')}catch{/* Optional introduction state. */}},[storageKey])
   const [modal, setModal] = useState<Modal>(null)
@@ -139,6 +140,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const events = (data.scoreEvents || []).filter(event => event.moduleId === active?.id)
   const homework=data.assessments.filter(item=>item.moduleId===active?.id&&item.semesterId===semester?.id&&item.type==='homework').sort((a,b)=>Number(!!a.completed)-Number(!!b.completed)||a.date.localeCompare(b.date))
   const enterModule=(id:string)=>{if(openingModule)return;setOpeningModule(id);window.setTimeout(()=>{setSelectedModule(id);setSelectedLessons([]);setModal(null);setDirectoryOpen(false);setOpeningModule('')},520)}
+  const switchRail=(id:string)=>{if(id===active?.id||detailMotion)return;setDetailMotion('out');window.setTimeout(()=>{setSelectedModule(id);setSelectedLessons([]);setModal(null);setDetailMotion('in');window.setTimeout(()=>setDetailMotion(''),380)},190)}
   const open = (next: Modal) => { setModal(next); setDuration(45); setRating('understood'); if(next==='session'){setFinishingTimer(null);setEditingSession(null)} if (next === 'content') setSelectedLessons([]) }
   const startTimer=(minutes:number)=>{
     if(data.studyTimer||!active)return
@@ -154,10 +156,10 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   }
 
   if (!visible.length) return <main className="screen mlh-empty"><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
-  if(directoryOpen)return <main className="screen mlh-directory"><header><span>Lernen</span><h1>Deine Module</h1></header><div className={'mlh-directory-list'+(openingModule?' is-opening':'')}>{visible.map(module=><button key={module.id} className={openingModule===module.id?'is-selected':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}><span>{module.name}</span></button>)}</div><button className="mlh-directory-add" onClick={onCreateModule}><Plus size={16}/>Modul hinzufügen</button></main>
+  if(directoryOpen)return <main className="screen mlh-directory"><header><span>Lernen</span><h1>Deine Module</h1></header><div className={'mlh-directory-list'+(openingModule?' is-opening':'')}>{visible.map(module=><button key={module.id} className={openingModule===module.id?'is-selected':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}><span className="mlh-morph-name">{module.name}</span><span className="mlh-morph-abbr">{module.shortName||module.name.slice(0,3).toUpperCase()}</span></button>)}</div><button className="mlh-directory-add" onClick={onCreateModule}><Plus size={16}/>Modul hinzufügen</button></main>
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
-  return <main className={'screen mlh-home mlh-module-open'+(firstOpen?' mlh-first-open':'')} style={accent}>
-    <aside className="mlh-module-rail" aria-label="Module"><button className="mlh-rail-home" onClick={()=>setDirectoryOpen(true)} aria-label="Modulverzeichnis öffnen">•••</button>{visible.map(module=><button key={module.id} className={module.id===active.id?'active':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>setSelectedModule(module.id)} aria-label={module.name}>{module.shortName||module.name.slice(0,3).toUpperCase()}</button>)}</aside>
+  return <main className={'screen mlh-home mlh-module-open'+(firstOpen?' mlh-first-open':'')+(detailMotion?` is-switching-${detailMotion}`:'')} style={accent}>
+    <aside className="mlh-module-rail" aria-label="Module"><button className="mlh-rail-home" onClick={()=>setDirectoryOpen(true)} aria-label="Modulverzeichnis öffnen">•••</button>{visible.map(module=><button key={module.id} className={module.id===active.id?'active':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>switchRail(module.id)} aria-label={module.name}>{module.shortName||module.name.slice(0,3).toUpperCase()}</button>)}</aside>
     <header className="mlh-module-head mlh-module-head-simple">
       <div><h1 id="learning-module-title" key={active.id}>{active.name}</h1><button id="learning-module-score" className="mlh-score clean-score" onClick={() => open('history')} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
       <span className="clean-score-value" style={{'--score-digits':scoreTotal(data.scoreEvents,active.id).toLocaleString('de-DE').length} as CSSProperties}><AnimatedScore key={active.id} value={scoreTotal(data.scoreEvents,active.id)} storageKey={`${storageKey}:score:${active.id}`}/></span>
