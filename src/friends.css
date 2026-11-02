@@ -22,3 +22,6 @@ html[data-theme='light'] .friends-page .friend-day-toggle>button{background:#e7e
 @media(hover:hover) and (pointer:fine){html[data-theme='light'] .friends-page :is(.friends-sharing>button[role=switch],.friends-pause,.friends-add>button,.friend-requests article button,.friends-list>header button,.friend-card header>button,.friend-day-toggle>button):hover{transform:translateY(-1px);box-shadow:none}html[data-theme='light'] .friends-page :is(.friends-add>button,.friend-requests article button):hover{background:#fff}}
 html[data-theme='light'] .friends-page :is(.friends-sharing>button[role=switch],.friends-pause,.friends-add>button,.friend-requests article button,.friends-list>header button,.friend-card header>button,.friend-day-toggle>button):active{transform:translateY(0);box-shadow:none}
 html[data-theme='light'] :is(.skeleton-line,.skeleton-avatar,.skeleton-row i,.skeleton-row span){background:linear-gradient(100deg,#e8e4f0 20%,#f7f5fb 38%,#e8e4f0 55%);background-size:220% 100%}html[data-theme='light'] .friend-skeleton{background:#fff}
+
+/* Friends stay completely flat in both themes. */
+.friends-page :is(.friend-card,.friend-requests article,.friends-sharing,.friends-add,.friend-now,.friend-private,input,button){box-shadow:none!important}

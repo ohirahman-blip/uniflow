@@ -174,37 +174,7 @@ html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-too
 html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today:hover,
 html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today:active{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important}
 
-/* Monochrome raised controls for light mode. Card-like buttons, navigation,
-   tabs and calendar cells intentionally keep their native geometry. */
-html[data-theme='light']{
-  --uf-raised-bg:#fff;--uf-raised-ink:#17171a;--uf-raised-edge:#17171a;--uf-raised-disabled:#8a8a90;
-}
-html[data-theme='light'] :is(
-  .primary-action,.mlh-primary,.dismiss-action,.danger-simple,.sheet-header-save,
-  .overview-new-task>button,.overview-study-bundle>button,.overview-tasks>header>button,.overview-score form button,.overview-advice button,.mlh-directory-add,
-  .mlh-score-banner .mlh-actions>button,.mlh-tasks>header>button,.mlh-start-timer,.mlh-timer-controls>button,.session-discard button,
-  .study-add-module,.profile-goals>button,.profile-goals article>button,.study-goal-form>button,.study-semester>button,.study-semester-create>button,
-  .module-fast-header>button,.module-fast-panel header>button,.module-fast-group header>button,
-  .calendar-tools>button,.wallet-actions>button,.wallet-scope>button,.wallet-edit,.wallet-reset,
-  .scope-choices>button,.alternative-option-actions>button,
-  .settings-section>button,.settings-actions>button,.profile-theme>.uf-picker-trigger,
-  .sheet>header>button,.mlh-sheet>header>button,.uf-picker-close,.uf-picker-trigger
-){
-  border:1.5px solid var(--uf-raised-edge)!important;
-  background:var(--uf-raised-bg)!important;
-  color:var(--uf-raised-ink)!important;
-  box-shadow:4px 4px 0 var(--uf-raised-edge)!important;
-  border-radius:13px;
-  transition:transform 140ms ease,box-shadow 140ms ease,background-color 160ms ease,color 160ms ease!important;
-}
-html[data-theme='light'] :is(.sheet>header>button,.mlh-sheet>header>button,.uf-picker-close,.calendar-tools>button){box-shadow:3px 3px 0 var(--uf-raised-edge)!important}
-html[data-theme='light'] :is(.primary-action,.mlh-primary,.sheet-header-save)[disabled]{opacity:.42;box-shadow:2px 2px 0 var(--uf-raised-disabled)!important}
-html[data-theme='light'] :is(.primary-action,.mlh-primary,.dismiss-action,.danger-simple,.sheet-header-save,.overview-new-task>button,.overview-study-bundle>button,.overview-tasks>header>button,.overview-score form button,.overview-advice button,.mlh-directory-add,.mlh-score-banner .mlh-actions>button,.mlh-tasks>header>button,.mlh-start-timer,.mlh-timer-controls>button,.session-discard button,.study-add-module,.profile-goals>button,.profile-goals article>button,.study-goal-form>button,.study-semester>button,.study-semester-create>button,.module-fast-header>button,.module-fast-panel header>button,.module-fast-group header>button,.calendar-tools>button,.wallet-actions>button,.wallet-scope>button,.wallet-edit,.wallet-reset,.scope-choices>button,.alternative-option-actions>button,.settings-section>button,.settings-actions>button,.profile-theme>.uf-picker-trigger,.sheet>header>button,.mlh-sheet>header>button,.uf-picker-close,.uf-picker-trigger):active:not(:disabled){transform:translate(3px,3px)!important;box-shadow:1px 1px 0 var(--uf-raised-edge)!important}
-@media(hover:hover) and (pointer:fine){html[data-theme='light'] :is(.primary-action,.mlh-primary,.dismiss-action,.danger-simple,.sheet-header-save,.overview-new-task>button,.overview-study-bundle>button,.overview-tasks>header>button,.overview-score form button,.overview-advice button,.mlh-directory-add,.mlh-score-banner .mlh-actions>button,.mlh-tasks>header>button,.mlh-start-timer,.mlh-timer-controls>button,.session-discard button,.study-add-module,.profile-goals>button,.profile-goals article>button,.study-goal-form>button,.study-semester>button,.study-semester-create>button,.module-fast-header>button,.module-fast-panel header>button,.module-fast-group header>button,.calendar-tools>button,.wallet-actions>button,.wallet-scope>button,.wallet-edit,.wallet-reset,.scope-choices>button,.alternative-option-actions>button,.settings-section>button,.settings-actions>button,.profile-theme>.uf-picker-trigger,.sheet>header>button,.mlh-sheet>header>button,.uf-picker-close,.uf-picker-trigger):hover:not(:disabled){transform:translate(-1px,-1px)!important;box-shadow:5px 5px 0 var(--uf-raised-edge)!important;background:#fff!important;color:#17171a!important}}
-html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today{border:1.5px solid var(--uf-raised-edge)!important;background:#fff!important;color:#17171a!important;box-shadow:3px 3px 0 var(--uf-raised-edge)!important;border-radius:13px}
-@media(prefers-reduced-motion:reduce){html[data-theme='light'] .app-main button{transition:none!important}}
-
-/* The raised-shadow experiment is paused; light controls keep their outlines only. */
+/* Flat light controls: the offset-shadow experiment has been removed. */
 html[data-theme='light'] button{box-shadow:none!important}
 
 /* Give mobile controls breathing room without exposing the scrolled calendar
