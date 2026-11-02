@@ -94,8 +94,8 @@ function ActivityHistory({ events, tasks, sessions, onEditSession, onToggleTask,
 
 export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onStudyBundleOpened,onStudyScheduleChange,data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
   const visible = modules.filter(module => !module.hidden && !['passed','planned','recognized'].includes(module.status))
-  const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
-  const [directoryOpen,setDirectoryOpen]=useState(true),[openingModule,setOpeningModule]=useState('')
+  const [selectedModule, setSelectedModule] = useState(()=>{try{return localStorage.getItem(storageKey)||currentModuleId||''}catch{return currentModuleId||''}})
+  const [directoryOpen,setDirectoryOpen]=useState(()=>{try{return !localStorage.getItem(storageKey)&&!currentModuleId}catch{return !currentModuleId}}),[openingModule,setOpeningModule]=useState('')
   const [detailMotion,setDetailMotion]=useState<'out'|'in'|''>('')
   const [switchDirection,setSwitchDirection]=useState<'up'|'down'>('down')
   const moduleScroll=useRef(0)
@@ -113,15 +113,8 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const [taskDate, setTaskDate] = useState('')
   const safeIndex = Math.max(0, visible.findIndex(module=>module.id===selectedModule))
   const active = visible[safeIndex]
-  useEffect(()=>{if(active)try{localStorage.setItem(storageKey,active.id)}catch{/* Keep navigation usable when storage is unavailable. */}},[active?.id,storageKey])
   useEffect(()=>{if(active)onActiveModuleChange(active.id)},[active?.id,onActiveModuleChange])
-  useEffect(()=>{
-    const openCurrent=()=>{if(currentModuleId&&document.visibilityState==='visible')setSelectedModule(currentModuleId)}
-    openCurrent()
-    window.addEventListener('focus',openCurrent)
-    document.addEventListener('visibilitychange',openCurrent)
-    return()=>{window.removeEventListener('focus',openCurrent);document.removeEventListener('visibilitychange',openCurrent)}
-  },[currentModuleId])
+  useEffect(()=>{if(!selectedModule&&currentModuleId)setSelectedModule(currentModuleId)},[currentModuleId,selectedModule])
   const allLessons = useMemo(() => {
     if(!active)return []
     const lessons=new Map(numberedLessons(data,semester,active.id).map(lesson=>[lesson.key,lesson]))
@@ -131,6 +124,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   useEffect(()=>{
     if(!requestedStudyBundle)return
     setSelectedModule(requestedStudyBundle.moduleId)
+    try{localStorage.setItem(storageKey,requestedStudyBundle.moduleId)}catch{/* Keep navigation usable when storage is unavailable. */}
     setDirectoryOpen(false)
     setSelectedLessons(requestedStudyBundle.items.map(item=>item.key))
     setDuration(Math.max(5,Math.min(360,requestedStudyBundle.minutes)))
@@ -145,8 +139,9 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const homework=data.assessments.filter(item=>item.moduleId===active?.id&&item.semesterId===semester?.id&&item.type==='homework').sort((a,b)=>Number(!!a.completed)-Number(!!b.completed)||a.date.localeCompare(b.date))
   const setModuleScroller=(node:HTMLElement|null,kind:'directory'|'rail')=>{if(kind==='directory')directoryScroll.current=node as HTMLDivElement|null;else railScroll.current=node;if(node){const maximum=Math.max(0,node.scrollHeight-node.clientHeight);node.scrollTop=moduleScroll.current*maximum}}
   const syncModuleScroll=(source:HTMLElement,target:HTMLElement|null)=>{if(scrollSyncing.current)return;const maximum=Math.max(0,source.scrollHeight-source.clientHeight);moduleScroll.current=maximum?source.scrollTop/maximum:0;if(!target)return;scrollSyncing.current=true;const targetMaximum=Math.max(0,target.scrollHeight-target.clientHeight);target.scrollTop=moduleScroll.current*targetMaximum;cancelAnimationFrame(scrollSyncFrame.current);scrollSyncFrame.current=requestAnimationFrame(()=>{scrollSyncing.current=false})}
-  const enterModule=(id:string)=>{if(openingModule)return;setSelectedModule(id);setSelectedLessons([]);setModal(null);setOpeningModule(id);setDirectoryOpen(false);window.setTimeout(()=>setOpeningModule(''),520)}
-  const switchRail=(id:string)=>{if(id===active?.id||detailMotion)return;const nextIndex=visible.findIndex(module=>module.id===id);setSwitchDirection(nextIndex<safeIndex?'up':'down');setSelectedModule(id);setSelectedLessons([]);setModal(null);setDetailMotion('in');window.setTimeout(()=>setDetailMotion(''),380)}
+  const rememberModule=(id:string)=>{try{localStorage.setItem(storageKey,id)}catch{/* Keep navigation usable when storage is unavailable. */}}
+  const enterModule=(id:string)=>{if(openingModule)return;rememberModule(id);setSelectedModule(id);setSelectedLessons([]);setModal(null);setOpeningModule(id);setDirectoryOpen(false);window.setTimeout(()=>setOpeningModule(''),520)}
+  const switchRail=(id:string)=>{if(id===active?.id||detailMotion)return;const nextIndex=visible.findIndex(module=>module.id===id);setSwitchDirection(nextIndex<safeIndex?'up':'down');rememberModule(id);setSelectedModule(id);setSelectedLessons([]);setModal(null);setDetailMotion('in');window.setTimeout(()=>setDetailMotion(''),380)}
   const open = (next: Modal) => { setModal(next); setDuration(45); setRating('understood'); if(next==='session'){setFinishingTimer(null);setEditingSession(null)} if (next === 'content') setSelectedLessons([]) }
   const startTimer=(minutes:number)=>{
     if(data.studyTimer||!active)return

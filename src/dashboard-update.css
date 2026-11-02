@@ -145,3 +145,10 @@ html[data-theme='light'] .overview-month-grid>div.is-free>span,html[data-theme='
 html[data-theme='light'] .overview-month-grid>div.is-open>span{border-color:#c95f5f57;background:#c95f5f10;color:#a64242}
 html[data-theme='light'] .overview-month-grid>div.is-future>span{border-color:#2021260d;color:#77787f}
 @media(max-width:480px){.overview-attendance>div i{width:34px;height:34px}.overview-month-grid>div>span{width:30px;height:30px}}
+
+/* A running timer belongs immediately above the weekly attendance strip. */
+.overview-dashboard-clean>.mlh-running-timer{order:2}
+.overview-dashboard-clean>.overview-attendance{order:3}
+.overview-dashboard-clean>.overview-now-grid{order:4}
+.overview-dashboard-clean>.overview-learning-map{order:5}
+.overview-dashboard-clean>.overview-tasks-focus{order:6}
