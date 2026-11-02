@@ -2286,6 +2286,22 @@ button:not(:disabled):active { transform: scale(.97); }
 .mini-popover button:hover { background:#37373a; }
 .mini-popover button > svg:last-child { margin-left:auto; }
 .focus-popover { min-width:245px; max-height:45vh; overflow:auto; }
+.focus-module-options{display:grid}
+.focus-display-controls{display:grid;gap:3px;margin-top:6px;padding:10px 5px 4px;border-top:1px solid #ffffff14}
+.focus-display-controls>span{padding:0 5px 6px;color:#85858d;font-size:9px;font-weight:650;letter-spacing:.09em;text-transform:uppercase}
+.focus-display-controls>div{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:34px;padding:0 5px}
+.focus-display-controls label{font-size:11px;color:#d2d2d7;cursor:pointer}
+.mini-popover .focus-display-controls button[role=switch]{position:relative;display:block;flex:0 0 38px;width:38px;height:22px;padding:2px;border:1px solid #ffffff16;border-radius:999px;background:#39393e;color:inherit}
+.mini-popover .focus-display-controls button[role=switch]:hover{background:#44444a}
+.focus-display-controls button[role=switch]>i{display:block;width:16px;height:16px;border-radius:50%;background:#92929a;transition:transform 190ms cubic-bezier(.2,.8,.3,1),background-color 170ms ease}
+.focus-display-controls button[role=switch].is-on{background:#af7a96;border-color:#af7a96}
+.focus-display-controls button[role=switch].is-on>i{transform:translateX(16px);background:#fff}
+html[data-theme='light'] .focus-display-controls{border-top-color:#20212618}
+html[data-theme='light'] .focus-display-controls>span{color:#777780}
+html[data-theme='light'] .focus-display-controls label{color:#303137}
+html[data-theme='light'] .mini-popover .focus-display-controls button[role=switch]{border-color:#20212618;background:#d1d1d7}
+html[data-theme='light'] .mini-popover .focus-display-controls button[role=switch].is-on{background:#6f536c;border-color:#6f536c}
+@media(prefers-reduced-motion:reduce){.focus-display-controls button[role=switch]>i{transition:none}}
 .now-day-line { position:absolute; left:0; right:0; height:1.5px; background:#fb4768; z-index:6; pointer-events:none; box-shadow:none; }
 .now-day-line::before { content:''; width:5px; height:5px; border-radius:50%; background:#fb4768; position:absolute; left:-3px; top:-1.75px; }
 .now-ruler-line { position:absolute; right:0; width:100%; height:1.5px; background:#fb4768; z-index:7; pointer-events:none; }

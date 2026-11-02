@@ -205,7 +205,9 @@ export function studyGapSuggestions(data:AppData,plan:StudyPlan,date:string,nowM
   const bundles=plan.bundles.filter(bundle=>!bundle.completed&&bundle.date===date)
   const free=studyFreeWindows(data,date,plan.preferences)
   const obligations=occurrencesOn(data.offerings,date).filter(item=>!item.cancelled)
-  const candidates=free.map(window=>({...window,from:date===plan.reference?Math.max(window.from,Math.ceil((nowMinutes+10)/5)*5):window.from})).filter(window=>window.to-window.from>=30)
+  const ceilQuarter=(value:number)=>Math.ceil(value/15)*15
+  const floorQuarter=(value:number)=>Math.floor(value/15)*15
+  const candidates=free.map(window=>({from:ceilQuarter(date===plan.reference?Math.max(window.from,nowMinutes+10):window.from),to:floorQuarter(window.to)})).filter(window=>window.to-window.from>=30)
   candidates.sort((a,b)=>{
     const score=(window:Window)=>Number(!obligations.some(item=>Math.abs(minutes(item.to)-window.from)<=15||Math.abs(minutes(item.from)-window.to)<=15))
     return score(a)-score(b)||a.from-b.from
@@ -215,7 +217,7 @@ export function studyGapSuggestions(data:AppData,plan:StudyPlan,date:string,nowM
     if(result.length>=2)break
     const match=bundle.items.map(item=>{
       const lesson=plan.lessons.find(lesson=>lesson.key===item.key)
-      const release=lesson?.occurrence.date===date?minutes(lesson.occurrence.to)+10:0
+      const release=lesson?.occurrence.date===date?ceilQuarter(minutes(lesson.occurrence.to)+10):0
       const window=candidates.find(window=>window.to-Math.max(window.from,release)>=item.minutes)
       return {item,release,window}
     }).find(match=>match.window&&match.item.minutes>=15)
@@ -224,7 +226,7 @@ export function studyGapSuggestions(data:AppData,plan:StudyPlan,date:string,nowM
     const beforeClass=obligations.some(item=>Math.abs(minutes(item.from)-window.to)<=15)
     const length=Math.min(duration,window.to-start),from=beforeClass?window.to-length:start,to=from+length
     result.push({id:date+':'+bundle.moduleId,date,moduleId:bundle.moduleId,from,to,labels:[item.label]})
-    window.from=to+10
+    window.from=ceilQuarter(to+10)
   }
   return result
 }
