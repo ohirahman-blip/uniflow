@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 52341)
-Total output lines: 1978
-
 import {SemesterAssignment} from './StudyManagement'
 import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { createPortal } from 'react-dom'
@@ -492,7 +489,1015 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
   const save=()=>{
     if (kind==='group' && moduleId!==occ.offering.moduleId) return setError('Gleicher Inhalt muss zum selben Modul gehören. Für andere Module nutze die Zeit-Alternative.')
     if (!moduleId && category.trim()!=='Freies Lernen') return setError('Wähle ein Modul oder Freies Lernen.')
-    if (!category.trim()) return setError('Wähle …22341 tokens truncated…hot)
+    if (!category.trim()) return setError('Wähle eine Veranstaltungsart.')
+    if (minutes(to)<=minutes(from)) return setError('Das Ende muss nach dem Beginn liegen.')
+    if (recurrence!=='once'&&endDate<date) return setError('Das Enddatum liegt vor dem Start.')
+    onSave({
+      ...(editing||{}),id:editing?.id||uid(),semesterId:occ.offering.semesterId,
+      moduleId, name:chosenModule?.name||category, category:category.trim(),
+      contentId:editing?.contentId || (kind==='group'?(occ.offering.contentId||occ.offering.id):undefined),
+      date, from, to, endDate:recurrence==='once'?date:endDate, recurrence,
+      room,onlineLink:onlineLink.trim(),organizer,overrides:editing?.overrides||{},selected:editing?.selected??false
+    })
+  }
+  return <BottomSheet title={editing?'Termin bearbeiten':kind==='slot'?'Alternative zur gleichen Zeit':'Alternative Gruppe'} onClose={onClose} footer={<button className="primary-action" onClick={save}>{editing?'Speichern':'Alternative hinzufügen'}<ArrowRight size={18}/></button>}>
+    <div className="uf-entry-form">
+    <p className="alternative-editor-copy">{editing?'Zeit, Kategorie und Wiederholung dieses Termins ändern.':kind==='slot'?'Andere Veranstaltung im selben Zeitraum.':'Gleicher Inhalt in einer anderen Gruppe – auch an einem anderen Tag.'}</p>
+    <div className="editor-field"><span className="field-label">Modul</span><button className="big-choice" disabled={kind==='group'&&!editing} onClick={()=>setPicker(x=>!x)}><span>{chosenModule?.name||(category==='Freies Lernen'?'Freies Lernen':'Modul auswählen')}</span><ChevronDown size={18}/></button>
+      {picker&&<div className="module-dropdown"><label className="search-field"><Search size={18}/><input placeholder="Module suchen" value={search} onChange={e=>setSearch(e.target.value)}/></label><div className="module-pick-list">{modules.filter(m=>m.name.toLowerCase().includes(search.toLowerCase())).map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}<button onClick={()=>{setModuleId('');setCategory('Freies Lernen');setPicker(false)}}><BookOpen size={17}/>Freies Lernen · ohne Modul</button></div></div>}
+    </div>
+    <div className="editor-field"><span className="field-label">{recurrence==='once'?'Datum':'Wochentag'}</span>{recurrence==='once'?<UniflowPicker kind="date" label="Datum" value={date} onChange={setDate}/>:<UniflowPicker label="Wochentag" value={String(weekday(date))} options={['Montags','Dienstags','Mittwochs','Donnerstags','Freitags','Samstags','Sonntags'].map((label,index)=>({value:String(index),label}))} onChange={value=>setEditDay(Number(value))}/>}</div>
+    <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>
+    <div className="editor-field"><span className="field-label">Art</span><UniflowPicker label="Veranstaltungsart" value={category} allowCustom options={[...(!['Vorlesung','Übung','Tutorium','Seminar','Praktikum','Freies Lernen'].includes(category)?[category]:[]),'Vorlesung','Übung','Tutorium','Seminar','Praktikum','Freies Lernen'].map(value=>({value,label:value}))} onChange={value=>{setCategory(value);if(value==='Freies Lernen')setModuleId('')}}/></div>
+    <div className="uf-entry-grid">
+      <div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={recurrence} onChange={value=>setRecurrence(value as Repeat)} options={[{value:'once',label:'Einmalig'},{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'}]}/></div>
+      {recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" value={date} max={endDate} onChange={setDate}/></div>}
+    </div>
+    {recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" value={endDate} min={date} onChange={setEndDate}/></div>}
+    <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input room-input" value={room} onChange={e=>setRoom(e.target.value)}/></div>
+    <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://meet.google.com/..." value={onlineLink} onChange={e=>setOnlineLink(e.target.value)}/></div>
+    <div className="editor-field"><span className="field-label">Veranstalter <span className="optional">optional</span></span><input className="line-input" placeholder="Lehrperson oder Organisation" value={organizer} onChange={e=>setOrganizer(e.target.value)}/></div>
+    {editing&&onDelete&&<button type="button" className="danger-simple" onClick={onDelete}><Trash2 size={18}/> Ganze Veranstaltungsreihe löschen</button>}
+    {error&&<p className="inline-error" role="alert">{error}</p>}
+    </div>
+  </BottomSheet>
+}
+function Notice({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void }) {
+  const [leaving, setLeaving] = useState(false)
+  useEffect(() => {
+    const start = window.setTimeout(() => setLeaving(true), toast.action?8000:4000)
+    return () => window.clearTimeout(start)
+  }, [])
+  useEffect(() => {
+    if (!leaving) return
+    const timer = window.setTimeout(onDismiss, 470)
+    return () => window.clearTimeout(timer)
+  }, [leaving, onDismiss])
+  return <div role="status" className={'glow-notice ' + (leaving ? 'notice-leaving' : 'notice-entering')}>
+    <span className="notice-message">{toast.text}</span>
+    {toast.action && <button className="toast-undo" onClick={() => { toast.action?.(); onDismiss() }}>{toast.actionLabel || 'Rückgängig'}</button>}
+  </div>
+}
+
+function MoveScope({ proposal, onClose, onConfirm, mode }: { proposal: MoveProposal; onClose: () => void; onConfirm: (scope: 'single' | 'future') => void; mode: 'move' | 'delete' }) { const isOnce = proposal.occ.offering.recurrence === 'once'; return <BottomSheet title={mode === 'delete' ? 'Besuch aussetzen' : 'Termin verschieben'} onClose={onClose}><div className="move-summary"><strong>{proposal.occ.offering.name}</strong><span>{mode === 'move' ? `${formatDate(proposal.date)} · ${proposal.from}–${proposal.to}` : `${formatDate(proposal.occ.date)} · ${proposal.occ.from}–${proposal.occ.to}`}</span></div><p className="scope-intro">{isOnce ? 'Diese Veranstaltung findet nur einmal statt.' : 'Welche Termine sollen geändert werden?'}</p><div className="scope-choices"><button onClick={() => onConfirm('single')}><span><strong>{isOnce ? 'Bestätigen' : 'Nur dieses Mal'}</strong><small>{mode === 'move' ? 'Nur diesen einen Termin ändern' : 'Nur diesen Besuch aussetzen'}</small></span><ArrowRight size={20} /></button>{!isOnce && <button onClick={() => onConfirm('future')}><span><strong>Alle zukünftigen Termine</strong><small>Vergangene Termine bleiben unverändert</small></span><ArrowRight size={20} /></button>}</div><button className="dismiss-action" onClick={onClose}>Abbrechen</button></BottomSheet> }
+
+function MoveVisitEditor({occ,onClose,onConfirm}:{occ:Occurrence;onClose:()=>void;onConfirm:(proposal:MoveProposal)=>void}){
+  const [date,setDate]=useState(occ.date),[from,setFrom]=useState(occ.from),[to,setTo]=useState(occ.to),[error,setError]=useState('')
+  const submit=()=>{if(minutes(to)<=minutes(from)){setError('Das Ende muss nach dem Beginn liegen.');return}onConfirm({occ,date,from,to})}
+  return <BottomSheet title="Termin verschieben" onClose={onClose} footer={<button className="primary-action" onClick={submit}>Weiter <ArrowRight size={18}/></button>}><div className="uf-entry-form"><div className="editor-field"><span className="field-label">Neues Datum</span><UniflowPicker kind="date" label="Neues Datum" value={date} onChange={setDate}/></div><div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>{error&&<p className="inline-error">{error}</p>}</div></BottomSheet>
+}
+function DeleteSheet({proposal,onConfirm,onClose}:{proposal:MoveProposal;onConfirm:()=>void;onClose:()=>void}) {
+  return <BottomSheet title="Veranstaltungsgruppe endgültig löschen?" onClose={onClose}>
+    <p className="scope-intro">{proposal.occ.offering.name} · {proposal.occ.offering.organizer || 'Ohne Veranstalter'} wird vollständig aus Kalender, Modul und Alternativen entfernt. Das betrifft die ganze Reihe und lässt sich nicht rückgängig machen.</p>
+    <button className="danger-simple" onClick={onConfirm}><Trash2 size={18}/> Ganze Veranstaltungsgruppe löschen</button>
+    <button className="dismiss-action" onClick={onClose}>Abbrechen</button>
+  </BottomSheet>
+}
+
+function ModuleEditor({ module, onClose, onSave, onDelete }: { module: StudyModule; onClose: () => void; onSave: (m: StudyModule) => void; onDelete: () => void }) { const [name, setName] = useState(module.name), [emoji,setEmoji] = useState(module.emoji || ''), [short, setShort] = useState(module.shortName), [credits, setCredits] = useState(String(module.credits)), [color, setColor] = useState(module.color), [grade, setGrade] = useState(module.grade), [status, setStatus] = useState(module.status); return <BottomSheet title="Modul bearbeiten" onClose={onClose} footer={<button className="primary-action" onClick={() => { if (name.trim()) onSave({ ...module, name: name.trim(), shortName: short.trim() || acronym(name), credits: ensureCredits(credits), color, emoji, grade, status }) }}>Änderungen speichern <Check size={19} /></button>}><div className="editor-field"><span className="field-label">Name</span><input className="line-input" value={name} onChange={e => setName(e.target.value)} /></div><div className="editor-time-row"><div className="editor-field"><span className="field-label">Kurzname</span><input className="line-input" maxLength={10} value={short} onChange={e => setShort(e.target.value)} /></div><div className="editor-field"><span className="field-label">LP</span><input className="line-input" type="number" min="0" step="0.5" value={credits} onChange={e => setCredits(e.target.value)} /></div></div><div className="editor-field"><span className="field-label">Emoji</span><input className="line-input" placeholder="Optional – z. B. 📐" value={emoji} maxLength={8} onChange={e=>setEmoji(e.target.value)}/></div><div className="editor-field"><span className="field-label">Modulfarbe</span><div className="swatches">{colors.map(c => <button key={c} style={{ background: c }} className={c === color ? 'selected' : ''} onClick={() => setColor(c)} aria-label={`Farbe ${c}`}>{c === color && <Check size={17} />}</button>)}</div></div><div className="editor-field"><span className="field-label">Status</span><div className="category-list">{([{ v: 'current', l: 'Aktuell' }, { v: 'passed', l: 'Bestanden' }, { v: 'planned', l: 'Geplant' }, { v: 'failed', l: 'Nicht bestanden' }, { v: 'recognized', l: 'Anerkannt' }] as const).map(item => <button key={item.v} onClick={() => setStatus(item.v)} className={status === item.v ? 'chosen' : ''}>{item.l}</button>)}</div></div><div className="editor-field"><span className="field-label">Note <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. 1,7" value={grade} onChange={e => setGrade(e.target.value)} /></div><button className="danger-simple" onClick={onDelete}><Trash2 size={18} /> Modul löschen</button></BottomSheet> }
+
+function ModuleGoalSheet({goal,modules,onSave,onDelete,onClose}:{goal:CreditGoal|null;modules:StudyModule[];onSave:(goal:CreditGoal)=>void;onDelete?:(id:string)=>void;onClose:()=>void}){
+  const [name,setName]=useState(goal?.name||'')
+  const [target,setTarget]=useState(String(goal?.targetCredits||20))
+  const [moduleIds,setModuleIds]=useState<Set<string>>(new Set(goal?.moduleIds||[]))
+  const toggle=(id:string)=>setModuleIds(current=>{const next=new Set(current);if(next.has(id))next.delete(id);else next.add(id);return next})
+  const save=()=>{if(!name.trim())return;onSave({id:goal?.id||uid(),degreeId:goal?.degreeId||modules[0]?.degreeId||'',name:name.trim(),targetCredits:Math.max(1,ensureCredits(target)),moduleIds:[...moduleIds]})}
+  return <BottomSheet title={goal?'Ziel bearbeiten':'Neues Ziel'} onClose={onClose} footer={<button className="primary-action" onClick={save}>Ziel speichern <Check size={19}/></button>}>
+    <div className="module-goal-editor"><label className="editor-field"><span className="field-label">Name</span><input className="line-input" autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="z. B. Pflichtmodule"/></label><label className="editor-field"><span className="field-label">Ziel in LP</span><input className="line-input" type="number" min="1" step="0.5" value={target} onChange={e=>setTarget(e.target.value)}/></label><div className="module-goal-picks"><span className="field-label">Module für dieses Ziel</span>{modules.map(module=><label key={module.id}><input type="checkbox" checked={moduleIds.has(module.id)} onChange={()=>toggle(module.id)}/><span><strong>{module.name}</strong><small>{module.credits} LP</small></span></label>)}</div>{goal&&onDelete&&<button className="danger-simple" onClick={()=>onDelete(goal.id)}><Trash2 size={18}/> Ziel löschen</button>}</div>
+  </BottomSheet>
+}
+
+function ModuleGoalDetail({goal,modules,onEdit,onClose}:{goal:CreditGoal;modules:StudyModule[];onEdit:()=>void;onClose:()=>void}){
+  const assigned=goal.moduleIds.map(id=>modules.find(module=>module.id===id)).filter((module):module is StudyModule=>!!module)
+  const earned=assigned.filter(module=>module.status==='passed'||module.status==='recognized').reduce((sum,module)=>sum+module.credits,0)
+  return <BottomSheet title={goal.name} onClose={onClose} footer={<button className="primary-action" onClick={onEdit}>Ziel bearbeiten <PenLine size={18}/></button>}><div className="module-goal-detail-progress"><strong>{earned} / {goal.targetCredits} LP</strong><small>{Math.min(100,Math.round(earned/goal.targetCredits*100))}% erreicht</small></div><div className="module-goal-detail-list">{assigned.map(module=><div key={module.id}><span>{module.name}</span><small>{module.credits} LP · {module.status==='passed'||module.status==='recognized'?'Bestanden':module.status==='planned'||module.status==='open'?'Zukunft':'Aktuell'}</small></div>)}{!assigned.length&&<p>Diesem Ziel sind noch keine Module zugeordnet.</p>}</div></BottomSheet>
+}
+
+export function ModuleHub({ degree, modules, goals, assessments, journeys: _journeys, learningSessions, learningCheckins, lessonTopics, currentSemesterId: _currentSemesterId, creditsPassed, average, onAdd, onSaveGoal, onDeleteGoal, onReorderGoals, editing, onEdit, newName, setNewName, newCredits, setNewCredits, saveNewModule, cancelNew }: {
+  degree?: Degree; modules: StudyModule[]; assessments: Assessment[]; journeys:Record<string,Journey>;learningSessions:LearningSession[];learningCheckins:LearningCheckin[];lessonTopics:LessonTopic[];currentSemesterId:string;creditsPassed:number;average:string;
+  goals:CreditGoal[];onAdd:()=>void;onSaveGoal:(goal:CreditGoal)=>void;onDeleteGoal:(id:string)=>void;onReorderGoals:(ids:string[])=>void;editing:boolean;onEdit:(m:StudyModule)=>void;
+  newName:string;setNewName:(s:string)=>void;newCredits:string;setNewCredits:(s:string)=>void;saveNewModule:()=>void;cancelNew:()=>void
+}) {
+  const [section,setSection]=useState<'current'|'activity'|'goals'|'performance'>('current')
+  const [goalMode,setGoalMode]=useState<'view'|'edit'|'new'|null>(null),[activeGoalId,setActiveGoalId]=useState<string|null>(null)
+  const [draggingGoal,setDraggingGoal]=useState<string|null>(null)
+  const lastDragTarget=useRef<string|null>(null)
+  const passed=modules.filter(m=>m.status==='passed'||m.status==='recognized')
+  const planned=modules.filter(m=>m.status==='planned'||m.status==='open')
+  const current=modules.filter(m=>!['passed','recognized','planned','open'].includes(m.status))
+  const nextExamByModule=useMemo(()=>{
+    const result=new Map<string,string>()
+    for(const item of assessments){
+      if(item.type!=='exam'||item.date<today()||!selectedAssessment(item,assessments))continue
+      const previous=result.get(item.moduleId)
+      if(!previous||item.date<previous)result.set(item.moduleId,item.date)
+    }
+    return result
+  },[assessments])
+  const sortByNextExam=(items:StudyModule[])=>[...items].sort((a,b)=>{
+    const aDate=nextExamByModule.get(a.id),bDate=nextExamByModule.get(b.id)
+    if(!aDate&&!bDate)return a.name.localeCompare(b.name,'de-DE')
+    if(!aDate)return 1
+    if(!bDate)return -1
+    return aDate.localeCompare(bDate)||a.name.localeCompare(b.name,'de-DE')
+  })
+  const shownCurrent=sortByNextExam(current),shownPlanned=sortByNextExam(planned)
+  const shownPassed=[...passed].sort((a,b)=>a.name.localeCompare(b.name,'de-DE'))
+  const activeGoal=goals.find(goal=>goal.id===activeGoalId)||null
+  const ratingLabel:Record<LearningRating,string>={understood:'Verstanden',partial:'Teilweise verstanden',struggling:'Noch unklar',absent:'Nicht besucht'}
+  const moduleIds=useMemo(()=>new Set(modules.map(module=>module.id)),[modules])
+  const topicByKey=useMemo(()=>new Map(lessonTopics.map(topic=>[topic.key,topic.title.trim()])),[lessonTopics])
+  const activities=useMemo(()=>[
+    ...learningSessions.filter(item=>moduleIds.has(item.moduleId)).map(item=>({
+      id:'session-'+item.id,moduleId:item.moduleId,date:item.date,updatedAt:item.updatedAt,kind:'session' as const,
+      title:item.kind==='exam'?'Prüfungsvorbereitung':'Lerneinheit',meta:`${item.duration} Min. · ${ratingLabel[item.rating]}`
+    })),
+    ...learningCheckins.filter(item=>moduleIds.has(item.moduleId)&&item.rating!=='absent').map(item=>({
+      id:'checkin-'+item.key,moduleId:item.moduleId,date:item.date,updatedAt:item.updatedAt,kind:'checkin' as const,
+      title:topicByKey.get(item.key)||'Thema nicht eingetragen',meta:`Vorlesung bewertet · ${ratingLabel[item.rating]}`
+    }))
+  ].sort((a,b)=>b.date.localeCompare(a.date)||b.updatedAt.localeCompare(a.updatedAt)),[learningSessions,learningCheckins,moduleIds,topicByKey])
+  const goalProgress=(goal:CreditGoal)=>{
+    const assigned=goal.moduleIds.map(id=>modules.find(module=>module.id===id)).filter((module):module is StudyModule=>!!module)
+    return {
+      earned:assigned.filter(module=>module.status==='passed'||module.status==='recognized').reduce((sum,module)=>sum+module.credits,0),
+      current:assigned.filter(module=>module.status==='current').reduce((sum,module)=>sum+module.credits,0)
+    }
+  }
+  const move=(items:{id:string}[],sourceId:string,targetId:string)=>{const next=[...items],from=next.findIndex(item=>item.id===sourceId),to=next.findIndex(item=>item.id===targetId);if(from<0||to<0||from===to)return next;const [item]=next.splice(from,1);next.splice(to,0,item);return next}
+  const reorderGoal=(sourceId:string,targetId:string)=>onReorderGoals(move(goals,sourceId,targetId).map(item=>item.id))
+  const beginGoalReorder=(event:ReactPointerEvent<HTMLButtonElement>,id:string)=>{event.preventDefault();event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);lastDragTarget.current=id;setDraggingGoal(id)}
+  const moveGoalReorder=(event:ReactPointerEvent<HTMLButtonElement>)=>{if(!draggingGoal)return;const target=document.elementFromPoint(event.clientX,event.clientY)?.closest<HTMLElement>('[data-reorder-kind="goal"]'),targetId=target?.dataset.reorderId;if(!targetId||targetId===lastDragTarget.current)return;lastDragTarget.current=targetId;reorderGoal(draggingGoal,targetId)}
+  const endGoalReorder=()=>{lastDragTarget.current=null;setDraggingGoal(null)}
+  const goalHandle=(id:string,label:string)=><button type="button" className="module-reorder-handle" aria-label={`${label} verschieben`} onPointerDown={event=>beginGoalReorder(event,id)} onPointerMove={moveGoalReorder} onPointerUp={endGoalReorder} onPointerCancel={endGoalReorder} onKeyDown={event=>{const index=goals.findIndex(goal=>goal.id===id),direction=event.key==='ArrowUp'||event.key==='ArrowLeft'?-1:event.key==='ArrowDown'||event.key==='ArrowRight'?1:0,target=goals[index+direction];if(direction&&target){event.preventDefault();reorderGoal(id,target.id)}}}><Grip size={17}/></button>
+  const moduleRow=(m:StudyModule,isFuture=false)=>{const examDate=nextExamByModule.get(m.id);return <div key={m.id} className="module-list-row-wrap module-auto-sorted"><button className={'module-list-row '+(isFuture?'module-future':'')} onClick={()=>onEdit(m)}>
+    <span className="module-emoji" style={{background:isFuture?'#292929':m.color}}>{m.emoji||<BookOpen size={19}/>}</span>
+    <span className="module-main"><strong>{m.name}</strong>{examDate?<small className="module-exam-countdown"><CalendarCheck2 size={13}/>Prüfung in {Math.round((fromDate(examDate).getTime()-fromDate(today()).getTime())/86400000)} Tagen · {formDate(examDate)}</small>:<small className="module-no-exam">Keine Prüfung eingetragen</small>}</span>
+  </button></div>}
+  const performanceRow=(m:StudyModule,muted=false)=><button key={m.id} type="button" className={'module-performance-row'+(muted?' is-muted':'')} onClick={()=>onEdit(m)}>
+    <span className="module-emoji" style={{background:muted?'#d8d8da':m.color}}>{m.emoji||<BookOpen size={18}/>}</span><span className="module-performance-copy"><strong>{m.name}</strong><small>{m.credits} LP · {m.status==='recognized'?'Anerkannt':muted?'Laufend':'Bestanden'}</small></span><span className="module-grade">{m.status==='recognized'?'Anerkannt':m.grade.trim()|| (muted?'Offen':'Bestanden')}</span><ArrowRight size={17}/>
+  </button>
+  const tabs=([{id:'current',label:'Aktuell'},{id:'activity',label:'Verlauf'},{id:'goals',label:'Ziele'},{id:'performance',label:'Leistung'}] as const)
+  return <div className="screen secondary-screen module-hub">
+    <nav className="module-section-tabs" role="tablist" aria-label="Modulbereiche">{tabs.map(tab=><button key={tab.id} type="button" role="tab" aria-selected={section===tab.id} aria-controls={`module-panel-${tab.id}`} className={section===tab.id?'active':''} onClick={()=>setSection(tab.id)}>{tab.label}</button>)}</nav>
+    {editing&&<form className="module-inline-create" onSubmit={e=>{e.preventDefault();saveNewModule()}}><input autoFocus placeholder="Modulname" value={newName} onChange={e=>setNewName(e.target.value)}/><input type="number" min="0" step="0.5" aria-label="Leistungspunkte" value={newCredits} onChange={e=>setNewCredits(e.target.value)}/><span>LP</span><button type="submit"><Check size={22}/></button><IconButton label="Abbrechen" onClick={cancelNew}><X size={19}/></IconButton></form>}
+    {section==='current'&&<div id="module-panel-current" className="module-tab-panel" role="tabpanel"><section className="module-group module-current-list"><div className="module-group-list">{shownCurrent.map(m=>moduleRow(m))}{current.length===0&&<div className="empty-message"><h2>Hier ist noch Platz.</h2><p>Füge dein erstes Modul hinzu.</p></div>}</div></section>{planned.length>0&&<section className="module-group"><div className="module-group-title static"><span>Später <small>{planned.length}</small></span></div><div className="module-group-list">{shownPlanned.map(m=>moduleRow(m,true))}</div></section>}</div>}
+    {section==='activity'&&<div id="module-panel-activity" className="module-tab-panel" role="tabpanel"><section className="module-activity"><div className="module-panel-heading"><div><span>Dein Verlauf</span><small>{activities.length} Einträge</small></div></div>{activities.length?<div className="module-activity-list">{activities.map(item=>{const module=modules.find(entry=>entry.id===item.moduleId);return <button key={item.id} type="button" className="module-activity-row" onClick={()=>module&&onEdit(module)}><span className={'module-activity-icon '+item.kind}>{item.kind==='session'?<Clock3 size={17}/>:<Star size={17}/>}</span><span className="module-activity-copy"><strong>{item.title}</strong><small>{module?.name||'Modul'} · {item.meta}</small></span><time dateTime={item.date}>{formatDate(item.date,{day:'2-digit',month:'short',year:'numeric'})}</time><ArrowRight size={16}/></button>})}</div>:<div className="module-panel-empty"><Clock3 size={21}/><strong>Noch kein Verlauf</strong><p>Abgeschlossene Lerneinheiten und bewertete Vorlesungen erscheinen hier.</p></div>}</section></div>}
+    {section==='goals'&&<div id="module-panel-goals" className="module-tab-panel" role="tabpanel"><section className="module-group module-goals"><div className="module-group-title"><span>Deine Ziele <small>{goals.length}</small></span><button type="button" aria-label="Ziel erstellen" onClick={()=>{setActiveGoalId(null);setGoalMode('new')}}><Plus size={18}/></button></div><div className="module-goal-grid">{goals.map(goal=>{const {earned,current:activeCredits}=goalProgress(goal),completedProgress=Math.min(1,earned/goal.targetCredits),activeProgress=Math.min(1,(earned+activeCredits)/goal.targetCredits);return <div key={goal.id} data-reorder-kind="goal" data-reorder-id={goal.id} className={'module-goal-card-wrap'+(draggingGoal===goal.id?' is-reordering':'')}>{goalHandle(goal.id,goal.name)}<button type="button" className="module-goal-card" onClick={()=>{setActiveGoalId(goal.id);setGoalMode('view')}}><span className="module-goal-ring"><svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18"/><circle className="current" cx="22" cy="22" r="18" style={{strokeDashoffset:113.1*(1-activeProgress)}}/><circle className="progress" cx="22" cy="22" r="18" style={{strokeDashoffset:113.1*(1-completedProgress)}}/></svg><strong>{earned}<small>/{goal.targetCredits}</small></strong></span><span><strong>{goal.name}</strong><small>{goal.moduleIds.length} Module</small><span className="uf-visually-hidden">{activeCredits} LP aktuell in Bearbeitung</span></span></button></div>})}{!goals.length&&<button type="button" className="module-goal-empty" onClick={()=>setGoalMode('new')}><Plus size={17}/> Erstes LP-Ziel erstellen</button>}</div></section></div>}
+    {section==='performance'&&<div id="module-panel-performance" className="module-tab-panel" role="tabpanel"><div className="module-degree-summary"><div><small>Leistungspunkte</small><strong>{creditsPassed} <em>/ {degree?.targetCredits || 180} LP</em></strong></div><div><small>Notendurchschnitt</small><strong>{average}</strong></div></div><section className="module-performance"><div className="module-panel-heading"><div><span>Bestanden</span><small>{passed.length} Module</small></div><button type="button" className="module-inline-add" aria-label="Modul hinzufügen" onClick={onAdd}><Plus size={16}/></button></div><div className="module-performance-list">{shownPassed.map(module=>performanceRow(module))}{!passed.length&&<p className="module-group-empty">Noch keine bestandenen Module.</p>}</div>{shownCurrent.length>0&&<><div className="module-panel-heading module-running-heading"><div><span>Laufend</span><small>Ausgegraut, aber bearbeitbar</small></div></div><div className="module-performance-list">{shownCurrent.map(module=>performanceRow(module,true))}</div></>}</section></div>}
+    {goalMode==='view'&&activeGoal?<ModuleGoalDetail goal={activeGoal} modules={modules} onClose={()=>setGoalMode(null)} onEdit={()=>setGoalMode('edit')}/>:null}
+    {goalMode==='new'?<ModuleGoalSheet goal={null} modules={modules} onClose={()=>setGoalMode(null)} onSave={goal=>{onSaveGoal({...goal,degreeId:degree?.id||goal.degreeId});setGoalMode(null)}}/>:goalMode==='edit'&&activeGoal?<ModuleGoalSheet goal={activeGoal} modules={modules} onClose={()=>setGoalMode(null)} onSave={goal=>{onSaveGoal({...goal,degreeId:degree?.id||goal.degreeId});setGoalMode(null)}} onDelete={id=>{onDeleteGoal(id);setGoalMode(null)}}/>:null}
+  </div>
+}
+
+
+function calendarInk(color:string){
+  const hex=color.replace('#',''),full=hex.length===3?hex.split('').map(value=>value+value).join(''):hex
+  const values=[0,2,4].map(index=>parseInt(full.slice(index,index+2),16)/255).map(value=>value<=.04045?value/12.92:((value+.055)/1.055)**2.4)
+  return values[0]*.2126+values[1]*.7152+values[2]*.0722>.179?'#141419':'#fafafa'
+}
+function Calendar({data,studyPlan,semester,modules,userId,focusModuleId,onFocusChange,onNew,onEditOccurrence,onRateOccurrence,onPreviewAssessment,onSelectGroup,onSuspendVisit,onCancelVisit,onRestoreVisit,onRequestDeleteOccurrence,onOfferingsChange,onNotice}:{
+  data:AppData;studyPlan:StudyPlan;semester:Semester;modules:StudyModule[];userId:string;focusModuleId:string;onFocusChange:(id:string)=>void;
+  onNew:(slot:NewEntry)=>void;onEditOccurrence:(occ:Occurrence)=>void;onRateOccurrence:(occ:Occurrence)=>void;onPreviewAssessment:(assessment:Assessment)=>void;
+  onSelectGroup:(source:Occurrence|null,target:Occurrence,scope:'single'|'future',both:boolean)=>void;
+  onSuspendVisit:(occ:Occurrence,scope:'single'|'future')=>void;
+  onCancelVisit:(occ:Occurrence)=>void;
+  onRestoreVisit:(occ:Occurrence)=>void;
+  onRequestDeleteOccurrence:(occ:Occurrence)=>void;
+  onOfferingsChange:(offers:Offering[])=>void;onNotice:(text:string)=>void
+}) {
+  const [mode,setMode]=useState<CalendarView>(() => {
+    try {
+      const previous = localStorage.getItem(`uniflow-calendar-view-${userId}`)
+      return previous === 'day' || previous === 'two' || previous === 'week' ? previous : 'week'
+    } catch { return 'week' }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(`uniflow-calendar-view-${userId}`, mode) } catch { /* Storage may be disabled. */ }
+  }, [mode, userId])
+  const [anchor,setAnchor]=useState(()=>initialCalendarDay(data,semester,userId))
+  useEffect(()=>rememberCalendarDay(userId,semester.id,anchor),[userId,semester.id,anchor])
+  const [monthOpen,setMonthOpen]=useState(false)
+  useLayoutEffect(()=>{
+    if(monthOpen)return
+    const key='uniflow-calendar-scroll:'+userId+':'+semester.id
+    let frame=0,leaving=false
+    try{const saved=Number(localStorage.getItem(key)||0);frame=requestAnimationFrame(()=>window.scrollTo({top:saved,behavior:'instant' as ScrollBehavior}))}catch{/* Storage unavailable. */}
+    const save=()=>{if(leaving)return;try{localStorage.setItem(key,String(window.scrollY))}catch{/* Storage unavailable. */}}
+    const leave=()=>{save();leaving=true}
+    window.addEventListener('scroll',save,{passive:true})
+    window.addEventListener('uniflow-calendar-leave',leave)
+    return()=>{cancelAnimationFrame(frame);window.removeEventListener('scroll',save);window.removeEventListener('uniflow-calendar-leave',leave)}
+  },[userId,semester.id,monthOpen])
+  const [monthTransition,setMonthTransition]=useState<{from:string;direction:'next'|'previous'}|null>(null)
+  const monthGesture=useRef<{x:number;y:number}|null>(null)
+  const suppressMonthTap=useRef(0)
+  const monthTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
+  const [assessmentDay,setAssessmentDay]=useState<string|null>(null)
+  useEffect(()=>setAssessmentDay(null),[anchor,mode,monthOpen,focusModuleId])
+  useEffect(()=>{
+    if(!assessmentDay)return
+    const dismiss=(event:PointerEvent)=>{if(!(event.target as Element).closest('.uf-assessment-picker,.uf-week-strip-assessments'))setAssessmentDay(null)}
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setAssessmentDay(null)}
+    document.addEventListener('pointerdown',dismiss);window.addEventListener('keydown',escape)
+    return()=>{document.removeEventListener('pointerdown',dismiss);window.removeEventListener('keydown',escape)}
+  },[assessmentDay])
+  const [stripPreview,setStripPreview]=useState<string|null>(null)
+  const weekGesture=useRef<{x:number;y:number}|null>(null)
+  const suppressWeekTap=useRef(0)
+  const weekWheel=useRef({sum:0,last:0,shifted:0})
+  const [proposal,setProposal]=useState<MoveProposal|null>(null),[walletMove,setWalletMove]=useState<Occurrence|null>(null),[dragUI,setDragUI]=useState<MoveProposal|null>(null),[pressed,setPressed]=useState('')
+  const [focusOpen,setFocusOpen]=useState(false),[taskMenu,setTaskMenu]=useState(false),[clockNow,setClockNow]=useState(()=>new Date())
+  const [hiddenStudyHints,setHiddenStudyHints]=useState<Record<string,number>>(()=>{
+    try{
+      const saved=JSON.parse(localStorage.getItem('uniflow-study-hints:'+userId)||'{}')
+      return Object.fromEntries(Object.entries(saved).filter((entry):entry is [string,number]=>typeof entry[1]==='number'&&entry[1]>Date.now()))
+    }catch{return {}}
+  })
+  useEffect(()=>{try{localStorage.setItem('uniflow-study-hints:'+userId,JSON.stringify(hiddenStudyHints))}catch{/* Optional presentation memory. */}},[hiddenStudyHints,userId])
+  const hideStudyHint=(id:string)=>setHiddenStudyHints(previous=>({...Object.fromEntries(Object.entries(previous).filter(([,until])=>until>Date.now())),[id]:Date.now()+2*60*60*1000}))
+  const [motion,setMotion] = useState<'idle'|'exit-left'|'exit-right'|'exit-switch'|'enter'>('idle')
+  type FanState = { occ:Occurrence; openedAt:number }
+  const [fan,setFan] = useState<FanState|null>(null)
+  const [fanPicked,setFanPicked] = useState<Occurrence|null>(null)
+  const [walletContext,setWalletContext] = useState<{occ:Occurrence;x:number;y:number}|null>(null)
+  useEffect(()=>{
+    if(!assessmentDay&&!walletContext&&!fan&&!proposal&&!walletMove&&!monthOpen&&!focusOpen&&!taskMenu)return
+    const onBack=(event:Event)=>{
+      const detail=(event as CustomEvent<{handled:boolean}>).detail
+      if(detail?.handled)return
+      detail.handled=true
+      if(assessmentDay)setAssessmentDay(null)
+      else if(walletContext)setWalletContext(null)
+      else if(fan)setFan(null)
+      else if(proposal)setProposal(null)
+      else if(walletMove)setWalletMove(null)
+      else if(monthOpen)setMonthOpen(false)
+      else if(focusOpen)setFocusOpen(false)
+      else setTaskMenu(false)
+    }
+    window.addEventListener('uniflow-back',onBack)
+    return()=>window.removeEventListener('uniflow-back',onBack)
+  },[assessmentDay,fan,focusOpen,monthOpen,proposal,taskMenu,walletContext,walletMove])
+  const walletRef=useRef<HTMLDivElement>(null)
+  const [walletHeight,setWalletHeight]=useState(0)
+  useLayoutEffect(()=>{
+    if(!fan||!walletRef.current)return
+    const element=walletRef.current
+    const measure=()=>setWalletHeight(previous=>{const next=Math.ceil(element.getBoundingClientRect().height);return next===previous?previous:next})
+    measure()
+    const observer=new ResizeObserver(measure)
+    observer.observe(element)
+    return()=>observer.disconnect()
+  },[fan,fanPicked,monthOpen])
+  useEffect(()=>{
+    if(!walletContext)return
+    const dismiss=(e:PointerEvent)=>{if(!(e.target as Element).closest('.wallet-context-menu'))setWalletContext(null)}
+    const esc=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.stopPropagation();setWalletContext(null)}}
+    document.addEventListener('pointerdown',dismiss)
+    document.addEventListener('keydown',esc,true)
+    return()=>{document.removeEventListener('pointerdown',dismiss);document.removeEventListener('keydown',esc,true)}
+  },[walletContext])
+  const [fanChoice,setFanChoice] = useState<'replace'|'both'|null>(null)
+  const fanBoth=fanChoice==='both'
+  const lastCardTap=useRef<{key:string;at:number}|null>(null)
+  const openFan=(occ:Occurrence)=>{
+    if(fan?.occ.key===occ.key){setFan(null);return}
+    setFan({occ,openedAt:Date.now()})
+    setFanPicked(occ);setFanChoice(null);setWalletContext(null)
+  }
+  useEffect(()=>{
+    if(!fan)return
+    const esc=(e:KeyboardEvent)=>{if(e.key==='Escape')setFan(null)}
+    window.addEventListener('keydown',esc)
+    return()=>window.removeEventListener('keydown',esc)
+  },[fan])
+
+  const motionTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const focusWrap=useOutsideDismiss(focusOpen,()=>setFocusOpen(false))
+  const taskWrap=useOutsideDismiss(taskMenu,()=>setTaskMenu(false))
+  const scroller=useRef<HTMLDivElement>(null)
+  const scrollTimeout=useRef<ReturnType<typeof setTimeout>|null>(null)
+  const gesture=useRef<{x:number;y:number;timer:ReturnType<typeof setTimeout>;active:boolean;occ?:Occurrence;source?:NewEntry;target?:NewEntry}|null>(null)
+  const ignoreClick=useRef(false),scrollReset=useRef(false)
+    useEffect(()=>{let timer:number;const tick=()=>{setClockNow(new Date());timer=window.setTimeout(tick,30000-Date.now()%30000)};tick();return()=>clearTimeout(timer)},[])
+  useEffect(()=>{const blockDrag=(e:TouchEvent)=>{if(gesture.current?.active)e.preventDefault()};document.addEventListener('touchmove',blockDrag,{passive:false,capture:true});return()=>document.removeEventListener('touchmove',blockDrag,true)},[])
+  const visible=(date:string)=>candidateOccurrencesOn(data.offerings,date,false,true).filter(o=>o.offering.semesterId===semester.id&&(!focusModuleId||o.offering.moduleId===focusModuleId))
+  const ghosts=(date:string)=>{
+    if(data.calendarPreferences?.showAlternatives===false)return []
+    const active=visible(date)
+    return candidateOccurrencesOn(data.offerings,date,true,true).filter(o=>
+      o.offering.semesterId===semester.id && (!focusModuleId||o.offering.moduleId===focusModuleId) &&
+      !o.cancelled && !occurrenceAtOrigin(o.offering,o.origin,false) &&
+      // An occupied slot shows alternatives in the main card's detail panel.
+      !active.some(a=>intersects(a,o))
+    )
+  }
+  const visibleDays=(start:string)=>datesForCalendarPage(start,mode,data.weekEndDay)
+  // The same configured Friday/Saturday/Sunday cutoff applies to all views.
+  // Keep two-day windows complete and within the selected workweek.
+  const calendarPageStart=alignCalendarStart(anchor,mode,data.weekEndDay)
+  // One pinned header for all modes. In week view the range is unnecessary:
+  // all seven dates are equally visible, and only the real "today" is marked.
+  const displayCalendarStart=stripPreview||calendarPageStart
+  const stripMonday=weekStart(displayCalendarStart)
+  const stripDates=weekHeaderDates(displayCalendarStart,data.weekEndDay)
+  const stripIndex=Math.max(0,stripDates.indexOf(displayCalendarStart))
+  const stripRangeIndex=stripIndex
+  const stripRangeDays=Math.min(mode==='two'?2:1,stripDates.length-stripRangeIndex)
+  useLayoutEffect(()=>{setStripPreview(null)},[calendarPageStart,mode,data.weekEndDay])
+  const todayIndex=stripDates.indexOf(today())
+  // Keep the outer strip mounted and slide previous/new date rows in opposite
+  // directions whenever a horizontal swipe or arrow changes the displayed week.
+  const [weekSlide,setWeekSlide]=useState<{from:string;direction:'left'|'right'}|null>(null)
+  const previousWeek=useRef(stripMonday)
+  useLayoutEffect(()=>{
+    if(previousWeek.current===stripMonday)return
+    const from=previousWeek.current
+    previousWeek.current=stripMonday
+    setWeekSlide({from,direction:stripMonday>from?'left':'right'})
+  },[stripMonday])
+  useEffect(()=>{
+    if(!weekSlide)return
+    const timeout=setTimeout(()=>setWeekSlide(null),420)
+    return()=>clearTimeout(timeout)
+  },[weekSlide])
+  const pages=useMemo(()=>[
+    adjacentCalendarPage(calendarPageStart,mode,-1,data.weekEndDay),
+    calendarPageStart,
+    adjacentCalendarPage(calendarPageStart,mode,1,data.weekEndDay)
+  ],[calendarPageStart,mode,data.weekEndDay])
+  // The 2-day timeline is ONE continuous rail: shared dates are drawn once.
+  const dayRail=useMemo(()=>twoDayRail(calendarPageStart,data.weekEndDay),[calendarPageStart,data.weekEndDay])
+  const studyHints=useMemo(()=>{
+    if(data.calendarPreferences?.showStudySuggestions===false)return new Map<string,ReturnType<typeof studyGapSuggestions>>()
+    const dates=[...new Set(mode==='two'?dayRail.dates:pages.flatMap(start=>datesForCalendarPage(start,mode,data.weekEndDay)))].sort()
+    const weeks=new Map<string,number>()
+    const result=new Map<string,ReturnType<typeof studyGapSuggestions>>()
+    for(const date of dates){
+      const week=weekStart(date)
+      const candidates=studyGapSuggestions(data,studyPlan,date,clockNow.getHours()*60+clockNow.getMinutes()).filter(hint=>(!focusModuleId||hint.moduleId===focusModuleId)&&modules.some(module=>module.id===hint.moduleId))
+      const hints=mode==='week'?candidates.slice(0,Math.max(0,3-(weeks.get(week)||0))):candidates
+      weeks.set(week,(weeks.get(week)||0)+hints.length)
+      result.set(date,hints)
+    }
+    return result
+  },[data,studyPlan,mode,dayRail.dates,pages,focusModuleId,modules,clockNow])
+  const snapTarget=(slot:0|1|2,width:number)=>mode==='two'
+    ?dayRail.offsets[slot]*width/2
+    :slot*width
+  const times=Array.from({length:12},(_,i)=>i*2)
+  const heightPerSlot=mode==='week'?82:114
+  const height=times.length*heightPerSlot
+  const offsetY=(time:string)=>minutes(time)/120*heightPerSlot
+  const insertionY=fan?Math.min(height,offsetY(fan.occ.to)):Infinity
+  const expansionHeight=fan?walletHeight+24:0
+  const timelineHeight=height+expansionHeight
+  const timelineY=(position:number)=>position+(position>=insertionY?expansionHeight:0)
+  const courseEndY=(position:number)=>position+(position>insertionY?expansionHeight:0)
+  const walletAccent=modules.find(module=>module.id===fan?.occ.offering.moduleId)?.color||'#a296ff'
+  const nowY=offsetY(timeString(clockNow.getHours()*60+clockNow.getMinutes()))
+  // Reset to the center window before the browser paints the new anchor.
+  useLayoutEffect(()=>{
+    const el=scroller.current;if(!el)return
+    scrollReset.current=true
+    el.style.scrollSnapType='none'
+    el.scrollLeft=snapTarget(1,el.clientWidth)
+    const frame=requestAnimationFrame(()=>{
+      el.style.scrollSnapType='x mandatory'
+      scrollReset.current=false
+    })
+    return()=>cancelAnimationFrame(frame)
+  },[calendarPageStart,mode,data.weekEndDay])
+  useEffect(()=>()=>{
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    if(monthTimer.current)clearTimeout(monthTimer.current)
+    motionTimers.current.forEach(clearTimeout)
+  },[])
+  const animateCalendar = (update:()=>void, direction:'left'|'right'|'switch') => {
+    motionTimers.current.forEach(clearTimeout)
+    motionTimers.current=[]
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){update();setMotion('idle');return}
+    setMotion(direction==='switch'?'exit-switch':direction==='left'?'exit-left':'exit-right')
+    motionTimers.current.push(setTimeout(()=>{
+      update()
+      setMotion('enter')
+      motionTimers.current.push(setTimeout(()=>setMotion('idle'),220))
+    },130))
+  }
+  const settleScroll=()=>{
+    const el=scroller.current
+    if(!el||scrollReset.current)return
+    const targets=([0,1,2] as const).map(slot=>snapTarget(slot,el.clientWidth))
+    const nearest=targets.reduce((best,point,i)=>Math.abs(point-el.scrollLeft)<Math.abs(targets[best]-el.scrollLeft)?i:best,1)
+    if(nearest!==1){
+      scrollReset.current=true
+      setAnchor(pages[nearest])
+    }
+  }
+  const onScroll=()=>{
+    if(fan)setFan(null)
+    const el=scroller.current
+    if(scrollReset.current||!el)return
+    // The week strip reacts during the swipe instead of waiting for settling.
+    const targets=([0,1,2] as const).map(slot=>snapTarget(slot,el.clientWidth))
+    const nearest=targets.reduce((best,point,i)=>
+      Math.abs(point-el.scrollLeft)<Math.abs(targets[best]-el.scrollLeft)?i:best,1)
+    const preview=nearest===1?null:pages[nearest]
+    setStripPreview(current=>current===preview?current:preview)
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    scrollTimeout.current=setTimeout(settleScroll,85)
+  }
+  const shiftStripWeek=(direction:-1|1)=>{
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    setFan(null)
+    // Header and timetable use the same date anchor; retain the weekday.
+    setAnchor(current=>addDays(current,direction*7))
+  }
+  const onWeekDown=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return
+    if(e.pointerType==='touch'&&e.clientX<=28){weekGesture.current=null;return}
+    weekGesture.current={x:e.clientX,y:e.clientY}
+  }
+  const onWeekUp=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    const start=weekGesture.current
+    weekGesture.current=null
+    if(!start)return
+    const dx=e.clientX-start.x,dy=e.clientY-start.y
+    if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.3)return
+    suppressWeekTap.current=Date.now()+450
+    shiftStripWeek(dx<0?1:-1)
+  }
+  const onWeekWheel=(e:ReactWheelEvent<HTMLDivElement>)=>{
+    if(Math.abs(e.deltaX)<Math.abs(e.deltaY)*1.25)return
+    const now=Date.now(),wheel=weekWheel.current
+    if(now-wheel.last>220)wheel.sum=0
+    wheel.sum+=e.deltaX
+    wheel.last=now
+    if(Math.abs(wheel.sum)<65||now-wheel.shifted<550)return
+    shiftStripWeek(wheel.sum>0?1:-1)
+    wheel.shifted=now
+    wheel.sum=0
+  }
+  const shiftMonth=(direction:-1|1)=>{
+    if(monthTimer.current)clearTimeout(monthTimer.current)
+    setMonthTransition({from:anchor,direction:direction>0?'next':'previous'})
+    setAnchor(current=>shiftCalendarMonth(current,direction))
+    monthTimer.current=setTimeout(()=>setMonthTransition(null),370)
+  }
+  const onMonthPointerDown=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return
+    monthGesture.current={x:e.clientX,y:e.clientY}
+  }
+  const onMonthPointerUp=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    const start=monthGesture.current
+    monthGesture.current=null
+    if(!start)return
+    const dx=e.clientX-start.x,dy=e.clientY-start.y
+    if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.2)return
+    suppressMonthTap.current=Date.now()+400
+    shiftMonth(dx<0?1:-1)
+  }
+  const jump=(direction:number)=>{
+    setFan(null)
+    if(monthOpen){
+      shiftMonth(direction>0?1:-1)
+      return
+    }
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    const el=scroller.current
+    if(!el||window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      setAnchor(pages[direction>0?2:0]);return
+    }
+    // Arrows animate the actual scrollable columns, just like touch swipes.
+    el.scrollTo({left:snapTarget(direction>0?2:0,el.clientWidth),behavior:'smooth'})
+    scrollTimeout.current=setTimeout(settleScroll,480)
+  }
+  const chooseStripDate=(date:string)=>{
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    setFan(null)
+    if(mode==='week'){
+      // A weekday tap drills straight into its single-day timetable.
+      setMotion('idle')
+      setAnchor(date)
+      setMode('day')
+      return
+    }
+    const selected=alignCalendarStart(date,mode,data.weekEndDay)
+    if(selected===calendarPageStart)return
+    if(selected===pages[0]){jump(-1);return}
+    if(selected===pages[2]){jump(1);return}
+    setAnchor(selected)
+  }
+  const changeMode=(next:CalendarView)=>{setFan(null);setMonthOpen(false);if(next!==mode)animateCalendar(()=>{
+    setAnchor(alignCalendarStart(anchor,next,data.weekEndDay))
+    setMode(next)
+  },'switch')}
+  const onDown=(e:ReactPointerEvent,occ?:Occurrence,source?:NewEntry)=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return
+    ignoreClick.current=false
+    const element=e.currentTarget as HTMLElement
+    const timer=setTimeout(()=>{
+      const g=gesture.current;if(!g)return
+      g.active=true;ignoreClick.current=true
+      if(occ){
+        try{element.setPointerCapture(e.pointerId)}catch{}
+        setPressed(occ.key);setDragUI({occ,date:occ.date,from:occ.from,to:occ.to})
+      } else if(source) onNew(source)
+    },430)
+    gesture.current={x:e.clientX,y:e.clientY,timer,active:false,occ,source}
+  }
+  const targetAt=(x:number,y:number):NewEntry|undefined=>{
+    const column=document.elementsFromPoint(x,y).map(el=>el.closest<HTMLElement>('[data-calendar-day]')).find(Boolean)
+    if(!column)return undefined
+    const date=column.dataset.calendarDay||''
+    const rect=column.getBoundingClientRect()
+    let relative=Math.max(0,Math.min(rect.height-1,y-rect.top))
+    if(fan&&relative>=insertionY&&relative<insertionY+expansionHeight)return undefined
+    if(relative>=insertionY+expansionHeight)relative-=expansionHeight
+    const rowIndex=Math.floor(relative/heightPerSlot)
+    const from=timeString((rowIndex*2)*60)
+    return {date,from,to:timeString((rowIndex*2+2)*60)}
+  }
+  const onMove=(e:ReactPointerEvent)=>{
+    const g=gesture.current;if(!g)return
+    if(!g.active){if(Math.hypot(e.clientX-g.x,e.clientY-g.y)>12){clearTimeout(g.timer);gesture.current=null}return}
+    if(g.occ){const dest=targetAt(e.clientX,e.clientY);if(dest){g.target=dest;setDragUI({occ:g.occ,...dest})}}
+  }
+  const onUp=(e:ReactPointerEvent)=>{
+    const g=gesture.current;if(!g)return
+    clearTimeout(g.timer)
+    if(g.active&&g.occ){
+      const target=g.target||targetAt(e.clientX,e.clientY)
+      const span=minutes(g.occ.to)-minutes(g.occ.from)
+      const dest=target?{...target,to:timeString(minutes(target.from)+span)}:{date:g.occ.date,from:g.occ.from,to:g.occ.to}
+      if(dest.date!==g.occ.date||dest.from!==g.occ.from)setProposal({occ:g.occ,...dest})
+      else onNotice('Ziehe den Termin auf einen anderen Zeitslot.')
+    }
+    if(g.active && g.occ)setFan(null)
+    setDragUI(null);setPressed('');gesture.current=null
+    setTimeout(()=>{ignoreClick.current=false},170)
+  }
+  const cancelGesture=()=>{if(gesture.current)clearTimeout(gesture.current.timer);gesture.current=null;setDragUI(null);setPressed('')}
+  const confirmScope=(scope:'single'|'future')=>{
+    if(!proposal)return
+    onOfferingsChange(moveOccurrence(data.offerings,proposal.occ.offering.id,proposal.occ.origin,proposal.date,proposal.from,proposal.to,scope))
+    onNotice(scope==='future'?'Alle zukünftigen Termine verschoben.':'Termin einmalig verschoben.')
+    setProposal(null)
+  }
+  const focusChoices=modules.filter(m=>m.status==='current'&&data.offerings.some(o=>o.moduleId===m.id&&o.semesterId===semester.id))
+  // The tapped slot stays in front. Other days are listed behind it, never
+  // portrayed as a different appointment occurring at this slot.
+  const fanItems=fan ? [fan.occ,...linkedCandidates(data.offerings,fan.occ).map(x=>x.occ)]
+    .filter((item,index,list)=>list.findIndex(x=>x.key===item.key)===index) : []
+  const fanSelected=fanPicked ? !fanPicked.cancelled&&occurrenceAtOrigin(fanPicked.offering,fanPicked.origin,false)!==null : false
+  const fanCancelled=!!fanPicked?.cancelled
+  const fanMain=fanPicked ? findMainForInactive(data.offerings,fanPicked) : null
+  const fanConflict=fanPicked ? occurrencesOn(data.offerings,fanPicked.date)
+    .some(other=>other.key!==fanPicked.key && intersects(other,fanPicked)) : false
+  const fanRateable=!!fanPicked&&fanSelected&&!fanCancelled&&!!fanPicked.offering.moduleId&&!isAssessment(fanPicked.offering.category)&&fanPicked.offering.category!=='Freies Lernen'&&canRateOccurrence(fanPicked)
+  const onFanTap=(occ:Occurrence)=>{
+    const now=Date.now()
+    const old=lastCardTap.current
+    if((old?.key===occ.key && now-old.at<360) || (fan?.occ.key===occ.key && now-(fan?.openedAt||0)<340)) {
+      lastCardTap.current=null;setFan(null);onEditOccurrence(occ);return
+    }
+    lastCardTap.current={key:occ.key,at:now}
+    setFanPicked(occ);setFanChoice(null)
+  }
+  const applyFanChoice=(scope:'single'|'future')=>{
+    if(!fanPicked)return
+    if(fanSelected)onSuspendVisit(fanPicked,scope)
+    else onSelectGroup(fanMain,fanPicked,scope,fanBoth)
+    setFan(null)
+  }
+  function renderDay(date:string,compact:boolean){
+    const activeEvents=visible(date)
+    const inactiveEvents=ghosts(date)
+    const events=[...activeEvents,...inactiveEvents]
+    const inactiveKeys=new Set(inactiveEvents.map(o=>o.key))
+    const isToday=date===today()
+    const clockActive=isToday&&nowY>=0&&nowY<=height
+    return <div className="day-column" key={date}>
+      <div className="day-track" data-calendar-day={date} style={{height:timelineHeight}}>
+        {events.length>0&&<div className="course-time-thread" aria-hidden="true" style={{top:timelineY(Math.min(...events.map(item=>offsetY(item.from)))),height:Math.max(0,courseEndY(Math.max(...events.map(item=>offsetY(item.to))))-timelineY(Math.min(...events.map(item=>offsetY(item.from)))))}}/>}
+        {times.map((h,i)=>{const from=timeString(h*60),to=timeString((h+2)*60)
+          return <div key={from} className="empty-slot" data-day={date} data-time={from} style={{height:courseEndY((i+1)*heightPerSlot)-timelineY(i*heightPerSlot),top:timelineY(i*heightPerSlot)}}
+            onClick={()=>{if(fan)setFan(null);else onNew({date,from,to})}}
+            aria-label={`${formDate(date)} ${from}–${to}, antippen zum Hinzufügen`}><Plus size={14}/></div>
+        })}
+        {!fan&&(studyHints.get(date)||[]).filter(hint=>(hiddenStudyHints[hint.id]||0)<=Date.now()&&!inactiveEvents.some(occ=>minutes(occ.from)<hint.to&&minutes(occ.to)>hint.from)).map(hint=>{
+          const module=modules.find(module=>module.id===hint.moduleId)
+          return <div key={hint.id} className="study-gap-hint" role="note" aria-label={`Mögliches Lernfenster für ${module?.name||'dein Modul'}, ${timeString(hint.from)} bis ${timeString(hint.to)}. Nur ein Vorschlag, kein fester Termin.`} style={{top:offsetY(timeString(hint.from)),height:offsetY(timeString(hint.to))-offsetY(timeString(hint.from)),'--hint-color':module?.color||'#aaa'} as CSSProperties} onPointerDown={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()}>
+            <span>{module?.shortName||module?.name||'Lernfenster'}</span><small>{Math.round(hint.to-hint.from)} Min. · Vorschlag</small>
+            <button type="button" aria-label={`Diesen Lernvorschlag für ${module?.name||'das Modul'} vorübergehend ausblenden`} title="Nur diesen Hinweis für zwei Stunden ausblenden; der Lernplan bleibt erhalten." onClick={()=>hideStudyHint(hint.id)}><X size={12}/></button>
+          </div>
+        })}
+        {events.map(occ=>{
+          const module=modules.find(m=>m.id===occ.offering.moduleId)
+          const inactive=inactiveKeys.has(occ.key)
+          const start=Math.max(0,offsetY(occ.from)),end=Math.min(height,offsetY(occ.to))
+          if(end<=0||start>=height)return null
+          const siblings=events.filter(o=>o.key!==occ.key&&intersects(o,occ))
+          const group=[occ,...siblings].sort((a,b)=>a.key.localeCompare(b.key)),ix=group.findIndex(x=>x.key===occ.key),n=group.length
+          const live=date===today()&&!inactive&&!occ.cancelled&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'&&minutes(occ.from)<=clockNow.getHours()*60+clockNow.getMinutes()&&clockNow.getHours()*60+clockNow.getMinutes()<minutes(occ.to)
+          const past=date<today()||(date===today()&&minutes(occ.to)<=clockNow.getHours()*60+clockNow.getMinutes())
+          const style={top:timelineY(start)+Math.min(4,(end-start)/4),height:Math.max(2,courseEndY(end)-timelineY(start)-Math.min(8,(end-start)/2)),'--course-accent':module?.color||'#A5A5A5','--course-ink':calendarInk(module?.color||'#A5A5A5'),left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`} as CSSProperties
+          if(fan&&start<insertionY&&end>insertionY){
+            const cutTop=insertionY-timelineY(start)-Math.min(4,(end-start)/4),cutBottom=cutTop+expansionHeight
+            style.clipPath=`polygon(0 0,100% 0,100% ${cutTop}px,0 ${cutTop}px,0 ${cutBottom}px,100% ${cutBottom}px,100% 100%,0 100%)`
+          }
+          return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
+            aria-expanded={fan?.occ.key===occ.key} className={'course '+(live?'course-live ':'')+(fan?.occ.key===occ.key?'course-expanded ':'')+(inactive?'course-inactive ':'')+(occ.cancelled?'course-cancelled ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
+            style={style} onPointerDown={e=>{e.stopPropagation();if(!inactive&&!occ.cancelled)onDown(e,occ)}} onPointerMove={onMove}
+            onPointerUp={e=>{e.stopPropagation();onUp(e)}} onPointerCancel={cancelGesture}
+            onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;openFan(occ)}}
+            onContextMenu={e=>{e.preventDefault();e.stopPropagation();setFan(null);setWalletContext({occ,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
+            onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(occ)}} onKeyDown={e=>{if(e.key==='Enter')openFan(occ)}}>
+            {live&&<span className="course-live-ambient" aria-hidden="true"/>}<div className="course-head"><strong className="course-title">{isAssessment(occ.offering.category)?<span className="course-kind-icon">{/klausur|prüfung/i.test(occ.offering.category)?<GraduationCap size={compact?12:16}/>:<ClipboardList size={compact?12:16}/>}</span>:null}{module?.emoji?<span className="course-emoji">{module.emoji}</span>:null}{compact?module?.shortName||acronym(occ.offering.name):module?.name||occ.offering.name}</strong>
+              {singleVisitLabel(occ)&&<span className="course-head-badges">
+                {singleVisitLabel(occ)&&<span className="course-recurrence" title={singleVisitLabel(occ)==='Einmalig'?'Nur einmaliger Termin':'Einmalige Ausnahme'}>{compact?'x1':singleVisitLabel(occ)}</span>}
+              </span>}
+            </div>
+            <div className="course-meta">
+              <span className="course-category" title={occ.offering.category}>{occ.offering.category}</span>
+              {occ.offering.organizer&&<><span className="course-meta-divider" aria-hidden="true">·</span><span className="course-organizer" title={occ.offering.organizer}>{occ.offering.organizer}</span></>}
+            </div>
+            {placeLabel(occ.offering)&&<span className="course-place"><span title={placeLabel(occ.offering)}>{placeLabel(occ.offering)}</span></span>}
+
+          </div>
+        })}
+        {clockActive&&<div className="now-day-line" style={{top:timelineY(nowY)}} aria-hidden="true"/>}
+      </div>
+    </div>
+  }
+  return <section className={'calendar-page'+(fan&&!monthOpen?' has-open-course':'')}>
+    {/* Keep the toolbar, date strip and their menus inside one sticky stacking
+        context while the timetable scrolls underneath. */}
+    <div className="calendar-sticky-header">
+    <div className="calendar-compact-toolbar">
+      <div className="view-switch" role="group" aria-label="Kalenderansicht">
+        <button className={'calendar-view-count '+(!monthOpen&&mode==='day'?'active':'')} onClick={()=>changeMode('day')} title="1 Tag" aria-label="Ein-Tages-Ansicht"><span className="calendar-view-number" aria-hidden="true">1</span><span className="calendar-view-label" aria-hidden="true">Tag</span></button>
+        <button className={'calendar-view-count calendar-view-count-two '+(!monthOpen&&mode==='two'?'active':'')} onClick={()=>changeMode('two')} title="2 Tage" aria-label="Zwei-Tage-Ansicht"><span className="calendar-view-number" aria-hidden="true">2</span><span className="calendar-view-label" aria-hidden="true">Tage</span></button>
+        <button className={!monthOpen&&mode==='week'?'active':''} onClick={()=>changeMode('week')} title="Woche" aria-label="Wochenansicht"><CalendarCheck2 size={17}/></button>
+        <button className={monthOpen?'active':''} onClick={()=>setMonthOpen(v=>!v)} title="Monat" aria-label="Monatsansicht für Prüfungen und Hausaufgaben"><LayoutGrid size={17}/></button>
+      </div>
+      <div className="calendar-tools">
+        <button className="calendar-today" onClick={e=>{e.currentTarget.blur();if(monthOpen)setAnchor(today());else chooseStripDate(today())}} title="Zum heutigen Tag">Heute</button>
+        <button aria-label="Vorheriger Zeitraum" title="Zurück" onClick={e=>{e.currentTarget.blur();jump(-1)}}><ChevronLeft size={19}/></button>
+        <button aria-label="Nächster Zeitraum" title="Weiter" onClick={e=>{e.currentTarget.blur();jump(1)}}><ChevronRight size={19}/></button>
+        <div className="quick-task-wrap" ref={taskWrap}><button className="calendar-quick-add" title="Termin, Prüfung oder Abgabe hinzufügen" aria-label="Termin, Prüfung oder Abgabe hinzufügen" aria-expanded={taskMenu} aria-haspopup="menu" onClick={()=>{setFocusOpen(false);setTaskMenu(v=>!v)}}><Plus size={18}/></button>
+          {taskMenu&&<div className="mini-popover" role="menu" aria-label="Neuen Kalendereintrag hinzufügen"><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',recurrence:'once'})}}><CalendarDays size={16}/> Einmaliger Termin</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'10:00',to:'12:00',category:'Prüfung'})}}><GraduationCap size={16}/> Prüfung</button><button onClick={()=>{setTaskMenu(false);onNew({date:anchor,from:'18:00',to:'18:30',category:'Hausaufgabe'})}}><ClipboardList size={16}/> Hausaufgabe</button></div>}
+        </div>
+        <div className="focus-select-wrap" ref={focusWrap}><button className={'calendar-focus '+(focusModuleId?'chosen':'')} onClick={()=>{setTaskMenu(false);setFocusOpen(v=>!v)}} aria-label="Modulfokus auswählen" aria-expanded={focusOpen} aria-haspopup="menu" title="Fokusmodus"><Focus size={18}/></button>
+          {focusOpen&&<div className="mini-popover focus-popover" role="menu" aria-label="Nach Modul filtern"><button onClick={()=>{onFocusChange('');setFocusOpen(false)}}>Alle Module {focusModuleId===''&&<Check size={15}/>}</button>{focusChoices.map(m=><button key={m.id} onClick={()=>{onFocusChange(m.id);setFocusOpen(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}{focusModuleId===m.id&&<Check size={15}/>}</button>)}</div>}
+        </div>
+      </div>
+    </div>
+    {!monthOpen&&<div className={'uf-week-strip'+(mode==='week'?' uf-week-strip--week':'')} aria-label="Wochenauswahl" style={{'--uf-days':stripDates.length} as CSSProperties}>
+      <button type="button" className="uf-week-strip-month" onClick={()=>setMonthOpen(true)}
+        title="Monatsübersicht öffnen" aria-label="Monatsübersicht für Prüfungen und Hausaufgaben öffnen">
+        <strong>{fromDate(displayCalendarStart).toLocaleDateString('de-DE',{month:'short'}).split('.').join('')}</strong>
+        <span>{fromDate(displayCalendarStart).toLocaleDateString('de-DE',{year:'2-digit'})}</span>
+      </button>
+      <div className="uf-week-strip-labels" aria-hidden="true">
+        {weekNames.slice(0,stripDates.length).map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
+      </div>
+      <div className="uf-week-strip-viewport" onPointerDown={onWeekDown} onPointerUp={onWeekUp}
+        onPointerCancel={()=>{weekGesture.current=null}} onWheel={onWeekWheel}
+        onClickCapture={e=>{if(Date.now()<suppressWeekTap.current){e.preventDefault();e.stopPropagation()}}}>
+        {weekSlide&&<div className={'uf-week-dates-previous uf-week-slide-out-'+weekSlide.direction} aria-hidden="true" style={{'--uf-days':stripDates.length} as CSSProperties}>
+          {weekHeaderDates(weekSlide.from,data.weekEndDay).map(date=>
+            <span key={date} className={date===today()?'uf-week-previous-today':''}>{Number(date.slice(-2))}</span>
+          )}
+        </div>}
+        <div key={stripMonday} className={'uf-week-strip-days'+(weekSlide?' uf-week-slide-in-'+weekSlide.direction:'')}>
+          {mode!=='week'&&<span className="uf-week-range" aria-hidden="true" style={{left:(stripRangeIndex/stripDates.length*100)+'%',width:(stripRangeDays/stripDates.length*100)+'%'}}/>}
+          {todayIndex!==-1&&(mode==='week'||displayCalendarStart!==today())&&<span className="uf-week-today-marker" aria-hidden="true" style={{left:(todayIndex/stripDates.length*100)+'%'}}/>}
+          {mode!=='week'&&<span className="uf-week-liquid" aria-hidden="true" style={{left:(stripIndex/stripDates.length*100)+'%'}}>
+            <span className={'uf-week-liquid-core'+(displayCalendarStart===today()?' uf-week-liquid-today':'')}/>
+          </span>}
+          {stripDates.map(date=>{
+            const selected=mode!=='week'&&date===displayCalendarStart
+            const second=mode==='two'&&date===addDays(displayCalendarStart,1)
+            const dayItems=data.assessments.filter(a=>a.semesterId===semester.id&&a.date===date&&selectedAssessment(a,data.assessments)&&(!focusModuleId||a.moduleId===focusModuleId))
+            return <div className="uf-week-strip-day" key={date}>
+              <button type="button" className={'uf-week-strip-button'+(selected?' uf-week-first':'')+(second?' uf-week-second':'')+(date===today()?' uf-week-today':'')}
+                aria-label={formatDate(date,{weekday:'long',day:'numeric',month:'long'})+' anzeigen'}
+                aria-current={date===today()?'date':undefined} aria-pressed={selected||second} onClick={e=>{e.currentTarget.blur();chooseStripDate(date)}}>
+                {Number(date.slice(-2))}
+              </button>
+              {dayItems.length>0&&<div className="uf-week-strip-assessments">
+                {dayItems.slice(0,2).map(item=><button type="button" key={item.id}
+                  title={item.title} aria-label={(item.type==='exam'?'Prüfung: ':'Hausaufgabe: ')+item.title}
+                  className={item.completed?'uf-week-assessment done':'uf-week-assessment'} onClick={e=>{e.stopPropagation();if(dayItems.length>1)setAssessmentDay(value=>value===date?null:date);else onPreviewAssessment(item)}}>
+                  {item.type==='exam'?<GraduationCap size={11}/>:<ClipboardList size={11}/>}
+                </button>)}
+                {dayItems.length>2&&<button className="uf-week-assessment-more" aria-label="Alle Prüfungen und Abgaben anzeigen" onClick={()=>setAssessmentDay(value=>value===date?null:date)}>+{dayItems.length-2}</button>}
+              </div>}
+            </div>
+          })}
+        </div>
+      </div>
+    </div>}
+    {assessmentDay&&<div className="uf-assessment-picker" role="group" aria-label="Prüfungen und Abgaben an diesem Tag"><header><strong>{formatDate(assessmentDay,{weekday:'short',day:'numeric',month:'short'})}</strong><button aria-label="Auswahl schließen" onClick={()=>setAssessmentDay(null)}><X size={16}/></button></header>{data.assessments.filter(item=>item.semesterId===semester.id&&item.date===assessmentDay&&selectedAssessment(item,data.assessments)&&(!focusModuleId||item.moduleId===focusModuleId)).map(item=><button key={item.id} className={item.completed?'is-completed':''} onClick={()=>{setAssessmentDay(null);onPreviewAssessment(item)}}>{item.type==='exam'?<GraduationCap size={16}/>:<ClipboardList size={16}/>}<span><strong>{item.title}</strong><small>{data.modules.find(module=>module.id===item.moduleId)?.name}{item.from?' · '+item.from:''}</small></span></button>)}</div>}
+    </div>
+    {monthOpen?<div className="uf-month-swipe" onPointerDown={onMonthPointerDown}
+      onPointerUp={onMonthPointerUp} onPointerCancel={()=>{monthGesture.current=null}}
+      onClickCapture={e=>{if(Date.now()<suppressMonthTap.current){e.preventDefault();e.stopPropagation()}}}>
+      {monthTransition&&<div className={'uf-month-outgoing uf-month-exit-'+monthTransition.direction}
+        aria-hidden="true" inert>
+        <CalendarMonthOverview anchor={monthTransition.from} semesterId={semester.id}
+          assessments={data.assessments} modules={modules} onBack={()=>{}} onSelectDate={()=>{}}
+          onSelectAssessment={()=>{}}/>
+      </div>}
+      <div key={anchor.slice(0,7)} className={monthTransition?'uf-month-incoming uf-month-enter-'+monthTransition.direction:''}>
+        <CalendarMonthOverview anchor={anchor} semesterId={semester.id}
+          assessments={data.assessments} modules={modules}
+          onBack={()=>setMonthOpen(false)}
+          onSelectDate={date=>{setAnchor(date);setMode('day');setMonthOpen(false)}}
+          onSelectAssessment={onPreviewAssessment}/>
+      </div>
+    </div>
+    :<div className={"calendar-lanes calendar-lanes-"+mode+" calendar-motion-"+motion}>
+      <div className="time-ruler"><button className="ruler-head" title="Heute" onClick={()=>setAnchor(today())}>{fromDate(anchor).toLocaleDateString('de-DE',{month:'short'})}</button>
+        <div className="ruler-track" style={{height:timelineHeight}}>{times.map((h,i)=><span key={h} style={{top:timelineY(i*heightPerSlot)}}>{String(h).padStart(2,'0')}:00</span>)}<span style={{top:timelineHeight}}>24:00</span>
+          {visibleDays(pages[1]).includes(today())&&nowY>=0&&nowY<=height&&<div className="now-ruler-line" style={{top:timelineY(nowY)}} aria-hidden="true"/>}
+        </div>
+      </div>
+      <div className={'snap-viewport'+(mode==='two'?' snap-two-view':'')} ref={scroller} onScroll={onScroll}>
+        {mode==='two'
+          ? <div className="two-day-track">
+              {dayRail.dates.map((date,index)=><div key={date} className={'two-day-cell mode-two'+(dayRail.offsets.includes(index)?' two-day-snap':'')}>{renderDay(date,false)}</div>)}
+            </div>
+          : <div className="snap-pages">{pages.map((start,index)=>{
+              const days=visibleDays(start)
+              return <div className="snap-page" key={`${index}-${start}`}><div className={'days-grid mode-'+mode} style={{gridTemplateColumns:`repeat(${days.length},minmax(0,1fr))`}}>{days.map(date=>renderDay(date,mode==='week'))}</div></div>
+            })}</div>
+        }
+      </div>
+    {fan && <div className="calendar-course-expansion" style={{top:insertionY+8,'--wallet-accent':walletAccent} as CSSProperties}>
+      <div ref={walletRef} className="wallet-fan" role="region" aria-label="Veranstaltungsgruppen">
+        <div className="wallet-fan-head"><span><strong>{modules.find(module=>module.id===fan.occ.offering.moduleId)?.name||fan.occ.offering.name}</strong><small>{formatDate(fan.occ.date,{weekday:'short',day:'numeric',month:'short'})} · {fan.occ.from}–{fan.occ.to}{fanItems.length>1?` · ${fanItems.length-1} Alternativen`:''}</small></span><button aria-label="Stapel schließen" onClick={()=>setFan(null)}><X size={17}/></button></div>
+        <div className="wallet-cards">
+        {fanItems.slice(1).map((item,i)=>{
+          const selected=!!occurrenceAtOrigin(item.offering,item.origin,false)
+          const module=modules.find(m=>m.id===item.offering.moduleId)
+          const equivalent=sameContent(item.offering,fan.occ.offering)
+          return <div role="button" tabIndex={0} key={item.key}
+            className={'wallet-card '+(selected?'wallet-card-active':'wallet-card-inactive')+(item.cancelled?' wallet-card-cancelled':'')+(fanPicked?.key===item.key?' wallet-card-picked':'')}
+            style={{'--wallet-accent':module?.color||'#9b8cff','--wallet-ink':calendarInk(module?.color||'#9b8cff'),animationDelay:`${i*38}ms`,zIndex:fanItems.length-i} as CSSProperties}
+            onPointerDown={e=>{if(i===0&&selected){e.stopPropagation();onDown(e,item)}}}
+            onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancelGesture}
+            onClick={e=>{e.stopPropagation();if(ignoreClick.current)return;onFanTap(item)}}
+            onContextMenu={e=>{e.preventDefault();e.stopPropagation();setWalletContext({occ:item,x:Math.max(8,Math.min(e.clientX,window.innerWidth-185)),y:Math.max(8,Math.min(e.clientY,window.innerHeight-155))})}}
+            onDoubleClick={e=>{e.stopPropagation();setFan(null);onEditOccurrence(item)}}
+            onKeyDown={e=>{if(e.key==='Enter')onFanTap(item)}}>
+            <div className="wallet-card-top"><strong>{module?.shortName||module?.name||item.offering.name} · {item.offering.contentLabel||item.offering.category}</strong><span>{item.cancelled?'×':selected?'✓':'○'}</span></div>
+            <small>{item.offering.organizer||'Ohne Dozent'} · {placeLabel(item.offering)||'Raum offen'}</small>
+            <small>{formatDate(item.date,{weekday:'short',day:'numeric',month:'short'})} · {item.from}–{item.to}</small>
+            <span className="wallet-card-caption">{item.cancelled?'Fällt ohne Ersatz aus':selected?'Aktuell ausgewählt':equivalent?'Gleicher Inhalt':'Andere Veranstaltung · gleiche Zeit'}</span>
+          </div>
+        })}
+        </div>
+        {fanPicked&&<div className="wallet-actions" key={fanPicked.key}>
+          {fanRateable&&<button className="wallet-review" onClick={()=>{const occurrence=fanPicked;setFan(null);if(occurrence)onRateOccurrence(occurrence)}}>Besuch eintragen</button>}
+          <div className="wallet-action-title">{fanCancelled?'Ausnahme':fanSelected?'Termin ändern':'Gruppe auswählen'}{fanConflict&&!fanSelected&&!fanCancelled&&<small>Überschneidung im Stundenplan</small>}</div>
+          {!fanSelected&&!fanCancelled&&fanMain&&<div className="wallet-choice-banners">{(['replace','both'] as const).map(choice=><div key={choice} className={'wallet-choice-banner'+(fanChoice===choice?' is-expanded':'')}>{fanChoice===choice?<><button onClick={()=>applyFanChoice('single')}>{choice==='both'?'Einmalig beide besuchen':'Einmalig wechseln'}</button>{fanPicked.offering.recurrence!=='once'&&<button onClick={()=>applyFanChoice('future')}>{choice==='both'?'Ab jetzt beide besuchen':'Ab jetzt wechseln'}</button>}<button className="wallet-choice-back" onClick={()=>setFanChoice(null)}>Zurück</button></>:<button onClick={()=>setFanChoice(choice)}>{choice==='both'?'Beide besuchen':'Wechseln'}</button>}</div>)}</div>}
+          {fanSelected?<div className="wallet-scope"><button onClick={()=>{setWalletMove(fanPicked);setFan(null)}}>Verschieben</button><button className="wallet-cancel-visit" onClick={()=>{onCancelVisit(fanPicked);setFan(null)}}>Fällt ohne Ersatz aus</button></div>:!fanCancelled&&!fanMain?<div className="wallet-scope"><button onClick={()=>applyFanChoice('single')}>{fanBoth?'Einmalig beide besuchen':fanMain?'Einmalig wechseln':'Einmalig besuchen'}</button>{fanPicked.offering.recurrence!=='once'&&<button onClick={()=>applyFanChoice('future')}>{fanBoth?'Ab jetzt beide besuchen':fanMain?'Ab jetzt wechseln':'Immer besuchen'}</button>}</div>:null}
+          {fanPicked.offering.overrides?.[fanPicked.origin]?.scope==='single'&&<button className="wallet-reset" onClick={()=>{onRestoreVisit(fanPicked);setFan(null)}}><RotateCcw size={14}/> Einmalige Wahl zurücknehmen</button>}
+          <button className="wallet-edit" onClick={()=>{setFan(null);onEditOccurrence(fanPicked)}}><Settings2 size={14}/> Bearbeiten</button>
+        </div>}
+      </div>
+    </div>}
+    </div>}
+    {dragUI&&createPortal(<div className="drag-overlay wallet-drag-badge"><Grip size={16}/>{dragUI.occ.offering.name} · {dragUI.from}</div>,document.body)}
+    {proposal&&<MoveScope proposal={proposal} onClose={()=>setProposal(null)} onConfirm={confirmScope} mode="move"/>}
+    {walletMove&&<MoveVisitEditor occ={walletMove} onClose={()=>setWalletMove(null)} onConfirm={next=>{setWalletMove(null);setProposal(next)}}/>}
+    {walletContext&&createPortal(<div className="wallet-context-menu" role="menu" aria-label="Terminaktionen" style={{left:walletContext.x,top:walletContext.y}}
+      onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
+      <button role="menuitem" onClick={()=>{onEditOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}><Settings2 size={15}/> Bearbeiten</button>
+      {walletContext.occ.offering.moduleId&&walletContext.occ.offering.category!=='Freies Lernen'&&!isAssessment(walletContext.occ.offering.category)&&canRateOccurrence(walletContext.occ)&&
+        <button role="menuitem" onClick={()=>{onRateOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}>
+          <Check size={15}/> Besuch eintragen
+        </button>}
+      <button role="menuitem" className="wallet-context-danger" onClick={()=>{onRequestDeleteOccurrence(walletContext.occ);setWalletContext(null);setFan(null)}}><Trash2 size={15}/> Löschen</button>
+    </div>,document.body)}
+  </section>
+}
+export default function App() {
+  const [choiceAttendance,setChoiceAttendance] = useState<'replace'|'both'>('replace')
+  const [initialLocal]=useState<AppData>(()=>supabase?{...emptyData}:normalizeBigUpdate(loadData()))
+  const [data, setData] = useState<AppData>(initialLocal), [onboarding, setOnboarding] = useState(() => supabase ? true : !initialLocal.activeDegreeId), [page, setPage] = useState<Page>(pageFromUrl), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
+  useStreakAudio(data.soundEffects!==false)
+  const [requestedStudyBundle,setRequestedStudyBundle]=useState<StudyDayBundle|null>(null)
+  const consumeStudyBundle=useCallback(()=>setRequestedStudyBundle(null),[])
+  const [profileOpen,setProfileOpen]=useState(false)
+  const [profileSection,setProfileSection]=useState<'home'|'modules'>('home')
+  const moduleReturn=useRef<{page:Page;profile:boolean}>({page:'dashboard',profile:false})
+  const closeProfile=useCallback(()=>{setProfileOpen(false);setProfileSection('home')},[])
+  const pendingRewards=useRef(new Map<string,{moduleId:string;kind:LearningReward['kind']}>())
+  const [learningRewards,setLearningRewards]=useState<LearningReward[]>([])
+  const closeLearningReward=useCallback(()=>setLearningRewards(queue=>queue.slice(1)),[])
+  useEffect(()=>{
+    const ready:LearningReward[]=[]
+    for(const [groupId,details] of pendingRewards.current){
+      if(!(data.scoreEvents||[]).some(event=>event.groupId===groupId))continue
+      pendingRewards.current.delete(groupId)
+      const points=rewardPoints(data.scoreEvents,groupId)
+      if(points>0)ready.push({id:groupId,...details,points})
+    }
+    if(ready.length)setLearningRewards(queue=>[...queue,...ready])
+  },[data.scoreEvents])
+  const [streakCelebration,setStreakCelebration]=useState<number|null>(null)
+  const closeStreak=useCallback(()=>setStreakCelebration(null),[])
+  const [pageDirection,setPageDirection]=useState<'forward'|'backward'>('forward')
+  const [ratingDraftAttended,setRatingDraftAttended]=useState(true)
+  const [activeLearningModuleId,setActiveLearningModuleId]=useState('')
+  const [ratingDraftValue,setRatingDraftValue]=useState<LearningRating|undefined>()
+  const pageHistory=useRef<Page[]>([])
+  const navigatePage=(next:Page,remember=true)=>{
+    if(next==='settings'){setProfileOpen(true);return}
+    setProfileOpen(false)
+    if(page===next)return
+    if(page==='calendar')window.dispatchEvent(new Event('uniflow-calendar-leave'))
+    if(remember)pageHistory.current.push(page)
+    const order:Page[]=['overview','dashboard','calendar','friends','modules','settings','admin']
+    setPageDirection(order.indexOf(next)>order.indexOf(page)?'forward':'backward')
+    // Root-level View Transitions captured the fixed bottom tab bar and briefly
+    // placed it behind the switching page. Animate only the content instead.
+    setPage(next)
+    const location = new URL(window.location.href)
+    if (next === 'dashboard') location.searchParams.delete('page')
+    else location.searchParams.set('page', next)
+    window.history.replaceState(null, '', location)
+    window.scrollTo(0,0)
+  }
+  const closeModuleEditor=()=>{
+    const target=moduleReturn.current
+    setSelectedModuleId(null)
+    if(pageHistory.current[pageHistory.current.length-1]===target.page)pageHistory.current.pop()
+    navigatePage(target.page,false)
+    if(target.profile){setProfileSection('modules');setProfileOpen(true)}
+  }
+  const [user, setUser] = useState<User | null>(null)
+  const [, setAuthReady] = useState(false)
+  const [cloudReady, setCloudReady] = useState(false)
+  useEffect(()=>{
+    if(!cloudReady||!user||!data.streakDays?.includes(today()))return
+    const key='uniflow-streak-celebrated:'+user.id
+    try{if(localStorage.getItem(key)===today())return;localStorage.setItem(key,today())}catch{/* Animation still works without storage. */}
+    setStreakCelebration(streakCount(data.streakDays))
+  },[cloudReady,user?.id,data.streakDays])
+  const [cloudStatus, setCloudStatus] = useState<'loading' | 'saving' | 'synced' | 'error'>('loading')
+  const [cloudError, setCloudError] = useState('')
+  const [admin, setAdmin] = useState(false)
+  const [premium, setPremium] = useState(false)
+  const [,setPremiumOwner]=useState<string|null>(null)
+  const [catalog, setCatalog] = useState<Catalog>(emptyCatalog)
+  const [confirmDeleteSemester, setConfirmDeleteSemester] = useState<Semester | null>(null)
+  const [semesterDeleteText,setSemesterDeleteText]=useState('')
+  const [cloudBusy, setCloudBusy] = useState(false)
+  const backActionRef=useRef<()=>void>(()=>{})
+  backActionRef.current=()=>{
+    if(profileOpen)return setProfileOpen(false)
+    if(pendingBackup)return setPendingBackup(null)
+    if(confirmDeleteSemester){setConfirmDeleteSemester(null);setSemesterDeleteText('');return}
+    if(confirmDeleteModule)return setConfirmDeleteModule(null)
+    if(confirmReset)return setConfirmReset(false)
+    if(deletingAssessment)return setDeletingAssessment(null)
+    if(editingAssessment)return setEditingAssessment(null)
+    if(assessmentDraft)return setAssessmentDraft(null)
+    if(previewAssessmentId)return setPreviewAssessmentId(null)
+    if(ratingOccurrence)return setRatingOccurrence(null)
+    if(detail)return setDetail(null)
+    if(editingOffering)return setEditingOffering(null)
+    if(alternativeDraft)return setAlternativeDraft(null)
+    if(pendingAlternative)return setPendingAlternative(null)
+    if(deleteProposal)return setDeleteProposal(null)
+    if(pauseProposal)return setPauseProposal(null)
+    if(editingModule)return setEditingModule(null)
+    if(entry)return setEntry(null)
+    if(selectedModuleId)return closeModuleEditor()
+    const previous=pageHistory.current.pop()
+    if(previous)return navigatePage(previous,false)
+    if(page!=='dashboard')navigatePage('dashboard',false)
+  }
+  useEffect(()=>{
+    let start:{x:number;y:number}|null=null
+    const onTouchStart=(event:TouchEvent)=>{
+      const touch=event.touches[0]
+      if(!user||onboarding||event.touches.length!==1||!touch||touch.clientX>28){start=null;return}
+      start={x:touch.clientX,y:touch.clientY}
+    }
+    const onTouchEnd=(event:TouchEvent)=>{
+      if(!start)return
+      const touch=event.changedTouches[0]
+      const dx=touch.clientX-start.x,dy=touch.clientY-start.y
+      start=null
+      if(dx<72||Math.abs(dx)<Math.abs(dy)*1.25)return
+      const detail={handled:false}
+      window.dispatchEvent(new CustomEvent('uniflow-back',{detail}))
+      if(!detail.handled)backActionRef.current()
+    }
+    window.addEventListener('touchstart',onTouchStart,{passive:true})
+    window.addEventListener('touchend',onTouchEnd,{passive:true})
+    return()=>{window.removeEventListener('touchstart',onTouchStart);window.removeEventListener('touchend',onTouchEnd)}
+  },[user,onboarding])
+  useEffect(() => { document.documentElement.dataset.theme = data.theme||'dark'; document.querySelector('meta[name="theme-color"]')?.setAttribute('content',data.theme==='light'?'#f7f7f8':'#080808') }, [data.theme])
+  useEffect(()=>{
+    document.documentElement.dataset.uniflowTier=premium?'plus':'free'
+    return ()=>{delete document.documentElement.dataset.uniflowTier}
+  },[premium])
+  const fileRef = useRef<HTMLInputElement>(null)
+  const activeUserRef = useRef<string | null>(null)
+  const authEpoch = useRef(0)
+  const savedSnapshot = useRef('')
+  const saveSequence = useRef<Promise<void>>(Promise.resolve())
+
+  const loadUserWorkspace = async (next: User, epoch: number) => {
+    try {
+      const raw = await cloudLoad(next.id)
+      if (epoch !== authEpoch.current) return
+      const remote = isValidWorkspace(raw) ? normalizeWorkspace(raw) : null
+      if (raw !== null && !remote) throw new Error('Cloud-Daten haben ein unerwartetes Format. Nichts wurde überschrieben.')
+      const scopedKey = STORE + '-user-' + next.id
+      let local: AppData | null = null
+      try {
+        const value = localStorage.getItem(scopedKey)
+        if (value) { const parsed: unknown = JSON.parse(value); if (isValidWorkspace(parsed)) local = normalizeWorkspace(parsed) }
+        // Previously used v0.4 on this account? Restore only its recorded first owner.
+        if (!local && localStorage.getItem('uniflow-v4-first-owner') === next.id) {
+          const legacy = localStorage.getItem(STORE)
+          if (legacy) { const parsed: unknown = JSON.parse(legacy); if (isValidWorkspace(parsed)) local = normalizeWorkspace(parsed) }
+        }
+      } catch { /* Corrupt local cache must not replace valid cloud data. */ }
+      const loaded = remote && local ? (local.lastUpdate > remote.lastUpdate ? local : remote) : remote || local || { ...emptyData }
+      savedSnapshot.current = raw !== null ? JSON.stringify(raw) : '' // Persist normalized legacy assessments on next autosave
+      setData(loaded)
+      setOnboarding(!loaded.activeDegreeId)
+      setCloudReady(true)
+      setCloudError('')
+      setCloudStatus(remote && loaded === remote ? 'synced' : 'saving')
+      // Only the signed-in user's own data can be read; catalog/admin data is separate.
+      void isAdmin(next).then(value => { if (epoch === authEpoch.current) setAdmin(value) }).catch(() => { if (epoch === authEpoch.current) setAdmin(false) })
+    } catch (e) {
+      if (epoch !== authEpoch.current) return
+      setCloudReady(false)
+      setCloudStatus('error')
+      setCloudError(e instanceof Error ? e.message : 'Cloud-Synchronisierung konnte nicht gestartet werden.')
+    }
+  }
+  useEffect(() => {
+    if (!supabase) { setAuthReady(true); return }
+    let alive = true
+    const processUser = (next: User | null) => {
+      if (!alive) return
+      const id = next?.id || null
+      if (activeUserRef.current === id && (authEpoch.current > 0 || !id)) { setAuthReady(true); return }
+      activeUserRef.current = id
+      const epoch = ++authEpoch.current
+      setUser(next)
+      setData({ ...emptyData }) // never show the last account's private data after sign-out
+      setOnboarding(true)
+      pageHistory.current=[]
+      setPage(pageFromUrl(next?.id))
+      setAdmin(false)
+      setCloudReady(false)
+      setCloudError('')
+      setCloudStatus('loading')
+      savedSnapshot.current = ''
+      setAuthReady(true)
+      if (next) window.setTimeout(() => { if (epoch === authEpoch.current) void loadUserWorkspace(next, epoch) }, 0)
+    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => processUser(session?.user || null))
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (!alive) return
+      if (error) { setAuthReady(true); setCloudStatus('error'); setCloudError(error.message); return }
+      processUser(data.session?.user || null)
+    }).catch(() => { if (alive) setAuthReady(true) })
+    return () => { alive = false; ++authEpoch.current; activeUserRef.current = null; subscription.unsubscribe() }
+  }, [])
+  useEffect(() => { if (supabase) void fetchCatalog().then(setCatalog).catch(() => {}) }, [])
+  useEffect(()=>{
+    if(!user||!cloudReady||onboarding)return
+    try { localStorage.setItem('uniflow-last-page:'+user.id,page==='admin'?'settings':page) } catch { /* Keep navigation working without storage. */ }
+    const location=new URL(window.location.href)
+    location.searchParams.set('page',page)
+    window.history.replaceState(null,'',location)
+  },[page,user?.id,cloudReady,onboarding])
+  useEffect(()=>{
+    let valid=true
+    setPremium(false)
+    setPremiumOwner(null)
+    if(user)void fetchOwnPremium().then(p=>{if(valid){setPremium(p);setPremiumOwner(user.id)}}).catch(()=>{if(valid){setPremium(false);setPremiumOwner(user.id)}})
+    return()=>{valid=false}
+  },[user?.id])
+  useEffect(() => {
+    if (!supabase || !user || !cloudReady) return
+    const uid = user.id
+    const snapshot = JSON.stringify(data)
+    localStorage.setItem(STORE + '-user-' + uid, snapshot)
     if (snapshot === savedSnapshot.current) return
     const epoch = authEpoch.current
     const pending = window.setTimeout(() => {
