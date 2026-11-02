@@ -1341,7 +1341,7 @@ export default function App() {
     if(target.profile){setProfileSection('modules');setProfileOpen(true)}
   }
   const [user, setUser] = useState<User | null>(null)
-  const [, setAuthReady] = useState(false)
+  const [authReady, setAuthReady] = useState(false)
   const [cloudReady, setCloudReady] = useState(false)
   useEffect(()=>{
     if(!cloudReady||!user||!data.streakDays?.includes(today()))return
@@ -1791,6 +1791,7 @@ export default function App() {
   const previewAssessment=data.assessments.find(item=>item.id===previewAssessmentId)
   const semesterDeletePhrase=confirmDeleteSemester?`Ich möchte ${confirmDeleteSemester.name} endgültig löschen`:''
   if (!supabase) return <main className="auth-loading auth-config-missing"><div><h1>Verbindung einrichten.</h1><p>uniflow benötigt ein Supabase-Konto. Trage VITE_SUPABASE_URL und VITE_SUPABASE_PUBLISHABLE_KEY in der Datei .env.local ein und starte Vite neu.</p></div></main>
+  if (!authReady) return <main className="app-loading-shell" aria-label="uniflow wird geladen"><aside/><div><header/><section/><section/><section/></div></main>
   if (!user) return <><AuthScreen/>{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(null)}/>}</>
   if (!cloudReady) return <main className="app-loading-shell" aria-label="Deine Daten werden geladen"><aside/><div><header/><section/><section/><section/></div>{cloudStatus === 'error'&&<div className="app-loading-error"><p>{cloudError}</p><button className="primary-action" onClick={()=>void loadUserWorkspace(user,authEpoch.current)}>Erneut versuchen</button><button className="auth-secondary" onClick={()=>void logOut()}>Abmelden</button></div>}</main>
   if (onboarding) return <><Onboarding catalog={catalog} onSignOut={() => void logOut()} onDone={d => { setData(applyScoreAwards(emptyData,d)); setOnboarding(false); pageHistory.current=[]; setPage('dashboard') }} onInfo={note} />{toast && <Notice key={toast.id} toast={toast} onDismiss={() => setToast(current => current?.id === toast.id ? null : current)}/>}</>
