@@ -1,7 +1,7 @@
 import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ClipboardList, History, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ClipboardList, PenLine, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
 import { dateString, formatDate, today, uid, type AppData, type Assessment, type Semester, type StudyModule } from './model'
 import AnimatedScore from './AnimatedScore'
 import {lessonProgressMap} from './lesson-progress'
