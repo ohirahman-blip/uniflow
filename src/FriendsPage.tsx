@@ -6,7 +6,7 @@ import './friends.css'
 export default function FriendsPage({onNotice}:{onNotice:(message:string)=>void}){
   const [friends,setFriends]=useState<FriendFeedItem[]>([]),[settings,setSettings]=useState<FriendShareSettings>({enabled:true,shareFullDay:false,pausedUntil:null})
   const [email,setEmail]=useState(''),[name,setName]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true)
-  const refresh=useCallback(async()=>{setLoading(true);try{const result=await fetchFriendFeed();setFriends(result.friends);setSettings(result.settings)}catch(error){onNotice(error instanceof Error?error.message:'Freunde konnten nicht geladen werden.')}finally{setLoading(false)}},[onNotice])
+  const refresh=useCallback(async()=>{setLoading(true);try{const result=await fetchFriendFeed();setFriends(result.friends);setSettings(result.settings)}catch(error){onNotice(error instanceof Error?error.message:'Freunde konnten nicht geladen werden.')}finally{setLoading(false)}},[])
   useEffect(()=>{void refresh()},[refresh])
   const update=async(next:FriendShareSettings)=>{setSettings(next);try{await setFriendSharing(next);await refresh()}catch(error){onNotice(error instanceof Error?error.message:'Freigabe konnte nicht geändert werden.')}}
   const add=async(event:FormEvent)=>{event.preventDefault();if(!email.trim()||!name.trim())return;setBusy(true);try{await addFriendByEmail(email,name);setEmail('');setName('');onNotice('Freund hinzugefügt.');await refresh()}catch(error){onNotice(error instanceof Error?error.message:'Freund konnte nicht hinzugefügt werden.')}finally{setBusy(false)}}
