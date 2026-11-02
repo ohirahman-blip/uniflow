@@ -126,7 +126,7 @@ export function lessonForOccurrence(occ:Occurrence,data:AppData):LearningLesson 
 }
 export function canRateOccurrence(occ:Occurrence,now=new Date()):boolean {
   const current=todayFrom(now)
-  return occ.date<current || (occ.date===current && minutes(occ.to)<=now.getHours()*60+now.getMinutes())
+  return occ.date<current || (occ.date===current && minutes(occ.from)<=now.getHours()*60+now.getMinutes())
 }
 const dayDistance = (a:string,b:string) =>
   Math.round((fromDate(a).getTime()-fromDate(b).getTime())/86400000)

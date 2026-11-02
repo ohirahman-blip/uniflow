@@ -46,6 +46,9 @@ export type UniversityRow = { id: string; name: string }
 export type DegreeCatalogRow = { id: string; university_id: string; name: string; level: string; target_credits: number }
 export type ModuleCatalogRow = { id: string; degree_catalog_id: string; name: string; credits: number }
 export type AccountRow = { user_id: string; email: string; created_at: string; premium: boolean }
+export type FriendEvent = { title:string;from:string;to:string;room?:string;attending?:boolean }
+export type FriendFeedItem = { friendId:string;alias:string;university:string;available:boolean;pausedUntil:string|null;current:FriendEvent|null;events:FriendEvent[];updatedAt:string }
+export type FriendShareSettings = { enabled:boolean;shareFullDay:boolean;pausedUntil:string|null }
 
 export async function fetchCatalog() {
   if (!supabase) return { universities: [] as UniversityRow[], degrees: [] as DegreeCatalogRow[], modules: [] as ModuleCatalogRow[] }
@@ -109,4 +112,35 @@ export async function fetchOwnPremium(): Promise<boolean> {
   const { data, error } = await supabase.from('account_directory').select('premium').eq('user_id',user.id).maybeSingle()
   if (error) throw error
   return data?.premium === true
+}
+
+export async function addFriendByEmail(email:string,alias:string):Promise<void>{
+  if(!supabase)throw new Error('Supabase ist nicht verbunden.')
+  const {error}=await supabase.rpc('uniflow_add_friend',{p_email:email.trim().toLowerCase(),p_alias:alias.trim()})
+  if(error)throw error
+}
+export async function removeFriend(friendId:string):Promise<void>{
+  if(!supabase)throw new Error('Supabase ist nicht verbunden.')
+  const {error}=await supabase.from('friend_connections').delete().eq('owner_id',(await supabase.auth.getUser()).data.user?.id||'').eq('friend_id',friendId)
+  if(error)throw error
+}
+export async function fetchFriendFeed():Promise<{friends:FriendFeedItem[];settings:FriendShareSettings}>{
+  if(!supabase)throw new Error('Supabase ist nicht verbunden.')
+  const [{data,error},{data:own,error:ownError}]=await Promise.all([
+    supabase.rpc('uniflow_friend_feed'),supabase.from('friend_shares').select('enabled,share_full_day,paused_until').maybeSingle()
+  ])
+  if(error||ownError)throw error||ownError
+  return {friends:((data||[]) as Array<Record<string,unknown>>).map(row=>({friendId:String(row.friend_id),alias:String(row.alias),university:String(row.university||''),available:row.available===true,pausedUntil:row.paused_until?String(row.paused_until):null,current:(row.current_event||null) as FriendEvent|null,events:Array.isArray(row.day_events)?row.day_events as FriendEvent[]:[],updatedAt:String(row.updated_at||new Date().toISOString())})),settings:{enabled:own?.enabled!==false,shareFullDay:own?.share_full_day===true,pausedUntil:own?.paused_until||null}}
+}
+export async function setFriendSharing(settings:FriendShareSettings):Promise<void>{
+  if(!supabase)throw new Error('Supabase ist nicht verbunden.')
+  const {data:{user}}=await supabase.auth.getUser();if(!user)throw new Error('Nicht angemeldet.')
+  const {error}=await supabase.from('friend_shares').upsert({user_id:user.id,enabled:settings.enabled,share_full_day:settings.shareFullDay,paused_until:settings.pausedUntil,updated_at:new Date().toISOString()},{onConflict:'user_id'})
+  if(error)throw error
+}
+export async function publishFriendStatus(snapshot:{university:string;current:FriendEvent|null;events:FriendEvent[]}):Promise<void>{
+  if(!supabase)return
+  const {data:{user}}=await supabase.auth.getUser();if(!user)return
+  const {error}=await supabase.from('friend_shares').upsert({user_id:user.id,university:snapshot.university,current_event:snapshot.current,day_events:snapshot.events,updated_at:new Date().toISOString()},{onConflict:'user_id'})
+  if(error)throw error
 }
