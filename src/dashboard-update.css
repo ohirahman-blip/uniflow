@@ -117,3 +117,31 @@ body .uf-picker-option svg{color:var(--module-accent,#dcdce5)}
 .module-fast .module-fast-slot-actions button{background:#ffffff03;border:1px solid #ffffff16;border-radius:18px;padding:9px 13px;font-weight:500}
 @media(max-width:420px){.module-fast{--module-panel-padding:14px}.module-fast .module-fast-slot-preview{padding:14px}.module-fast .module-fast-slot .module-slot-edit-form{padding:18px 14px 14px}}
 @media(min-width:721px){body .sheet,body .mlh-sheet,body .uf-picker-dialog,body .profile-panel{border-radius:27px}body .sheet-backdrop,body .mlh-overlay,body .uf-picker-backdrop{align-items:center;padding:24px;box-sizing:border-box}body .profile-backdrop{align-items:center;padding:24px;box-sizing:border-box}}
+
+/* Attendance is a field of status dots, not a grid of little cards. */
+.overview-attendance>div>div{padding:5px 2px;background:transparent!important;border:0!important;border-radius:0!important}
+.overview-attendance>div i{width:38px;height:38px;box-sizing:border-box;border:1px solid #ffffff1c;border-radius:50%;background:transparent;color:#aaa6b0}
+.overview-attendance>div .is-open i{border:1px solid #ffffff32}
+.overview-attendance>div .is-today i{box-shadow:0 0 0 3px #ffffff14}
+.overview-attendance>div .is-free i,.overview-attendance>div .is-complete i{border-color:transparent;background:#78c995;color:#102016}
+html[data-theme='light'] .overview-attendance>div>div{background:transparent!important}
+html[data-theme='light'] .overview-attendance>div i{border-color:#20212622;background:transparent;color:#55565d}
+html[data-theme='light'] .overview-attendance>div .is-open i{border-color:#2021264a}
+html[data-theme='light'] .overview-attendance>div .is-today i{box-shadow:0 0 0 3px #20212612}
+html[data-theme='light'] .overview-attendance>div .is-free i,html[data-theme='light'] .overview-attendance>div .is-complete i{border-color:transparent;background:#76c993;color:#102016}
+
+.overview-month-grid>div{border:0!important;border-radius:0!important;background:transparent!important;color:#aaaab2!important}
+.overview-month-grid>div>span{display:grid;place-items:center;width:34px;height:34px;box-sizing:border-box;border:1px solid #ffffff18;border-radius:50%;background:transparent}
+.overview-month-grid>div.is-free>span,.overview-month-grid>div.is-complete>span{border-color:transparent;background:#78c995;color:#102016}
+.overview-month-grid>div.is-open>span{border-color:#db78786b;background:#db787814;color:#efaaaa}
+.overview-month-grid>div.is-future>span{border-color:#ffffff0d;color:#777781}
+.overview-month-grid>div.is-today{outline:0}
+.overview-month-grid>div.is-today>span{box-shadow:0 0 0 3px currentColor}
+.overview-month-grid>div>svg{display:none}
+.overview-month-grid>div>small{left:50%;right:auto;bottom:0;transform:translateX(-50%);width:auto;height:auto;color:inherit;font-size:7px;line-height:1;white-space:nowrap}
+html[data-theme='light'] .overview-month-grid>div{background:transparent!important;color:#65666d!important}
+html[data-theme='light'] .overview-month-grid>div>span{border-color:#2021261c;background:transparent}
+html[data-theme='light'] .overview-month-grid>div.is-free>span,html[data-theme='light'] .overview-month-grid>div.is-complete>span{border-color:transparent;background:#76c993;color:#102016}
+html[data-theme='light'] .overview-month-grid>div.is-open>span{border-color:#c95f5f57;background:#c95f5f10;color:#a64242}
+html[data-theme='light'] .overview-month-grid>div.is-future>span{border-color:#2021260d;color:#77787f}
+@media(max-width:480px){.overview-attendance>div i{width:34px;height:34px}.overview-month-grid>div>span{width:30px;height:30px}}
