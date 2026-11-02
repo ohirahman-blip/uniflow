@@ -99,8 +99,6 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const [detailMotion,setDetailMotion]=useState<'out'|'in'|''>('')
   const [switchDirection,setSwitchDirection]=useState<'up'|'down'>('down')
   const moduleScroll=useRef(0)
-  const [firstOpen]=useState(()=>{try{const key='uniflow-learn-intro:'+storageKey;return !sessionStorage.getItem(key)}catch{return false}})
-  useEffect(()=>{try{sessionStorage.setItem('uniflow-learn-intro:'+storageKey,'1')}catch{/* Optional introduction state. */}},[storageKey])
   const [modal, setModal] = useState<Modal>(null)
   const [finishingTimer,setFinishingTimer]=useState<StudyTimerState|null>(null)
   const [editingSession,setEditingSession]=useState<LearningSession|null>(null)
@@ -160,7 +158,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   if (!visible.length) return <main className="screen mlh-empty"><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
   if(directoryOpen)return <main className="screen mlh-directory"><div ref={node=>{if(node)node.scrollTop=moduleScroll.current}} onScroll={event=>{moduleScroll.current=event.currentTarget.scrollTop}} className={'mlh-directory-list'+(openingModule?' is-opening':'')}><span className="mlh-directory-rail-spacer" aria-hidden="true"/>{visible.map(module=><button key={module.id} className={openingModule===module.id?'is-selected':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}><span className="mlh-morph-name">{module.name}</span><span className="mlh-morph-abbr">{module.shortName||module.name.slice(0,3).toUpperCase()}</span></button>)}</div><button className="mlh-directory-add" onClick={onCreateModule}><Plus size={16}/>Modul hinzufügen</button></main>
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
-  return <main className={'screen mlh-home mlh-module-open motion-'+switchDirection+(firstOpen?' mlh-first-open':'')+(detailMotion?` is-switching-${detailMotion}`:'')} style={accent}>
+  return <main className={'screen mlh-home mlh-module-open motion-'+switchDirection+(detailMotion?` is-switching-${detailMotion}`:'')} style={accent}>
     {createPortal(<aside ref={node=>{if(node)node.scrollTop=moduleScroll.current}} onScroll={event=>{moduleScroll.current=event.currentTarget.scrollTop}} className="mlh-module-rail mlh-module-rail-fixed" aria-label="Module"><button className="mlh-rail-home" onClick={()=>setDirectoryOpen(true)} aria-label="Modulverzeichnis öffnen">•••</button>{visible.map(module=><button key={module.id} className={module.id===active.id?'active':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>switchRail(module.id)} aria-label={module.name}>{module.shortName||module.name.slice(0,3).toUpperCase()}</button>)}</aside>,document.body)}
     <header className="mlh-module-head mlh-module-head-simple">
       <div><h1 id="learning-module-title" key={active.id}>{active.name}</h1><button id="learning-module-score" className="mlh-score clean-score" onClick={() => open('history')} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
