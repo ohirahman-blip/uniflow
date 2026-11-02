@@ -64,3 +64,10 @@ html[data-theme='light'] .friends-page .friends-sharing>button[role=switch].is-o
 html[data-theme='light'] .friends-page .friend-day-toggle i{background:#8a8a91}
 html[data-theme='light'] .friends-page .friend-day-toggle>button.is-on i{background:#4c9a66}
 html[data-theme='light'] .friends-page .friend-name-edit button[type=submit],html[data-theme='light'] .friends-page .friends-pause.is-paused{background:#e4f3e9;color:#35794c;border-color:#a8d4b6}
+
+/* Wallet cards need an explicit light surface; their dark card rule is more specific. */
+html[data-theme='light'] .friends-page .friend-wallet>.friend-card{background:#fff!important;background-color:#fff!important;background-image:none!important;color:#202126!important;border:1px solid #d8d8de!important;color-scheme:light}
+html[data-theme='light'] .friends-page .friend-wallet>.friend-card .friend-now{background:#f2f2f4!important;background-image:none!important;color:#202126!important;border-color:#dddde2!important}
+html[data-theme='light'] .friends-page .friend-wallet>.friend-card .friend-now.is-attending{background:#edf7f0!important;border-color:#afd8bd!important}
+html[data-theme='light'] .friends-page .friend-wallet>.friend-card .friend-private{background:#f2f2f4!important;background-image:none!important;color:#66676f!important;border-color:#dddde2!important}
+html[data-theme='light'] .friends-page .friend-wallet>.friend-skeleton{background:#fff!important}
