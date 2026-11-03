@@ -278,3 +278,41 @@ html[data-theme='light'] .overview-learning-linked>button>b{color:color-mix(in s
 html[data-theme='light'] .overview-attendance>div .is-partial i{border-color:transparent;background:conic-gradient(#76c993 var(--attendance-progress),#d8d8dd 0);color:transparent}
 html[data-theme='light'] .overview-attendance-legend .is-partial:before{background:conic-gradient(#76c993 50%,#d8d8dd 0)}
 html[data-theme='light'] .overview-month-grid>div.is-partial>span{border-color:transparent;background:conic-gradient(#76c993 var(--attendance-progress),#d8d8dd 0);color:#202126}
+
+/* Quieter dashboard pass: status dots, flatter secondary cards and less surface competition. */
+.overview-dashboard-clean>.overview-welcome{padding-top:clamp(29px,5vw,58px);padding-bottom:clamp(21px,3vw,34px)}
+.overview-welcome h1{font-size:clamp(39px,7vw,70px)}
+
+.overview-attendance{padding:0!important;background:transparent!important;border-radius:0;margin-bottom:27px}
+html[data-theme='light'] .overview-attendance{background:transparent!important}
+.overview-attendance>div .is-open i,.overview-attendance>div .is-future i{border-color:transparent;background:#4c4c54;color:transparent}
+.overview-attendance>div .is-partial i{position:relative;border-color:transparent;background:#4c4c54;color:transparent}
+.overview-attendance>div .is-partial i::after{content:"";position:absolute;right:1px;bottom:1px;width:9px;height:9px;border:2px solid #08080a;border-radius:50%;background:#78c995}
+.overview-attendance-legend .is-partial:before{position:relative;background:#4c4c54;box-shadow:inset -3px -3px 0 -1px #78c995}
+.overview-month-grid>div.is-partial>span{position:relative;border-color:transparent;background:#4c4c54;color:#f0f0f2}
+.overview-month-grid>div.is-partial>span::after{content:"";position:absolute;right:-1px;bottom:-1px;width:8px;height:8px;border:2px solid #08080a;border-radius:50%;background:#78c995}
+html[data-theme='light'] .overview-attendance>div .is-open i,html[data-theme='light'] .overview-attendance>div .is-future i{border-color:transparent;background:#d8d8dd;color:transparent}
+html[data-theme='light'] .overview-attendance>div .is-partial i{border-color:transparent;background:#d8d8dd;color:transparent}
+html[data-theme='light'] .overview-attendance>div .is-partial i::after{border-color:#fff;background:#76c993}
+html[data-theme='light'] .overview-attendance-legend .is-partial:before{background:#d8d8dd;box-shadow:inset -3px -3px 0 -1px #76c993}
+html[data-theme='light'] .overview-month-grid>div.is-partial>span{border-color:transparent;background:#d8d8dd;color:#202126}
+html[data-theme='light'] .overview-month-grid>div.is-partial>span::after{border-color:#fff;background:#76c993}
+
+.overview-upcoming-stack{align-self:center;height:auto;grid-template-rows:repeat(2,minmax(105px,auto));gap:10px}
+.overview-upcoming{height:auto;min-height:105px;padding:14px 18px}
+
+.overview-learning-card{background:color-mix(in srgb,var(--study-color) 18%,#1b1b20)}
+.overview-learning-main{padding-block:12px}
+html[data-theme='light'] .overview-learning-card{background:color-mix(in srgb,var(--study-color) 15%,#fff)}
+
+@media(max-width:700px){
+  .overview-now-grid{grid-template-columns:1fr;gap:10px}
+  .overview-current-event{aspect-ratio:auto;min-height:205px}
+  .overview-upcoming-stack{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:1fr;width:100%;gap:10px}
+  .overview-upcoming{height:100%;min-height:118px}
+}
+@media(max-width:420px){
+  .overview-current-event{min-height:190px}
+  .overview-upcoming{padding:12px 11px;min-height:112px}
+  .overview-upcoming b{align-items:flex-start;flex-direction:column;gap:2px}
+}
