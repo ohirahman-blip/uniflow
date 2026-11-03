@@ -75,8 +75,8 @@
 .mlh-module-open>.study-timer-card,
 .mlh-module-open>.semester-overview{width:100%;max-width:760px;box-sizing:border-box;margin-left:auto;margin-right:auto}
 .mlh-slider-window .mlh-module-head-simple{margin-bottom:8px}
-.mlh-slider-window .mlh-module-head-simple .mlh-score.clean-score{min-width:96px;max-width:154px;height:58px;min-height:58px;padding:6px 14px;gap:1px;border:0;background:color-mix(in srgb,var(--mlh-accent) 10%,transparent)!important}
-.mlh-slider-window .mlh-module-head-simple .mlh-score.clean-score small{margin:0;font-size:9px;line-height:1.1;letter-spacing:0;color:color-mix(in srgb,var(--mlh-accent) 78%,var(--muted));white-space:nowrap}
+.mlh-slider-window .mlh-module-head-simple .mlh-score.clean-score{min-width:96px;max-width:154px;height:54px;min-height:54px;padding:5px 14px;gap:0;border:0;background:color-mix(in srgb,var(--mlh-accent) 10%,transparent)!important}
+.mlh-slider-window .mlh-module-head-simple .mlh-score.clean-score small{margin:-4px 0 0;font-size:9px;line-height:1.1;letter-spacing:0;color:color-mix(in srgb,var(--mlh-accent) 78%,var(--muted));white-space:nowrap}
 .mlh-slider-window .mlh-module-head-simple .clean-score-value .mlh-score-number strong{font-size:25px;line-height:1}
 
 .mlh-focus-card{position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:space-between;gap:22px;min-height:156px;padding:26px 28px;border:0;border-radius:28px;background:var(--mlh-accent);color:#17171a;isolation:isolate}
