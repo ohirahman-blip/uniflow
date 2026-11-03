@@ -196,3 +196,77 @@ html[data-theme='light'] .streak-celebration>b{background:#ff8a1f12;border-color
 html[data-theme='light'] .streak-aura{background:radial-gradient(ellipse,#ff9b4138,transparent 65%)}
 
 @media(max-width:480px){.overview-upcoming-stack{gap:7px}.overview-upcoming{padding:9px 10px;gap:7px;border-radius:17px}.overview-upcoming>svg{width:15px;height:15px;padding:4px}.overview-upcoming small{font-size:7px}.overview-upcoming strong{font-size:10px}.overview-upcoming b{font-size:7px}}
+
+/* Final dashboard hierarchy: fewer competing surfaces and one spacing rhythm. */
+.overview-dashboard-clean{--overview-large-radius:30px;--overview-card-radius:21px}
+.overview-dashboard-clean>.overview-welcome{padding:clamp(34px,6vw,68px) 12px clamp(24px,4vw,42px)}
+.overview-welcome h1{font-size:clamp(43px,8vw,82px)}
+.overview-welcome p{margin-top:12px;font-size:clamp(12px,1.7vw,15px)}
+
+/* The running timer stays useful without reading like another content banner. */
+.overview-dashboard-clean>.mlh-running-timer{margin:0 0 20px;padding:13px 15px;border-radius:var(--overview-card-radius);background:color-mix(in srgb,var(--timer-accent) 8%,transparent)}
+.overview-dashboard-clean>.mlh-running-timer>header{font-size:10px}
+.overview-dashboard-clean>.mlh-running-timer .mlh-timer-clock{margin:8px 0 1px;font-size:clamp(29px,6vw,40px)}
+.overview-dashboard-clean>.mlh-running-timer>p{margin-bottom:10px}
+.overview-dashboard-clean>.mlh-running-timer .mlh-timer-controls{margin-top:11px;gap:7px}
+.overview-dashboard-clean>.mlh-running-timer .mlh-timer-controls>button{min-height:34px;padding:7px 12px;font-size:10px}
+
+/* The weekly strip is a glanceable status row; detail remains in the month view. */
+.overview-attendance{margin-bottom:28px;padding:17px 18px;border-radius:var(--overview-large-radius)}
+.overview-attendance>header{margin-bottom:13px}
+.overview-attendance>div{gap:6px}
+.overview-attendance>div>div{gap:5px}
+.overview-attendance>div small{display:none}
+.overview-attendance>div i{width:34px;height:34px}
+
+/* The coloured event is primary; exam and homework are quieter peers. */
+.overview-now-grid{grid-template-columns:minmax(0,320px) minmax(0,1fr);margin-bottom:32px}
+.overview-current-event{border-radius:var(--overview-large-radius)}
+.overview-upcoming{border-radius:var(--overview-card-radius);background:#121216}
+.overview-upcoming:nth-child(2){background:#121216}
+.overview-upcoming b{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.overview-upcoming b>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.overview-upcoming b>time{flex:none;color:#c4c1ca;font:inherit}
+html[data-theme='light'] .overview-upcoming,html[data-theme='light'] .overview-upcoming:nth-child(2){background:#f4f4f5}
+html[data-theme='light'] .overview-upcoming b>time{color:#4f5057}
+
+/* Learning modules and their related tasks share one route card. */
+.overview-learning-map{margin-bottom:30px;border-radius:var(--overview-large-radius)}
+.overview-learning-map>header{margin-bottom:17px}
+.overview-learning-stop{padding-bottom:8px}
+.overview-learning-card{min-width:0;overflow:hidden;border-radius:var(--overview-card-radius);background:color-mix(in srgb,var(--study-color) 30%,#1b1b20)}
+.overview-learning-main{display:flex;align-items:center;justify-content:space-between;gap:15px;width:100%;min-width:0;padding:13px 15px;border:0;background:transparent;color:#eeeef1;text-align:left;font:inherit;cursor:pointer}
+.overview-learning-main:disabled{cursor:default}
+.overview-learning-linked{display:grid;padding:0 10px 9px}
+.overview-learning-linked>button{display:flex;align-items:center;gap:9px;width:100%;min-width:0;padding:8px 7px;border:0;border-top:1px solid #ffffff12;background:transparent;color:#e8e7ed;text-align:left;font:inherit;cursor:pointer}
+.overview-learning-linked>button>i{flex:0 0 14px;width:14px;height:14px;border:1px solid color-mix(in srgb,var(--study-color) 75%,#fff);border-radius:50%}
+.overview-learning-linked>button>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.overview-learning-linked>button>b{flex:none;color:color-mix(in srgb,var(--study-color) 82%,#fff);font-size:9px;font-weight:600}
+.overview-learning-completed{margin-top:10px}
+.overview-learning-completed>summary{padding:8px 3px;color:#8f8c96;font-size:10px;cursor:pointer}
+.overview-learning-completed .overview-learning-route{margin-top:4px}
+.overview-learning-completed .overview-learning-stop{opacity:.48}
+.overview-learning-stop.is-complete .overview-learning-copy>strong{text-decoration:line-through}
+html[data-theme='light'] .overview-learning-card{background:color-mix(in srgb,var(--study-color) 27%,#fff)}
+html[data-theme='light'] .overview-learning-main{color:#202126}
+html[data-theme='light'] .overview-learning-linked>button{border-top-color:#20212614;color:#202126}
+html[data-theme='light'] .overview-learning-linked>button>b{color:color-mix(in srgb,var(--study-color) 88%,#202126)}
+
+/* General to-dos remain separate from tasks already attached to today's route. */
+.overview-tasks-focus>header{margin-bottom:13px}
+.overview-task{border-radius:var(--overview-card-radius)}
+.overview-task>button:first-child{padding:12px 14px}
+
+@media(max-width:700px){
+  .overview-dashboard-clean>.overview-welcome{padding-top:34px}
+  .overview-now-grid{grid-template-columns:minmax(150px,.9fr) minmax(0,1.1fr)}
+}
+@media(max-width:480px){
+  .overview-attendance{padding:13px 12px}
+  .overview-attendance>div i{width:31px;height:31px}
+  .overview-learning-map{padding:18px}
+  .overview-learning-stop{grid-template-columns:31px minmax(0,1fr);gap:8px}
+  .overview-learning-node>i{width:30px;height:30px}
+  .overview-learning-stop:not(:last-child)::before{left:15px}
+  .overview-learning-main{padding:11px 12px}
+}
