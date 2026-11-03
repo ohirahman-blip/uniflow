@@ -209,9 +209,9 @@ html[data-theme='light'] .streak-aura{background:radial-gradient(ellipse,#ff9b41
 /* The weekly strip is a glanceable status row; detail remains in the month view. */
 .overview-attendance{margin-bottom:var(--overview-space-lg);padding:0!important;border-radius:0;background:transparent!important}
 html[data-theme='light'] .overview-attendance{background:transparent!important}
-.overview-attendance>header{margin-bottom:12px}
-.overview-attendance>div{gap:8px}
-.overview-attendance>div>div{gap:4px}
+.overview-attendance>header{width:min(100%,800px);margin:0 auto 12px}
+.overview-attendance>div{width:min(100%,800px);margin-inline:auto;gap:8px}
+.overview-attendance>div>div{justify-self:center;width:min(56px,100%);box-sizing:border-box;gap:4px;padding:5px 2px!important}
 .overview-attendance>div small{display:none}
 .overview-attendance>div i{width:34px;height:34px}
 .overview-attendance>div .is-open i,.overview-attendance>div .is-future i{border-color:transparent;background:#4c4c54;color:transparent}
@@ -223,6 +223,7 @@ html[data-theme='light'] .overview-attendance>div .is-open i,html[data-theme='li
 .overview-upcoming-stack{align-self:stretch;height:100%;grid-template-rows:repeat(2,minmax(0,1fr));gap:12px}
 .overview-upcoming{height:100%;min-height:0;align-items:center;padding:16px;gap:12px;border-radius:var(--overview-card-radius);background:#121216}
 .overview-upcoming:nth-child(2){background:#121216}
+.overview-upcoming>span{flex:1;width:100%}
 .overview-upcoming b{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .overview-upcoming b>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .overview-upcoming b>time{flex:none;color:#c4c1ca;font:inherit}
@@ -246,6 +247,7 @@ html[data-theme='light'] .overview-upcoming b>time{color:#4f5057}
 .overview-learning-completed .overview-learning-route{margin-top:4px}
 .overview-learning-completed .overview-learning-stop{opacity:.48}
 .overview-learning-stop.is-complete .overview-learning-copy>strong{text-decoration:line-through}
+html[data-theme='light'] .overview-learning-map{background:#fafafa}
 html[data-theme='light'] .overview-learning-card{background:color-mix(in srgb,var(--study-color) 15%,#fff)}
 html[data-theme='light'] .overview-learning-main{color:#202126}
 html[data-theme='light'] .overview-learning-linked>button{border-top-color:#20212614;color:#202126}
@@ -253,24 +255,33 @@ html[data-theme='light'] .overview-learning-linked>button>b{color:color-mix(in s
 
 /* General to-dos remain separate from tasks already attached to today's route. */
 .overview-tasks-focus>header{margin-bottom:12px}
+.overview-tasks>header>button{border:0!important;background:#ffffff09;color:#cecad6}
+html[data-theme='light'] .overview-tasks>header>button{border:0!important;background:#f1f1f3;color:#202126!important}
 .overview-task{border-radius:var(--overview-card-radius)}
 .overview-task>button:first-child{padding:12px 16px}
 
 @media(max-width:700px){
   .overview-dashboard-clean>.overview-welcome{padding-top:32px;padding-bottom:32px}
   .overview-now-grid{grid-template-columns:1fr;gap:12px}
-  .overview-current-event{aspect-ratio:auto;min-height:190px}
+  .overview-current-event{aspect-ratio:auto;min-height:170px;justify-content:flex-start;gap:30px}
   .overview-upcoming-stack{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto;height:auto;gap:12px}
   .overview-upcoming{height:auto;min-height:0}
 }
 @media(max-width:480px){
   .overview-attendance>div i{width:31px;height:31px}
   .overview-learning-map{padding:16px}
-  .overview-learning-stop{grid-template-columns:31px minmax(0,1fr);gap:8px}
-  .overview-learning-node>i{width:30px;height:30px}
-  .overview-learning-stop:not(:last-child)::before{left:15px}
+  .overview-learning-stop{grid-template-columns:28px minmax(0,1fr);gap:6px}
+  .overview-learning-node>i{width:28px;height:28px}
+  .overview-learning-stop:not(:last-child)::before{left:13px}
   .overview-learning-main{padding:12px}
   .overview-upcoming{padding:12px}
   .overview-upcoming b{align-items:flex-start;flex-direction:column;gap:2px}
+}
+
+/* Desktop sidebar polish from the final dashboard review. */
+@media(min-width:721px){
+  .sidebar-profile{border-top-color:#ffffff14}
+  html[data-theme='light'] .sidebar-profile{border-top-color:#20212616}
+  .sidebar-profile .sidebar-identity-text small{white-space:normal!important;display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 }
 
