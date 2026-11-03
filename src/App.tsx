@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 52723)
-Total output lines: 1982
-
 import {SemesterAssignment} from './StudyManagement'
 import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { createPortal } from 'react-dom'
@@ -831,7 +828,232 @@ function Calendar({data,studyPlan,semester,modules,userId,focusModuleId,onFocusC
   const pages=useMemo(()=>[
     adjacentCalendarPage(calendarPageStart,mode,-1,data.weekEndDay),
     calendarPageStart,
-    adjacentCalendarPage(calendarPageStart,mode,1,data…2723 tokens truncated…d.cancelled&&occurrenceAtOrigin(fanPicked.offering,fanPicked.origin,false)!==null : false
+    adjacentCalendarPage(calendarPageStart,mode,1,data.weekEndDay)
+  ],[calendarPageStart,mode,data.weekEndDay])
+  // The 2-day timeline is ONE continuous rail: shared dates are drawn once.
+  const dayRail=useMemo(()=>twoDayRail(calendarPageStart,data.weekEndDay),[calendarPageStart,data.weekEndDay])
+  const studyHints=useMemo(()=>{
+    if(data.calendarPreferences?.showStudySuggestions===false)return new Map<string,ReturnType<typeof studyGapSuggestions>>()
+    const dates=[...new Set(mode==='two'?dayRail.dates:pages.flatMap(start=>datesForCalendarPage(start,mode,data.weekEndDay)))].sort()
+    const weeks=new Map<string,number>()
+    const result=new Map<string,ReturnType<typeof studyGapSuggestions>>()
+    for(const date of dates){
+      const week=weekStart(date)
+      const candidates=studyGapSuggestions(data,studyPlan,date,clockNow.getHours()*60+clockNow.getMinutes()).filter(hint=>(!focusModuleId||hint.moduleId===focusModuleId)&&modules.some(module=>module.id===hint.moduleId))
+      const hints=mode==='week'?candidates.slice(0,Math.max(0,3-(weeks.get(week)||0))):candidates
+      weeks.set(week,(weeks.get(week)||0)+hints.length)
+      result.set(date,hints)
+    }
+    return result
+  },[data,studyPlan,mode,dayRail.dates,pages,focusModuleId,modules,clockNow])
+  const snapTarget=(slot:0|1|2,width:number)=>mode==='two'
+    ?dayRail.offsets[slot]*width/2
+    :slot*width
+  const times=Array.from({length:12},(_,i)=>i*2)
+  const heightPerSlot=mode==='week'?82:114
+  const height=times.length*heightPerSlot
+  const offsetY=(time:string)=>minutes(time)/120*heightPerSlot
+  const insertionY=fan?Math.min(height,offsetY(fan.occ.to)):Infinity
+  const expansionHeight=fan?walletHeight+24:0
+  const timelineHeight=height+expansionHeight
+  const timelineY=(position:number)=>position+(position>=insertionY?expansionHeight:0)
+  const courseEndY=(position:number)=>position+(position>insertionY?expansionHeight:0)
+  const walletAccent=modules.find(module=>module.id===fan?.occ.offering.moduleId)?.color||'#a296ff'
+  const nowY=offsetY(timeString(clockNow.getHours()*60+clockNow.getMinutes()))
+  // Reset to the center window before the browser paints the new anchor.
+  useLayoutEffect(()=>{
+    const el=scroller.current;if(!el)return
+    scrollReset.current=true
+    el.style.scrollSnapType='none'
+    el.scrollLeft=snapTarget(1,el.clientWidth)
+    const frame=requestAnimationFrame(()=>{
+      el.style.scrollSnapType='x mandatory'
+      scrollReset.current=false
+    })
+    return()=>cancelAnimationFrame(frame)
+  },[calendarPageStart,mode,data.weekEndDay])
+  useEffect(()=>()=>{
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    if(monthTimer.current)clearTimeout(monthTimer.current)
+    motionTimers.current.forEach(clearTimeout)
+  },[])
+  const animateCalendar = (update:()=>void, direction:'left'|'right'|'switch') => {
+    motionTimers.current.forEach(clearTimeout)
+    motionTimers.current=[]
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){update();setMotion('idle');return}
+    setMotion(direction==='switch'?'exit-switch':direction==='left'?'exit-left':'exit-right')
+    motionTimers.current.push(setTimeout(()=>{
+      update()
+      setMotion('enter')
+      motionTimers.current.push(setTimeout(()=>setMotion('idle'),220))
+    },130))
+  }
+  const settleScroll=()=>{
+    const el=scroller.current
+    if(!el||scrollReset.current)return
+    const targets=([0,1,2] as const).map(slot=>snapTarget(slot,el.clientWidth))
+    const nearest=targets.reduce((best,point,i)=>Math.abs(point-el.scrollLeft)<Math.abs(targets[best]-el.scrollLeft)?i:best,1)
+    if(nearest!==1){
+      scrollReset.current=true
+      setAnchor(pages[nearest])
+    }
+  }
+  const onScroll=()=>{
+    if(fan)setFan(null)
+    const el=scroller.current
+    if(scrollReset.current||!el)return
+    // The week strip reacts during the swipe instead of waiting for settling.
+    const targets=([0,1,2] as const).map(slot=>snapTarget(slot,el.clientWidth))
+    const nearest=targets.reduce((best,point,i)=>
+      Math.abs(point-el.scrollLeft)<Math.abs(targets[best]-el.scrollLeft)?i:best,1)
+    const preview=nearest===1?null:pages[nearest]
+    setStripPreview(current=>current===preview?current:preview)
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    scrollTimeout.current=setTimeout(settleScroll,85)
+  }
+  const shiftStripWeek=(direction:-1|1)=>{
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    setFan(null)
+    // Header and timetable use the same date anchor; retain the weekday.
+    setAnchor(current=>addDays(current,direction*7))
+  }
+  const onWeekDown=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return
+    if(e.pointerType==='touch'&&e.clientX<=28){weekGesture.current=null;return}
+    weekGesture.current={x:e.clientX,y:e.clientY}
+  }
+  const onWeekUp=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    const start=weekGesture.current
+    weekGesture.current=null
+    if(!start)return
+    const dx=e.clientX-start.x,dy=e.clientY-start.y
+    if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.3)return
+    suppressWeekTap.current=Date.now()+450
+    shiftStripWeek(dx<0?1:-1)
+  }
+  const onWeekWheel=(e:ReactWheelEvent<HTMLDivElement>)=>{
+    if(Math.abs(e.deltaX)<Math.abs(e.deltaY)*1.25)return
+    const now=Date.now(),wheel=weekWheel.current
+    if(now-wheel.last>220)wheel.sum=0
+    wheel.sum+=e.deltaX
+    wheel.last=now
+    if(Math.abs(wheel.sum)<65||now-wheel.shifted<550)return
+    shiftStripWeek(wheel.sum>0?1:-1)
+    wheel.shifted=now
+    wheel.sum=0
+  }
+  const shiftMonth=(direction:-1|1)=>{
+    if(monthTimer.current)clearTimeout(monthTimer.current)
+    setMonthTransition({from:anchor,direction:direction>0?'next':'previous'})
+    setAnchor(current=>shiftCalendarMonth(current,direction))
+    monthTimer.current=setTimeout(()=>setMonthTransition(null),370)
+  }
+  const onMonthPointerDown=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return
+    monthGesture.current={x:e.clientX,y:e.clientY}
+  }
+  const onMonthPointerUp=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    const start=monthGesture.current
+    monthGesture.current=null
+    if(!start)return
+    const dx=e.clientX-start.x,dy=e.clientY-start.y
+    if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.2)return
+    suppressMonthTap.current=Date.now()+400
+    shiftMonth(dx<0?1:-1)
+  }
+  const jump=(direction:number)=>{
+    setFan(null)
+    if(monthOpen){
+      shiftMonth(direction>0?1:-1)
+      return
+    }
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    const el=scroller.current
+    if(!el||window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      setAnchor(pages[direction>0?2:0]);return
+    }
+    // Arrows animate the actual scrollable columns, just like touch swipes.
+    el.scrollTo({left:snapTarget(direction>0?2:0,el.clientWidth),behavior:'smooth'})
+    scrollTimeout.current=setTimeout(settleScroll,480)
+  }
+  const chooseStripDate=(date:string)=>{
+    if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
+    setFan(null)
+    if(mode==='week'){
+      // A weekday tap drills straight into its single-day timetable.
+      setMotion('idle')
+      setAnchor(date)
+      setMode('day')
+      return
+    }
+    const selected=alignCalendarStart(date,mode,data.weekEndDay)
+    if(selected===calendarPageStart)return
+    if(selected===pages[0]){jump(-1);return}
+    if(selected===pages[2]){jump(1);return}
+    setAnchor(selected)
+  }
+  const changeMode=(next:CalendarView)=>{setFan(null);setMonthOpen(false);if(next!==mode)animateCalendar(()=>{
+    setAnchor(alignCalendarStart(anchor,next,data.weekEndDay))
+    setMode(next)
+  },'switch')}
+  const onDown=(e:ReactPointerEvent,occ?:Occurrence,source?:NewEntry)=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return
+    ignoreClick.current=false
+    const element=e.currentTarget as HTMLElement
+    const timer=setTimeout(()=>{
+      const g=gesture.current;if(!g)return
+      g.active=true;ignoreClick.current=true
+      if(occ){
+        try{element.setPointerCapture(e.pointerId)}catch{}
+        setPressed(occ.key);setDragUI({occ,date:occ.date,from:occ.from,to:occ.to})
+      } else if(source) onNew(source)
+    },430)
+    gesture.current={x:e.clientX,y:e.clientY,timer,active:false,occ,source}
+  }
+  const targetAt=(x:number,y:number):NewEntry|undefined=>{
+    const column=document.elementsFromPoint(x,y).map(el=>el.closest<HTMLElement>('[data-calendar-day]')).find(Boolean)
+    if(!column)return undefined
+    const date=column.dataset.calendarDay||''
+    const rect=column.getBoundingClientRect()
+    let relative=Math.max(0,Math.min(rect.height-1,y-rect.top))
+    if(fan&&relative>=insertionY&&relative<insertionY+expansionHeight)return undefined
+    if(relative>=insertionY+expansionHeight)relative-=expansionHeight
+    const rowIndex=Math.floor(relative/heightPerSlot)
+    const from=timeString((rowIndex*2)*60)
+    return {date,from,to:timeString((rowIndex*2+2)*60)}
+  }
+  const onMove=(e:ReactPointerEvent)=>{
+    const g=gesture.current;if(!g)return
+    if(!g.active){if(Math.hypot(e.clientX-g.x,e.clientY-g.y)>12){clearTimeout(g.timer);gesture.current=null}return}
+    if(g.occ){const dest=targetAt(e.clientX,e.clientY);if(dest){g.target=dest;setDragUI({occ:g.occ,...dest})}}
+  }
+  const onUp=(e:ReactPointerEvent)=>{
+    const g=gesture.current;if(!g)return
+    clearTimeout(g.timer)
+    if(g.active&&g.occ){
+      const target=g.target||targetAt(e.clientX,e.clientY)
+      const span=minutes(g.occ.to)-minutes(g.occ.from)
+      const dest=target?{...target,to:timeString(minutes(target.from)+span)}:{date:g.occ.date,from:g.occ.from,to:g.occ.to}
+      if(dest.date!==g.occ.date||dest.from!==g.occ.from)setProposal({occ:g.occ,...dest})
+      else onNotice('Ziehe den Termin auf einen anderen Zeitslot.')
+    }
+    if(g.active && g.occ)setFan(null)
+    setDragUI(null);setPressed('');gesture.current=null
+    setTimeout(()=>{ignoreClick.current=false},170)
+  }
+  const cancelGesture=()=>{if(gesture.current)clearTimeout(gesture.current.timer);gesture.current=null;setDragUI(null);setPressed('')}
+  const confirmScope=(scope:'single'|'future')=>{
+    if(!proposal)return
+    onOfferingsChange(moveOccurrence(data.offerings,proposal.occ.offering.id,proposal.occ.origin,proposal.date,proposal.from,proposal.to,scope))
+    onNotice(scope==='future'?'Alle zukünftigen Termine verschoben.':'Termin einmalig verschoben.')
+    setProposal(null)
+  }
+  const focusChoices=modules.filter(m=>m.status==='current'&&data.offerings.some(o=>o.moduleId===m.id&&o.semesterId===semester.id))
+  // The tapped slot stays in front. Other days are listed behind it, never
+  // portrayed as a different appointment occurring at this slot.
+  const fanItems=fan ? [fan.occ,...linkedCandidates(data.offerings,fan.occ).map(x=>x.occ)]
+    .filter((item,index,list)=>list.findIndex(x=>x.key===item.key)===index) : []
+  const fanSelected=fanPicked ? !fanPicked.cancelled&&occurrenceAtOrigin(fanPicked.offering,fanPicked.origin,false)!==null : false
   const fanCancelled=!!fanPicked?.cancelled
   const fanMain=fanPicked ? findMainForInactive(data.offerings,fanPicked) : null
   const fanConflict=fanPicked ? occurrencesOn(data.offerings,fanPicked.date)
