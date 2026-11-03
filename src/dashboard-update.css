@@ -316,3 +316,12 @@ html[data-theme='light'] .overview-learning-card{background:color-mix(in srgb,va
   .overview-upcoming{padding:12px 11px;min-height:112px}
   .overview-upcoming b{align-items:flex-start;flex-direction:column;gap:2px}
 }
+
+/* Secondary cards hug their content instead of reserving an empty lower area. */
+.overview-upcoming-stack{grid-template-rows:repeat(2,auto)}
+.overview-upcoming{height:auto;min-height:0;align-items:center;padding-block:14px}
+@media(max-width:700px){
+  .overview-upcoming-stack{grid-template-rows:auto}
+  .overview-upcoming{height:auto;min-height:0}
+}
+@media(max-width:420px){.overview-upcoming{min-height:0}}
