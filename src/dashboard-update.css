@@ -270,3 +270,11 @@ html[data-theme='light'] .overview-learning-linked>button>b{color:color-mix(in s
   .overview-learning-stop:not(:last-child)::before{left:15px}
   .overview-learning-main{padding:11px 12px}
 }
+
+/* Partial attendance is progress, not a warning: green attended share, gray remainder. */
+.overview-attendance>div .is-partial i{border-color:transparent;background:conic-gradient(#78c995 var(--attendance-progress),#4c4c54 0);color:transparent}
+.overview-attendance-legend .is-partial:before{background:conic-gradient(#78c995 50%,#4c4c54 0)}
+.overview-month-grid>div.is-partial>span{border-color:transparent;background:conic-gradient(#78c995 var(--attendance-progress),#4c4c54 0);color:#151719}
+html[data-theme='light'] .overview-attendance>div .is-partial i{border-color:transparent;background:conic-gradient(#76c993 var(--attendance-progress),#d8d8dd 0);color:transparent}
+html[data-theme='light'] .overview-attendance-legend .is-partial:before{background:conic-gradient(#76c993 50%,#d8d8dd 0)}
+html[data-theme='light'] .overview-month-grid>div.is-partial>span{border-color:transparent;background:conic-gradient(#76c993 var(--attendance-progress),#d8d8dd 0);color:#202126}
