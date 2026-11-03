@@ -380,9 +380,9 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
   const save=()=>{
     if (!title.trim()) return setErr('Gib bitte einen Titel ein.')
     if ((type==='exam'||hasDeadline)&&!date) return setErr('Wähle bitte ein Datum aus.')
-    if ((type==='exam'||hasDeadline)&&hasTime && minutes(to)<=minutes(from)) return setErr('Das Ende muss nach dem Beginn liegen.')
+    if (type==='exam'&&hasTime && minutes(to)<=minutes(from)) return setErr('Das Ende muss nach dem Beginn liegen.')
     onSave({id:existing?.id||uid(),semesterId:existing?.semesterId||semester.id,moduleId,type,title:title.trim(),date:type==='exam'||hasDeadline?date:'',notes:notes.trim()||undefined,
-      from:(type==='exam'||hasDeadline)&&hasTime?from:undefined,to:(type==='exam'||hasDeadline)&&hasTime?to:undefined,completed,componentId:existing?.componentId,selected:existing?.selected,weight:existing?.weight})
+      from:(type==='exam'||hasDeadline)&&hasTime?from:undefined,to:type==='exam'&&hasTime?to:undefined,completed,componentId:existing?.componentId,selected:existing?.selected,weight:existing?.weight})
   }
   return <BottomSheet title={existing?'Eintrag bearbeiten':type==='exam'?'Neue Prüfung':'Neue Hausaufgabe'} onClose={onClose}
     footer={<button className="primary-action" onClick={save}>{existing?'Speichern':'Hinzufügen'}<Check size={18}/></button>}>
@@ -396,7 +396,7 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
     {type==='homework'&&<div className="editor-field"><button className={'assessment-time-switch '+(hasDeadline?'enabled':'')} onClick={()=>setHasDeadline(value=>!value)}><CalendarDays size={17}/>{hasDeadline?'Abgabetermin angegeben':'Abgabetermin hinzufügen'}<span>{hasDeadline?'Entfernen':'Optional'}</span></button></div>}
     {(type==='exam'||hasDeadline)&&<div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={type==='exam'?examVisibilityEnd(semester):semester.end} onChange={setDate}/>{type==='exam'&&<small className="setting-hint">Prüfungen können noch bis einen Monat nach Semesterende stattfinden.</small>}</div>}
     {(type==='exam'||hasDeadline)&&<div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>}
-    {(type==='exam'||hasDeadline)&&hasTime&&<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>}
+    {(type==='exam'||hasDeadline)&&hasTime&&(type==='exam'?<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>:<div className="editor-field"><span className="field-label">Abgabezeit</span><UniflowPicker kind="time" label="Abgabezeit" value={from} onChange={setFrom}/></div>)}
     <label className="editor-field"><span className="field-label">Notizen · optional</span><textarea className="assessment-notes-input" rows={3} value={notes} onChange={event=>setNotes(event.target.value)} placeholder="Was möchtest du dir dazu merken?"/></label>
     {<button className={'assessment-check '+(completed?'completed':'')} onClick={()=>setCompleted(v=>!v)}><span>{completed?<Check size={15}/>:null}</span>{completed?'Erledigt':'Als erledigt markieren'}</button>}
     {existing&&onDelete&&<button className="danger-simple" onClick={onDelete}><Trash2 size={18}/> {type==='exam'?'Prüfung':'Hausaufgabe'} löschen</button>}

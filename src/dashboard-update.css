@@ -152,3 +152,45 @@ html[data-theme='light'] .overview-month-grid>div.is-future>span{border-color:#2
 .overview-dashboard-clean>.overview-now-grid{order:4}
 .overview-dashboard-clean>.overview-learning-map{order:5}
 .overview-dashboard-clean>.overview-tasks-focus{order:6}
+
+/* Next-up dashboard refinements: three equal cards and a two-line event title. */
+.overview-upcoming-stack{grid-template-rows:repeat(3,minmax(0,1fr));gap:10px}
+.overview-upcoming{padding:15px 18px;gap:12px;border-radius:22px}
+.overview-upcoming:nth-child(3){background:#17171b}
+.overview-upcoming>svg{padding:6px;border-radius:11px}
+.overview-upcoming>span{gap:5px}
+.overview-upcoming strong{font-size:13px;-webkit-line-clamp:1}
+.overview-current-event strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+html[data-theme='light'] .overview-upcoming:nth-child(3){background:#f1f1f3}
+
+/* Attendance uses green, yellow and neutral gray only. Today is the outer rounded frame. */
+.overview-attendance>div .is-partial i{border-color:transparent;background:#e2bd55;color:#29230f}
+.overview-attendance>div .is-open i{border-color:#777780;background:transparent;color:#aaaab2}
+.overview-attendance>div .is-today{border-radius:15px!important;box-shadow:inset 0 0 0 1px #ffffff32}
+.overview-attendance>div .is-today i{box-shadow:none}
+.overview-attendance-legend .is-partial:before{background:#e2bd55}
+.overview-attendance-legend .is-open:before{background:#777781}
+.overview-month-grid>div.is-partial>span{border-color:transparent;background:#e2bd55;color:#29230f}
+.overview-month-grid>div.is-open>span{border-color:#777781!important;background:transparent!important;color:#aaaab2!important}
+html[data-theme='light'] .overview-attendance>div .is-partial i{border-color:transparent;background:#d8ad3f;color:#28200d}
+html[data-theme='light'] .overview-attendance>div .is-open i{border-color:#8a8a91;background:transparent;color:#66676f}
+html[data-theme='light'] .overview-attendance>div .is-today{box-shadow:inset 0 0 0 1px #20212652}
+html[data-theme='light'] .overview-month-grid>div.is-partial>span{border-color:transparent;background:#d8ad3f;color:#28200d}
+html[data-theme='light'] .overview-month-grid>div.is-open>span{border-color:#99999f!important;background:transparent!important;color:#66676f!important}
+
+/* Module colour carries more of the daily learning route. */
+.overview-learning-stop:not(:last-child)::before{opacity:.82}
+.overview-learning-node>i{background:color-mix(in srgb,var(--study-color) 48%,#17171b);color:#fff}
+.overview-learning-stop>button{background:color-mix(in srgb,var(--study-color) 18%,#1b1b20)}
+.overview-learning-action{background:color-mix(in srgb,var(--study-color) 38%,#24242a);color:#fff}
+html[data-theme='light'] .overview-learning-node>i{background:color-mix(in srgb,var(--study-color) 44%,#fff);color:color-mix(in srgb,var(--study-color) 70%,#202126)}
+html[data-theme='light'] .overview-learning-stop>button{background:color-mix(in srgb,var(--study-color) 16%,#fff)}
+html[data-theme='light'] .overview-learning-action{background:color-mix(in srgb,var(--study-color) 32%,#fff);color:color-mix(in srgb,var(--study-color) 72%,#202126)}
+
+/* The streak celebration follows the light shell instead of flashing a dark screen. */
+html[data-theme='light'] .streak-celebration,html[data-theme='light'] .streak-celebration.is-purple{--flame:#ff8a1f;--flame-bright:#c95400;background:#fff8f1ed;color:#c95400}
+html[data-theme='light'] .streak-celebration>span{color:#6f5545}
+html[data-theme='light'] .streak-celebration>b{background:#ff8a1f12;border-color:#ff8a1f45;color:#9b4a10}
+html[data-theme='light'] .streak-aura{background:radial-gradient(ellipse,#ff9b4138,transparent 65%)}
+
+@media(max-width:480px){.overview-upcoming-stack{gap:7px}.overview-upcoming{padding:9px 10px;gap:7px;border-radius:17px}.overview-upcoming>svg{width:15px;height:15px;padding:4px}.overview-upcoming small{font-size:7px}.overview-upcoming strong{font-size:10px}.overview-upcoming b{font-size:7px}}

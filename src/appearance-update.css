@@ -277,3 +277,15 @@ html[data-theme='light'] .module-fast .module-quick-thinking{border:1px solid #d
 html[data-theme='light'] .module-fast .module-quick-thinking-symbol{color:#805489!important}
 html[data-theme='light'] .module-fast .module-quick-thinking-track{background:#e4d8e1!important}
 html[data-theme='light'] .module-fast .module-quick-thinking-track>i{background:linear-gradient(90deg,transparent,#805489,transparent)!important}
+
+/* Homework and assessment sheets use the same complete light palette as other forms. */
+html[data-theme='light'] .sheet .assessment-time-switch{background:#f1f1f3!important;border:1px solid #d8d8dd!important;color:#202126!important}
+html[data-theme='light'] .sheet .assessment-time-switch.enabled{background:#e9e9ec!important;border-color:#cfcfd5!important}
+html[data-theme='light'] .sheet .assessment-time-switch>span{color:#66676f!important}
+html[data-theme='light'] .sheet .assessment-check{background:transparent!important;color:#303137!important}
+html[data-theme='light'] .sheet .assessment-check>span{background:#fff!important;border-color:#8c8c94!important;color:#202126!important}
+html[data-theme='light'] .sheet .assessment-check.completed>span{background:#24252b!important;border-color:#24252b!important;color:#fff!important}
+html[data-theme='light'] .sheet .assessment-notes-input{background:#fff!important;border-color:#d8d8dd!important;color:#202126!important;-webkit-text-fill-color:#202126!important}
+html[data-theme='light'] .sheet .assessment-notes-input::placeholder{color:#20212666!important;-webkit-text-fill-color:#20212666!important}
+html[data-theme='light'] .sheet .uf-assessment-preview :is(h2,p){color:#202126!important}
+html[data-theme='light'] .sheet .uf-assessment-preview-kind{color:#66676f!important}
