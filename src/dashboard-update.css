@@ -163,19 +163,14 @@ html[data-theme='light'] .overview-month-grid>div.is-future>span{border-color:#2
 .overview-current-event strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
 html[data-theme='light'] .overview-upcoming:nth-child(2){background:#fff}
 
-/* Attendance uses green, yellow and neutral gray only. Today gets a quiet fill. */
-.overview-attendance>div .is-partial i{border-color:transparent;background:#e2bd55;color:#29230f}
+/* Attendance uses green for a maintained routine and neutral gray otherwise. */
 .overview-attendance>div .is-open i{border-color:#777780;background:transparent;color:#aaaab2}
 .overview-attendance>div .is-today{border-radius:15px!important;box-shadow:none;background:#ffffff0c!important}
 .overview-attendance>div .is-today i{box-shadow:none}
-.overview-attendance-legend .is-partial:before{background:#e2bd55}
 .overview-attendance-legend .is-open:before{background:#777781}
-.overview-month-grid>div.is-partial>span{border-color:transparent;background:#e2bd55;color:#29230f}
 .overview-month-grid>div.is-open>span{border-color:#777781!important;background:transparent!important;color:#aaaab2!important}
-html[data-theme='light'] .overview-attendance>div .is-partial i{border-color:transparent;background:#d8ad3f;color:#28200d}
 html[data-theme='light'] .overview-attendance>div .is-open i{border-color:#8a8a91;background:transparent;color:#66676f}
 html[data-theme='light'] .overview-attendance>div .is-today{box-shadow:none;background:#2021260b!important}
-html[data-theme='light'] .overview-month-grid>div.is-partial>span{border-color:transparent;background:#d8ad3f;color:#28200d}
 html[data-theme='light'] .overview-month-grid>div.is-open>span{border-color:#99999f!important;background:transparent!important;color:#66676f!important}
 
 /* Module colour clearly carries the daily learning route. */
@@ -197,32 +192,36 @@ html[data-theme='light'] .streak-aura{background:radial-gradient(ellipse,#ff9b41
 
 @media(max-width:480px){.overview-upcoming-stack{gap:7px}.overview-upcoming{padding:9px 10px;gap:7px;border-radius:17px}.overview-upcoming>svg{width:15px;height:15px;padding:4px}.overview-upcoming small{font-size:7px}.overview-upcoming strong{font-size:10px}.overview-upcoming b{font-size:7px}}
 
-/* Final dashboard hierarchy: fewer competing surfaces and one spacing rhythm. */
-.overview-dashboard-clean{--overview-large-radius:30px;--overview-card-radius:21px}
-.overview-dashboard-clean>.overview-welcome{padding:clamp(34px,6vw,68px) 12px clamp(24px,4vw,42px)}
-.overview-welcome h1{font-size:clamp(43px,8vw,82px)}
+/* Canonical dashboard rhythm: 8/12/16/24/32 spacing and three radius levels. */
+.overview-dashboard-clean{--overview-space-xs:8px;--overview-space-sm:12px;--overview-space-md:16px;--overview-space-lg:24px;--overview-space-xl:32px;--overview-large-radius:28px;--overview-card-radius:20px;--overview-control-radius:14px;max-width:980px;padding-inline:clamp(18px,4vw,40px)}
+.overview-dashboard-clean>.overview-welcome{padding:clamp(29px,5vw,58px) 12px var(--overview-space-xl)}
+.overview-welcome h1{font-size:clamp(39px,7vw,70px)}
 .overview-welcome p{margin-top:12px;font-size:clamp(12px,1.7vw,15px)}
 
 /* The running timer stays useful without reading like another content banner. */
-.overview-dashboard-clean>.mlh-running-timer{margin:0 0 20px;padding:13px 15px;border-radius:var(--overview-card-radius);background:color-mix(in srgb,var(--timer-accent) 8%,transparent)}
+.overview-dashboard-clean>.mlh-running-timer{margin:0 0 var(--overview-space-lg);padding:12px 16px;border-radius:var(--overview-card-radius);background:color-mix(in srgb,var(--timer-accent) 8%,transparent)}
 .overview-dashboard-clean>.mlh-running-timer>header{font-size:10px}
 .overview-dashboard-clean>.mlh-running-timer .mlh-timer-clock{margin:8px 0 1px;font-size:clamp(29px,6vw,40px)}
 .overview-dashboard-clean>.mlh-running-timer>p{margin-bottom:10px}
-.overview-dashboard-clean>.mlh-running-timer .mlh-timer-controls{margin-top:11px;gap:7px}
+.overview-dashboard-clean>.mlh-running-timer .mlh-timer-controls{margin-top:12px;gap:8px}
 .overview-dashboard-clean>.mlh-running-timer .mlh-timer-controls>button{min-height:34px;padding:7px 12px;font-size:10px}
 
 /* The weekly strip is a glanceable status row; detail remains in the month view. */
-.overview-attendance{margin-bottom:28px;padding:17px 18px;border-radius:var(--overview-large-radius)}
-.overview-attendance>header{margin-bottom:13px}
-.overview-attendance>div{gap:6px}
-.overview-attendance>div>div{gap:5px}
+.overview-attendance{margin-bottom:var(--overview-space-lg);padding:0!important;border-radius:0;background:transparent!important}
+html[data-theme='light'] .overview-attendance{background:transparent!important}
+.overview-attendance>header{margin-bottom:12px}
+.overview-attendance>div{gap:8px}
+.overview-attendance>div>div{gap:4px}
 .overview-attendance>div small{display:none}
 .overview-attendance>div i{width:34px;height:34px}
+.overview-attendance>div .is-open i,.overview-attendance>div .is-future i{border-color:transparent;background:#4c4c54;color:transparent}
+html[data-theme='light'] .overview-attendance>div .is-open i,html[data-theme='light'] .overview-attendance>div .is-future i{border-color:transparent;background:#d8d8dd;color:transparent}
 
-/* The coloured event is primary; exam and homework are quieter peers. */
-.overview-now-grid{grid-template-columns:minmax(0,320px) minmax(0,1fr);margin-bottom:32px}
-.overview-current-event{border-radius:var(--overview-large-radius)}
-.overview-upcoming{border-radius:var(--overview-card-radius);background:#121216}
+/* The 260px event and two 124px secondary cards form one balanced desktop block. */
+.overview-now-grid{grid-template-columns:clamp(230px,26vw,260px) minmax(0,1fr);gap:12px;align-items:stretch;margin-bottom:var(--overview-space-lg)}
+.overview-current-event{border-radius:var(--overview-large-radius);padding:22px}
+.overview-upcoming-stack{align-self:stretch;height:100%;grid-template-rows:repeat(2,minmax(0,1fr));gap:12px}
+.overview-upcoming{height:100%;min-height:0;align-items:center;padding:16px;gap:12px;border-radius:var(--overview-card-radius);background:#121216}
 .overview-upcoming:nth-child(2){background:#121216}
 .overview-upcoming b{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .overview-upcoming b>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -231,11 +230,11 @@ html[data-theme='light'] .overview-upcoming,html[data-theme='light'] .overview-u
 html[data-theme='light'] .overview-upcoming b>time{color:#4f5057}
 
 /* Learning modules and their related tasks share one route card. */
-.overview-learning-map{margin-bottom:30px;border-radius:var(--overview-large-radius)}
-.overview-learning-map>header{margin-bottom:17px}
+.overview-learning-map{margin-bottom:var(--overview-space-lg);padding:22px;border-radius:var(--overview-large-radius)}
+.overview-learning-map>header{margin-bottom:16px}
 .overview-learning-stop{padding-bottom:8px}
-.overview-learning-card{min-width:0;overflow:hidden;border-radius:var(--overview-card-radius);background:color-mix(in srgb,var(--study-color) 30%,#1b1b20)}
-.overview-learning-main{display:flex;align-items:center;justify-content:space-between;gap:15px;width:100%;min-width:0;padding:13px 15px;border:0;background:transparent;color:#eeeef1;text-align:left;font:inherit;cursor:pointer}
+.overview-learning-card{min-width:0;overflow:hidden;border-radius:var(--overview-card-radius);background:color-mix(in srgb,var(--study-color) 18%,#1b1b20)}
+.overview-learning-main{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-width:0;padding:14px 16px;border:0;background:transparent;color:#eeeef1;text-align:left;font:inherit;cursor:pointer}
 .overview-learning-main:disabled{cursor:default}
 .overview-learning-linked{display:grid;padding:0 10px 9px}
 .overview-learning-linked>button{display:flex;align-items:center;gap:9px;width:100%;min-width:0;padding:8px 7px;border:0;border-top:1px solid #ffffff12;background:transparent;color:#e8e7ed;text-align:left;font:inherit;cursor:pointer}
@@ -247,81 +246,31 @@ html[data-theme='light'] .overview-upcoming b>time{color:#4f5057}
 .overview-learning-completed .overview-learning-route{margin-top:4px}
 .overview-learning-completed .overview-learning-stop{opacity:.48}
 .overview-learning-stop.is-complete .overview-learning-copy>strong{text-decoration:line-through}
-html[data-theme='light'] .overview-learning-card{background:color-mix(in srgb,var(--study-color) 27%,#fff)}
+html[data-theme='light'] .overview-learning-card{background:color-mix(in srgb,var(--study-color) 15%,#fff)}
 html[data-theme='light'] .overview-learning-main{color:#202126}
 html[data-theme='light'] .overview-learning-linked>button{border-top-color:#20212614;color:#202126}
 html[data-theme='light'] .overview-learning-linked>button>b{color:color-mix(in srgb,var(--study-color) 88%,#202126)}
 
 /* General to-dos remain separate from tasks already attached to today's route. */
-.overview-tasks-focus>header{margin-bottom:13px}
+.overview-tasks-focus>header{margin-bottom:12px}
 .overview-task{border-radius:var(--overview-card-radius)}
-.overview-task>button:first-child{padding:12px 14px}
+.overview-task>button:first-child{padding:12px 16px}
 
 @media(max-width:700px){
-  .overview-dashboard-clean>.overview-welcome{padding-top:34px}
-  .overview-now-grid{grid-template-columns:minmax(150px,.9fr) minmax(0,1.1fr)}
+  .overview-dashboard-clean>.overview-welcome{padding-top:32px;padding-bottom:32px}
+  .overview-now-grid{grid-template-columns:1fr;gap:12px}
+  .overview-current-event{aspect-ratio:auto;min-height:190px}
+  .overview-upcoming-stack{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto;height:auto;gap:12px}
+  .overview-upcoming{height:auto;min-height:0}
 }
 @media(max-width:480px){
-  .overview-attendance{padding:13px 12px}
   .overview-attendance>div i{width:31px;height:31px}
-  .overview-learning-map{padding:18px}
+  .overview-learning-map{padding:16px}
   .overview-learning-stop{grid-template-columns:31px minmax(0,1fr);gap:8px}
   .overview-learning-node>i{width:30px;height:30px}
   .overview-learning-stop:not(:last-child)::before{left:15px}
-  .overview-learning-main{padding:11px 12px}
-}
-
-/* Partial attendance is progress, not a warning: green attended share, gray remainder. */
-.overview-attendance>div .is-partial i{border-color:transparent;background:conic-gradient(#78c995 var(--attendance-progress),#4c4c54 0);color:transparent}
-.overview-attendance-legend .is-partial:before{background:conic-gradient(#78c995 50%,#4c4c54 0)}
-.overview-month-grid>div.is-partial>span{border-color:transparent;background:conic-gradient(#78c995 var(--attendance-progress),#4c4c54 0);color:#151719}
-html[data-theme='light'] .overview-attendance>div .is-partial i{border-color:transparent;background:conic-gradient(#76c993 var(--attendance-progress),#d8d8dd 0);color:transparent}
-html[data-theme='light'] .overview-attendance-legend .is-partial:before{background:conic-gradient(#76c993 50%,#d8d8dd 0)}
-html[data-theme='light'] .overview-month-grid>div.is-partial>span{border-color:transparent;background:conic-gradient(#76c993 var(--attendance-progress),#d8d8dd 0);color:#202126}
-
-/* Quieter dashboard pass: status dots, flatter secondary cards and less surface competition. */
-.overview-dashboard-clean>.overview-welcome{padding-top:clamp(29px,5vw,58px);padding-bottom:clamp(21px,3vw,34px)}
-.overview-welcome h1{font-size:clamp(39px,7vw,70px)}
-
-.overview-attendance{padding:0!important;background:transparent!important;border-radius:0;margin-bottom:27px}
-html[data-theme='light'] .overview-attendance{background:transparent!important}
-.overview-attendance>div .is-open i,.overview-attendance>div .is-future i{border-color:transparent;background:#4c4c54;color:transparent}
-.overview-attendance>div .is-partial i{position:relative;border-color:transparent;background:#4c4c54;color:transparent}
-.overview-attendance>div .is-partial i::after{content:"";position:absolute;right:1px;bottom:1px;width:9px;height:9px;border:2px solid #08080a;border-radius:50%;background:#78c995}
-.overview-attendance-legend .is-partial:before{position:relative;background:#4c4c54;box-shadow:inset -3px -3px 0 -1px #78c995}
-.overview-month-grid>div.is-partial>span{position:relative;border-color:transparent;background:#4c4c54;color:#f0f0f2}
-.overview-month-grid>div.is-partial>span::after{content:"";position:absolute;right:-1px;bottom:-1px;width:8px;height:8px;border:2px solid #08080a;border-radius:50%;background:#78c995}
-html[data-theme='light'] .overview-attendance>div .is-open i,html[data-theme='light'] .overview-attendance>div .is-future i{border-color:transparent;background:#d8d8dd;color:transparent}
-html[data-theme='light'] .overview-attendance>div .is-partial i{border-color:transparent;background:#d8d8dd;color:transparent}
-html[data-theme='light'] .overview-attendance>div .is-partial i::after{border-color:#fff;background:#76c993}
-html[data-theme='light'] .overview-attendance-legend .is-partial:before{background:#d8d8dd;box-shadow:inset -3px -3px 0 -1px #76c993}
-html[data-theme='light'] .overview-month-grid>div.is-partial>span{border-color:transparent;background:#d8d8dd;color:#202126}
-html[data-theme='light'] .overview-month-grid>div.is-partial>span::after{border-color:#fff;background:#76c993}
-
-.overview-upcoming-stack{align-self:center;height:auto;grid-template-rows:repeat(2,minmax(105px,auto));gap:10px}
-.overview-upcoming{height:auto;min-height:105px;padding:14px 18px}
-
-.overview-learning-card{background:color-mix(in srgb,var(--study-color) 18%,#1b1b20)}
-.overview-learning-main{padding-block:12px}
-html[data-theme='light'] .overview-learning-card{background:color-mix(in srgb,var(--study-color) 15%,#fff)}
-
-@media(max-width:700px){
-  .overview-now-grid{grid-template-columns:1fr;gap:10px}
-  .overview-current-event{aspect-ratio:auto;min-height:205px}
-  .overview-upcoming-stack{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:1fr;width:100%;gap:10px}
-  .overview-upcoming{height:100%;min-height:118px}
-}
-@media(max-width:420px){
-  .overview-current-event{min-height:190px}
-  .overview-upcoming{padding:12px 11px;min-height:112px}
+  .overview-learning-main{padding:12px}
+  .overview-upcoming{padding:12px}
   .overview-upcoming b{align-items:flex-start;flex-direction:column;gap:2px}
 }
 
-/* Secondary cards hug their content instead of reserving an empty lower area. */
-.overview-upcoming-stack{grid-template-rows:repeat(2,auto)}
-.overview-upcoming{height:auto;min-height:0;align-items:center;padding-block:14px}
-@media(max-width:700px){
-  .overview-upcoming-stack{grid-template-rows:auto}
-  .overview-upcoming{height:auto;min-height:0}
-}
-@media(max-width:420px){.overview-upcoming{min-height:0}}
