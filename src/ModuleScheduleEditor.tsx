@@ -1,16 +1,16 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { ArrowLeft, Check, ChevronDown, Copy, Lock, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Lock, Plus, RotateCcw, Sparkles, Trash2, X } from 'lucide-react'
 import {
   addDays, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
-  intersects, isAssessment, minutes, occurrenceAtOrigin, timeString, today, uid,
+  inferOfferingCategory, intersects, isAssessment, minutes, occurrenceAtOrigin, timeString, today, uid,
   upsertAssessment, weekday, weekStart,
-  type Assessment, type Offering, type Repeat, type Semester, type StudyModule, type Occurrence
+  type Assessment, type Offering, type OfferingImportance, type Repeat, type Semester, type StudyModule, type Occurrence
 } from './model'
 import type { Journey, LearningCheckin, LearningSession, LessonTopic } from './learning'
 import UniflowPicker from './UniflowPicker'
 import { supabase } from './supabase'
 import { describeAiRequestError } from './ai-errors'
-import { aiScheduleCategories, parseAiSchedulePreview, type AiScheduleSlot, type AiScheduleTopic, type AiSchedulePreview } from './ai-schedule'
+import { parseAiSchedulePreview, type AiScheduleSlot, type AiScheduleTopic, type AiSchedulePreview } from './ai-schedule'
 import './module-schedule.css'
 
 const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
@@ -21,6 +21,7 @@ const weekdayAliases: Record<string,number> = {
 type Slot = AiScheduleSlot
 type QuickTopic = AiScheduleTopic
 type QuickPreview = AiSchedulePreview
+type EventDraft={name:string;linkedGroupId:string;day:number;from:string;to:string;room:string;importance:OfferingImportance;recurrence:Repeat;date:string;endDate:string;organizer:string;onlineLink:string;advanced:boolean}
 const prettyLabel = (type:string,n:number) => type+' '+String(n).padStart(2,'0')
 const norm = (value:string) => value.toLocaleLowerCase('de-DE').replace(/[\s_-]/g,'').replace(/0+(\d+)$/, '$1')
 const durationOf = (o:Offering) => Math.max(1,minutes(o.to)-minutes(o.from))
@@ -121,23 +122,25 @@ export default function ModuleScheduleEditor({
   const [exceptionTo,setExceptionTo]=useState('12:00')
   const [expandedTopics,setExpandedTopics]=useState<Record<string,boolean>>({})
   const [editingSlotId,setEditingSlotId]=useState<string|null>(null)
+  const [eventDraft,setEventDraft]=useState<EventDraft|null>(null)
   const [deleted,setDeleted]=useState<Offering[]>([])
   const [warning,setWarning]=useState('')
   const [thinking,setThinking]=useState(false)
   const [quickError,setQuickError]=useState('')
   useEffect(()=>{
-    if(!editingSlotId&&!exceptionEditor&&!preview)return
+    if(!editingSlotId&&!exceptionEditor&&!preview&&!eventDraft)return
     const onBack=(event:Event)=>{
       const detail=(event as CustomEvent<{handled:boolean}>).detail
       if(detail?.handled)return
       detail.handled=true
-      if(preview)setPreview(null)
+      if(eventDraft)setEventDraft(null)
+      else if(preview)setPreview(null)
       else if(exceptionEditor)setExceptionEditor(false)
       else setEditingSlotId(null)
     }
     window.addEventListener('uniflow-back',onBack)
     return()=>window.removeEventListener('uniflow-back',onBack)
-  },[editingSlotId,exceptionEditor,preview])
+  },[editingSlotId,exceptionEditor,preview,eventDraft])
   const previewRequest=useRef<AbortController|null>(null)
   useEffect(()=>()=>{previewRequest.current?.abort()},[])
   const imported=useRef(false)
@@ -150,7 +153,7 @@ export default function ModuleScheduleEditor({
   const commit=(next:Offering[])=>{setWarning('');onChangeOfferings(next)}
   const update=(id:string,changes:Partial<Offering>)=>
     commit(own.map(o=>o.id===id?{...o,...changes}:o))
-  const newOffering=(contentId:string,label:string,category:string,slot:Slot,selected=false):Offering=>{
+  const newOffering=(contentId:string,label:string,category:string,slot:Slot,selected=false,importance:OfferingImportance='normal'):Offering=>{
     const date=slot.date||initialDate(semester,slot.day)
     const recurrence=slot.recurrence||'weekly'
     const id=uid()
@@ -160,7 +163,7 @@ export default function ModuleScheduleEditor({
       endDate:recurrence==='once'?date:slot.endDate||(semester.lectureEnd>=date?semester.lectureEnd:date),
       from:slot.from,to:timeString(minutes(slot.from)+slot.duration),
       recurrence,overrides:{},scheduleChanges:[],
-      room:slot.room,onlineLink:slot.onlineLink||'',organizer:slot.organizer||'',selected
+      room:slot.room,onlineLink:slot.onlineLink||'',organizer:slot.organizer||'',selected,importance
     }
   }
   const collides=(candidate:Offering,others:Offering[])=>{
@@ -170,37 +173,39 @@ export default function ModuleScheduleEditor({
     }
     return false
   }
-  const addTopic=()=>{
-    const used=groups.map(g=>g.offerings[0]?.contentLabel||'')
-    let n=1
-    while(used.some(s=>norm(s)===norm(prettyLabel('VL',n))))n++
-    const label=prettyLabel('VL',n)
-    const slot={day:0,from:'08:00',duration:120,room:''}
-    const fresh=newOffering('',label,'Vorlesung',slot)
-    fresh.contentId=fresh.id
-    fresh.selected=!collides(fresh,offerings)
-    setExpandedTopics(prev=>({...prev,[fresh.contentId||fresh.id]:true}))
-    commit([...own,fresh])
+  const openEventCreator=()=>setEventDraft({name:'',linkedGroupId:'',day:0,from:'10:00',to:'12:00',room:'',importance:'normal',recurrence:'weekly',date:initialDate(semester,0),endDate:semester.lectureEnd,organizer:'',onlineLink:'',advanced:false})
+  const eventNameSuggestions=eventDraft&&!eventDraft.linkedGroupId&&norm(eventDraft.name).length>=2
+    ?groups.filter(group=>norm(group.offerings[0]?.contentLabel||group.offerings[0]?.category||'').includes(norm(eventDraft.name))).slice(0,3):[]
+  const linkEventGroup=(groupId:string)=>{
+    const group=groups.find(item=>item.id===groupId),source=group?.offerings[0]
+    if(!source)return
+    setEventDraft(current=>current?{...current,name:source.contentLabel||source.category,linkedGroupId:groupId,day:weekday(source.date),from:source.from,to:source.to,importance:source.importance||'normal',recurrence:source.recurrence,date:source.date,endDate:source.endDate}:current)
   }
-  const addAlternative=(parent:Offering)=>{
-    const slot={day:(weekday(parent.date)+1)%7,from:parent.from,duration:120,room:''}
-    const fresh=newOffering(parent.contentId||parent.familyId||parent.id,parent.contentLabel||parent.category,parent.category,slot,false)
-    setEditingSlotId(fresh.id)
-    commit([...own,fresh])
+  const changeEventName=(name:string)=>{
+    const exact=groups.find(group=>norm(group.offerings[0]?.contentLabel||group.offerings[0]?.category||'')===norm(name))
+    if(exact){linkEventGroup(exact.id);return}
+    setEventDraft(current=>current?{...current,name,linkedGroupId:''}:current)
   }
-  const cloneAlternative=(original:Offering)=>{
-    const fresh={...original,id:uid(),overrides:{},scheduleChanges:[],selected:false}
-    setEditingSlotId(fresh.id)
-    commit([...own,fresh])
-  }
-  const duplicateTopic=(topic:Offering[])=>{
-    const newId=uid()
-    const copies=topic.map((o,i)=>({
-      ...o,id:i===0?newId:uid(),contentId:newId,
-      contentLabel:(o.contentLabel||o.category)+' Kopie',
-      selected:false,overrides:{},scheduleChanges:[]
-    }))
-    commit([...own,...copies])
+  const changeEventDay=(day:number)=>setEventDraft(current=>{
+    if(!current)return current
+    let date=addDays(weekStart(current.date),day)
+    if(date<semester.start)date=initialDate(semester,day)
+    if(date>semester.end)date=initialDate(semester,day)
+    return {...current,day,date,endDate:current.recurrence==='once'?date:current.endDate<date?semester.lectureEnd:current.endDate}
+  })
+  const saveEventDraft=()=>{
+    if(!eventDraft?.name.trim()){setWarning('Gib der Veranstaltung einen Namen.');return}
+    if(minutes(eventDraft.to)<=minutes(eventDraft.from)){setWarning('Das Ende muss nach dem Beginn liegen.');return}
+    if(eventDraft.date<semester.start||eventDraft.date>semester.end){setWarning('Der Beginn liegt außerhalb des Semesters.');return}
+    if(eventDraft.recurrence!=='once'&&(eventDraft.endDate<eventDraft.date||eventDraft.endDate>semester.end)){setWarning('Prüfe den Zeitraum der Veranstaltung.');return}
+    const group=groups.find(item=>item.id===eventDraft.linkedGroupId),source=group?.offerings[0]
+    const contentId=source?.contentId||source?.familyId||source?.id||uid()
+    const slot:Slot={day:eventDraft.day,from:eventDraft.from,duration:minutes(eventDraft.to)-minutes(eventDraft.from),room:eventDraft.room,date:eventDraft.date,endDate:eventDraft.endDate,recurrence:eventDraft.recurrence,organizer:eventDraft.organizer,onlineLink:eventDraft.onlineLink}
+    const fresh=newOffering(contentId,eventDraft.name.trim(),source?.category||inferOfferingCategory(eventDraft.name),slot,false,eventDraft.importance)
+    fresh.selected=source?false:!collides(fresh,offerings)
+    const nextOwn=source?own.map(item=>(item.contentId||item.familyId||item.id)===contentId?{...item,importance:eventDraft.importance}:item):own
+    setExpandedTopics(previous=>({...previous,[contentId]:true}))
+    commit([...nextOwn,fresh]);setEventDraft(null)
   }
   const remove=(items:Offering[])=>{
     const ids=new Set(items.map(o=>o.id))
@@ -236,9 +241,9 @@ export default function ModuleScheduleEditor({
     update(o.id,{to})
   }
   const renameTopic=(items:Offering[],label:string)=>
-    commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,contentLabel:label}:o))
-  const recategorize=(items:Offering[],category:string)=>
-    commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,category}:o))
+    commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,contentLabel:label,category:inferOfferingCategory(label)}:o))
+  const setTopicImportance=(items:Offering[],importance:OfferingImportance)=>
+    commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,importance}:o))
   const openExceptionEditor=()=>{
     const first=own.find(item=>item.selected)||own[0]
     if(!first){setWarning('Lege zuerst eine Veranstaltung an.');return}
@@ -398,11 +403,7 @@ export default function ModuleScheduleEditor({
             {preview.topics.map((t,ti)=><div className="module-fast-ai-topic" key={ti}>
               <div className="module-fast-ai-topic-head">
                 <label>Veranstaltung<input aria-label={'Veranstaltung '+(ti+1)} value={t.label}
-                  maxLength={90} onChange={e=>updateQuickTopic(ti,{label:e.target.value})}/></label>
-                <label>Art<select aria-label={'Art '+(ti+1)} value={t.category}
-                  onChange={e=>updateQuickTopic(ti,{category:e.target.value})}>
-                  {aiScheduleCategories.map(cat=><option key={cat} value={cat}>{cat}</option>)}
-                </select></label>
+                  maxLength={90} onChange={e=>updateQuickTopic(ti,{label:e.target.value,category:inferOfferingCategory(e.target.value)})}/></label>
               </div>
               {t.slots.map((s,si)=><div className="module-fast-ai-slot" key={si}>
                 <label>Wochentag<select aria-label={t.label+' Wochentag '+(si+1)} value={s.day}
@@ -463,7 +464,34 @@ export default function ModuleScheduleEditor({
         <span className="module-fast-quick-lock-label">Premium</span>
       </div>}
 
-    <div className="module-fast-section-head"><div><h2>Veranstaltungen <small>{groups.length}</small></h2></div><button onClick={addTopic}><Plus size={16}/> Hinzufügen</button></div>
+    <div className="module-fast-section-head"><div><h2>Veranstaltungen <small>{groups.length}</small></h2></div><button type="button" className="module-event-add" aria-label="Veranstaltung hinzufügen" onClick={openEventCreator}><Plus size={19}/></button></div>
+    {eventDraft&&<section className="module-event-creator">
+      <header><div><span>Neue Veranstaltung</span><strong>{eventDraft.linkedGroupId?'Alternativtermin':'Termin anlegen'}</strong></div><button type="button" aria-label="Schließen" onClick={()=>setEventDraft(null)}><X size={18}/></button></header>
+      <div className="editor-field module-event-name-field"><span className="field-label">Name</span>
+        {eventDraft.linkedGroupId
+          ?<div className="module-event-name-lock"><span><strong>{eventDraft.name}</strong><small>Alternative zur bestehenden Veranstaltung</small></span><button type="button" aria-label="Verknüpfung entfernen" onClick={()=>setEventDraft(current=>current?{...current,name:'',linkedGroupId:'',importance:'normal'}:current)}><X size={16}/></button></div>
+          :<><input autoFocus className="line-input" value={eventDraft.name} placeholder="z. B. Vorlesung 1" onChange={event=>changeEventName(event.target.value)}/>{eventNameSuggestions.length>0&&<div className="module-event-name-suggestions" role="listbox" aria-label="Passende Veranstaltungen">{eventNameSuggestions.map(group=>{const item=group.offerings[0];return <button type="button" role="option" aria-selected="false" key={group.id} onClick={()=>linkEventGroup(group.id)}><strong>{item.contentLabel||item.category}</strong><span>Alternative hinzufügen</span></button>})}</div>}</>}
+      </div>
+      <div className="uf-entry-grid">
+        <div className="uf-entry-field"><span className="field-label">Wochentag</span><UniflowPicker label="Wochentag" value={String(eventDraft.day)} options={dayNames.map((label,index)=>({value:String(index),label}))} onChange={value=>changeEventDay(Number(value))}/></div>
+        <div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={eventDraft.from} onChange={from=>setEventDraft(current=>current?{...current,from}:current)}/></div>
+        <div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={eventDraft.to} onChange={to=>setEventDraft(current=>current?{...current,to}:current)}/></div>
+      </div>
+      <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={eventDraft.room} onChange={event=>setEventDraft(current=>current?{...current,room:event.target.value}:current)}/></div>
+      <details className="module-event-advanced" open={eventDraft.advanced} onToggle={event=>setEventDraft(current=>current?{...current,advanced:event.currentTarget.open}:current)}>
+        <summary><span>Weitere Angaben</span><ChevronDown size={17}/></summary>
+        <div className="module-event-advanced-body">
+          <div className="editor-field"><span className="field-label">Wichtigkeit für den Lernplan</span><div className="module-event-importance" role="group" aria-label="Wichtigkeit">{([{value:'low',label:'Niedrig'},{value:'normal',label:'Normal'},{value:'high',label:'Hoch'}] as const).map(option=><button type="button" className={eventDraft.importance===option.value?'selected':''} aria-pressed={eventDraft.importance===option.value} key={option.value} onClick={()=>setEventDraft(current=>current?{...current,importance:option.value}:current)}>{option.label}</button>)}</div></div>
+          <div className="editor-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={eventDraft.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>setEventDraft(current=>current?{...current,recurrence:value as Repeat,endDate:value==='once'?current.date:current.endDate<current.date?semester.lectureEnd:current.endDate}:current)}/></div>
+          {eventDraft.recurrence==='once'
+            ?<div className="editor-field"><span className="field-label">Datum</span><UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={eventDraft.date} onChange={date=>setEventDraft(current=>current?{...current,date,endDate:date,day:weekday(date)}:current)}/></div>
+            :<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" min={semester.start} max={eventDraft.endDate} value={eventDraft.date} onChange={date=>setEventDraft(current=>current?{...current,date,day:weekday(date)}:current)}/></div><div className="uf-entry-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" min={eventDraft.date} max={semester.end} value={eventDraft.endDate} onChange={endDate=>setEventDraft(current=>current?{...current,endDate}:current)}/></div></div>}
+          <div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={eventDraft.organizer} onChange={event=>setEventDraft(current=>current?{...current,organizer:event.target.value}:current)}/></div>
+          <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://…" value={eventDraft.onlineLink} onChange={event=>setEventDraft(current=>current?{...current,onlineLink:event.target.value}:current)}/></div>
+        </div>
+      </details>
+      <button type="button" className="primary-action module-event-save" onClick={saveEventDraft}>{eventDraft.linkedGroupId?'Alternative speichern':'Veranstaltung speichern'}<Check size={17}/></button>
+    </section>}
     {groups.map((group,index)=>{
       const first=group.offerings[0]
       const expanded=expandedTopics[group.id]??false
@@ -472,24 +500,23 @@ export default function ModuleScheduleEditor({
           <button type="button" className="module-fast-topic-toggle" aria-expanded={expanded} onClick={()=>setExpandedTopics(prev=>({...prev,[group.id]:!expanded}))}>
             <ChevronDown size={17} className={expanded?'expanded':''}/>
             <span>{first.contentLabel||first.category}</span>
-            <small>{group.offerings.length} {group.offerings.length===1?'Termin':'Alternativen'}</small>
+            <small>{group.offerings.length} {group.offerings.length===1?'Termin':'Termine'}</small>
           </button>
         </div>
         {expanded&&<><div className="module-fast-topic-head">
           <div className="module-fast-topic-inputs">
-            <label>Inhalt<input aria-label={'Inhalt Veranstaltung '+(index+1)} value={first.contentLabel??first.category} onChange={e=>renameTopic(group.offerings,e.target.value)}/></label>
-            <label>Art<UniflowPicker label="Veranstaltungsart" value={first.category} allowCustom onChange={value=>recategorize(group.offerings,value)}
-              options={[...(!['Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].includes(first.category)?[first.category]:[]),'Vorlesung','Übung','Tutorium','Seminar','Freies Lernen'].map(value=>({value,label:value}))}/></label>
+            <label>Name<input aria-label={'Name Veranstaltung '+(index+1)} value={first.contentLabel??first.category} onChange={e=>renameTopic(group.offerings,e.target.value)}/></label>
           </div>
+          <details className="module-event-group-more"><summary><span>Weitere Angaben</span><ChevronDown size={16}/></summary><div className="module-event-importance" role="group" aria-label="Wichtigkeit für den Lernplan">{([{value:'low',label:'Niedrig'},{value:'normal',label:'Normal'},{value:'high',label:'Hoch'}] as const).map(option=><button type="button" className={(first.importance||'normal')===option.value?'selected':''} aria-pressed={(first.importance||'normal')===option.value} key={option.value} onClick={()=>setTopicImportance(group.offerings,option.value)}>{option.label}</button>)}</div></details>
         </div>
         <div className="module-fast-slot-list">
-          {group.offerings.map((o,i)=>{
+          {group.offerings.map(o=>{
             const active=!!occurrenceAtOrigin(o,o.date,false)
             const editing=editingSlotId===o.id
             return <div className={'module-fast-slot '+(editing?'is-editing':'')} key={o.id}>
               <button type="button" className="module-fast-slot-preview" aria-expanded={editing} onClick={()=>setEditingSlotId(editing?null:o.id)}>
                 <span className={'module-fast-dot '+(active?'active':'')}/>
-                <span className="module-fast-slot-copy"><strong>{i===0?'Gruppe 1':'Alternative '+i}<em>{active?'Im Plan':'Alternative'}</em></strong><small>{offeringSentence(o)}</small>{(o.room||o.organizer)&&<small>{[o.room,o.organizer].filter(Boolean).join(' · ')}</small>}</span>
+                <span className="module-fast-slot-copy"><strong>{dayNames[weekday(o.date)]} · {o.from}–{o.to}<em>{active?'Im Plan':'Nicht im Plan'}</em></strong><small>{offeringSentence(o)}</small>{(o.room||o.organizer)&&<small>{[o.room,o.organizer].filter(Boolean).join(' · ')}</small>}</span>
                 <span className="module-fast-edit-label">{editing?'Schließen':'Bearbeiten'}</span>
               </button>
               {editing&&<div className="module-slot-edit-form uf-entry-form">
@@ -502,15 +529,13 @@ export default function ModuleScheduleEditor({
                 <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={o.room} onChange={e=>update(o.id,{room:e.target.value})}/></div>
                 <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://…" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></div>
                 <div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></div>
-                <div className="module-fast-slot-actions"><button type="button" onClick={()=>cloneAlternative(o)}><Copy size={16}/> Duplizieren</button><button type="button" className="danger" onClick={()=>remove([o])}><Trash2 size={16}/> Löschen</button></div>
+                <div className="module-fast-slot-actions"><button type="button" className="danger" onClick={()=>remove([o])}><Trash2 size={16}/> Termin löschen</button></div>
               </div>}
             </div>
           })}
         </div>
         <div className="module-fast-topic-foot">
-          <button className="module-fast-add-alt" onClick={()=>addAlternative(first)}><Plus size={16}/> Alternative</button>
           <div className="module-fast-icon-actions">
-            <button title="Veranstaltung duplizieren" aria-label="Veranstaltung duplizieren" onClick={()=>duplicateTopic(group.offerings)}><Copy size={17}/></button>
             <button title="Veranstaltung löschen" aria-label="Veranstaltung löschen" onClick={()=>remove(group.offerings)}><Trash2 size={17}/></button>
           </div>
         </div></>}

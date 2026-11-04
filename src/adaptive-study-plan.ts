@@ -43,7 +43,6 @@ export type StudyPlanItem={key:string;label:string;minutes:number;target:number}
 export type StudyDayBundle={id:string;date:string;moduleId:string;examId:string;minutes:number;items:StudyPlanItem[];completed?:boolean}
 export type StudyPlanNotice={moduleId?:string;message:string;severity:'info'|'warning'}
 export type StudyPlan={reference:string;preferences:StudySchedulePreferences;bundles:StudyDayBundle[];notices:StudyPlanNotice[];lessons:NumberedLesson[]}
-export type StudyGap={id:string;date:string;moduleId:string;from:number;to:number;labels:string[]}
 type Window={from:number;to:number}
 const dayDistance=(a:string,b:string)=>Math.round((fromDate(b).getTime()-fromDate(a).getTime())/86400000)
 const weekdaysOpen=(date:string,prefs:StudySchedulePreferences)=>prefs.weekdays.includes(weekday(date))&&!prefs.excludedDates.includes(date)
@@ -83,7 +82,7 @@ export function buildStudyPlan(data:AppData,reference=today()):StudyPlan{
     for(const key of keys)if(session.date>(history.get(key)||''))history.set(key,session.date)
   }
   const semesterLessons=new Map<string,NumberedLesson[]>()
-  type Unit={lesson:NumberedLesson;examId:string;deadline:string;loose:boolean;release:string;level:number;base:number;last:string;moduleId:string}
+  type Unit={lesson:NumberedLesson;examId:string;deadline:string;loose:boolean;release:string;level:number;base:number;priority:number;last:string;moduleId:string}
   const units:Unit[]=[],seen=new Set<string>(),lessonMap=new Map<string,NumberedLesson>()
   for(const exam of exams){
     const semester=data.semesters.find(item=>item.id===exam.semesterId)
@@ -102,8 +101,11 @@ export function buildStudyPlan(data:AppData,reference=today()):StudyPlan{
       const level=actualLevel>=4&&reviews.has(lesson.key)?3:actualLevel
       if(level>=4)continue
       const historic=history.get(lesson.key)
-      const base=difficultyMinutes[lessonDifficultyFor(preferences,lesson.key)]
-      units.push({lesson,examId:exam.id,deadline:exam.date?addDays(exam.date,-1):addDays(reference,13),loose:!exam.date,release:lesson.occurrence.date>reference?lesson.occurrence.date:reference,level,base,last:reviews.has(lesson.key)?'':historic||'',moduleId:lesson.moduleId})
+      const importance=lesson.occurrence.offering.importance||'normal'
+      const priority=importance==='high'?2:importance==='low'?0:1
+      const rawBase=difficultyMinutes[lessonDifficultyFor(preferences,lesson.key)]*(importance==='high'?1.25:importance==='low'?0.75:1)
+      const base=Math.max(30,Math.min(180,Math.round(rawBase/15)*15))
+      units.push({lesson,examId:exam.id,deadline:exam.date?addDays(exam.date,-1):addDays(reference,13),loose:!exam.date,release:lesson.occurrence.date>reference?lesson.occurrence.date:reference,level,base,priority,last:reviews.has(lesson.key)?'':historic||'',moduleId:lesson.moduleId})
     }
   }
   result.lessons=[...lessonMap.values()]
@@ -129,7 +131,7 @@ export function buildStudyPlan(data:AppData,reference=today()):StudyPlan{
     balancingLoads.set(deadline,Math.max(60,firstWork/Math.max(1,availableDays*0.45)))
   }
   const bundles=new Map<string,StudyDayBundle>(),firstDates=new Map<string,string>()
-  const ordered=units.sort((a,b)=>a.deadline.localeCompare(b.deadline)||a.lesson.occurrence.date.localeCompare(b.lesson.occurrence.date)||a.lesson.occurrence.from.localeCompare(b.lesson.occurrence.from)||a.lesson.key.localeCompare(b.lesson.key))
+  const ordered=units.sort((a,b)=>a.deadline.localeCompare(b.deadline)||b.priority-a.priority||a.lesson.occurrence.date.localeCompare(b.lesson.occurrence.date)||a.lesson.occurrence.from.localeCompare(b.lesson.occurrence.from)||a.lesson.key.localeCompare(b.lesson.key))
   const allocated=new Map<string,string>(),plannedLevels=new Map<string,number>(),missing=new Map<string,number>()
   const schedule=(unit:Unit,target:number,earliest:string,optional=false)=>{
     let chosen:string|undefined,best=Infinity,chosenWindow:Window|undefined
@@ -196,38 +198,6 @@ export function buildStudyPlan(data:AppData,reference=today()):StudyPlan{
     completed.set(id,bundle)
   }
   result.bundles.push(...completed.values())
-  return result
-}
-
-/** Informational windows only: never writes an appointment or removes planned work. */
-export function studyGapSuggestions(data:AppData,plan:StudyPlan,date:string,nowMinutes=0):StudyGap[]{
-  if(data.calendarPreferences?.showStudySuggestions===false||!plan.preferences.enabled||date<plan.reference)return []
-  const bundles=plan.bundles.filter(bundle=>!bundle.completed&&bundle.date===date)
-  const free=studyFreeWindows(data,date,plan.preferences)
-  const obligations=occurrencesOn(data.offerings,date).filter(item=>!item.cancelled)
-  const ceilQuarter=(value:number)=>Math.ceil(value/15)*15
-  const floorQuarter=(value:number)=>Math.floor(value/15)*15
-  const candidates=free.map(window=>({from:ceilQuarter(date===plan.reference?Math.max(window.from,nowMinutes+10):window.from),to:floorQuarter(window.to)})).filter(window=>window.to-window.from>=30)
-  candidates.sort((a,b)=>{
-    const score=(window:Window)=>Number(!obligations.some(item=>Math.abs(minutes(item.to)-window.from)<=15||Math.abs(minutes(item.from)-window.to)<=15))
-    return score(a)-score(b)||a.from-b.from
-  })
-  const result:StudyGap[]=[]
-  for(const bundle of bundles){
-    if(result.length>=2)break
-    const match=bundle.items.map(item=>{
-      const lesson=plan.lessons.find(lesson=>lesson.key===item.key)
-      const release=lesson?.occurrence.date===date?ceilQuarter(minutes(lesson.occurrence.to)+10):0
-      const window=candidates.find(window=>window.to-Math.max(window.from,release)>=item.minutes)
-      return {item,release,window}
-    }).find(match=>match.window&&match.item.minutes>=15)
-    if(!match?.window)continue
-    const {window,item,release}=match,duration=item.minutes,start=Math.max(window.from,release)
-    const beforeClass=obligations.some(item=>Math.abs(minutes(item.from)-window.to)<=15)
-    const length=Math.min(duration,window.to-start),from=beforeClass?window.to-length:start,to=from+length
-    result.push({id:date+':'+bundle.moduleId,date,moduleId:bundle.moduleId,from,to,labels:[item.label]})
-    window.from=ceilQuarter(to+10)
-  }
   return result
 }
 

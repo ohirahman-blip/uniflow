@@ -3,13 +3,14 @@ import type { StudyTimerState } from './study-timer'
 import type {StudySchedulePreferences} from './adaptive-study-plan'
 export type Repeat = 'once' | 'weekly' | 'biweekly'
 export type CalendarView = 'day' | 'two' | 'week'
+export type OfferingImportance = 'low' | 'normal' | 'high'
 export type ModuleStatus = 'open' | 'planned' | 'current' | 'passed' | 'failed' | 'recognized'
 export type Degree = { id: string; name: string; level: 'Bachelor' | 'Master' | string; university: string; targetCredits: number }
 export type Semester = { id: string; degreeId: string; name: string; start: string; end: string; lectureEnd: string; archived: boolean }
 export type StudyModule = { completedOn?: string; emoji?: string; id: string; degreeId: string; name: string; shortName: string; credits: number; color: string; status: ModuleStatus; grade: string; counted: boolean; hidden: boolean; semesterIds: string[] }
 export type CreditGoal = { id: string; degreeId: string; name: string; targetCredits: number; moduleIds: string[] }
 export type Override = { date?: string; from?: string; to?: string; cancelled?: boolean; selected?: boolean; scope?: 'single' | 'future'; reason?: 'selection' | 'move' | 'removal' | 'pause'; changeId?: string; previous?: Override | null }
-export type Offering = { scheduleChanges?: { fromOrigin: string; shiftDays: number; from: string; to: string }[]; familyId?: string; id: string; semesterId: string; moduleId: string; name: string; category: string; date: string; endDate: string; from: string; to: string; recurrence: Repeat; overrides: Record<string, Override>; room: string; onlineLink?: string; organizer?: string; contentId?: string; contentLabel?: string; selected: boolean }
+export type Offering = { importance?: OfferingImportance; scheduleChanges?: { fromOrigin: string; shiftDays: number; from: string; to: string }[]; familyId?: string; id: string; semesterId: string; moduleId: string; name: string; category: string; date: string; endDate: string; from: string; to: string; recurrence: Repeat; overrides: Record<string, Override>; room: string; onlineLink?: string; organizer?: string; contentId?: string; contentLabel?: string; selected: boolean }
 export type Assessment = {
   id: string
   semesterId: string
@@ -29,7 +30,7 @@ export type Assessment = {
   selected?: boolean
 }
 export type Alternative = { recurrence?: Repeat; endDate?: string; id: string; parentOfferingId: string; parentOrigin?: string; kind: 'slot' | 'group'; moduleId: string; category: string; name: string; date: string; from: string; to: string; room: string }
-export type AppData = { calendarPreferences?: { showAlternatives?: boolean; showStudySuggestions?: boolean }; studySchedule?: Partial<StudySchedulePreferences>; soundEffects?: boolean; dailyScoreGoal?: number; streakDays?: string[]; studyTimer?: StudyTimerState; alternatives?: Alternative[]; creditGoals?: CreditGoal[]; weekEndDay?: 4 | 5 | 6; theme?: 'dark' | 'light'; themePreferenceVersion?: 1; notificationPreferences?: { mail?: boolean; lessonFeedback: boolean }; version: 2; profile: string; degrees: Degree[]; activeDegreeId: string; semesters: Semester[]; activeSemesterId: string; modules: StudyModule[]; offerings: Offering[]; assessments: Assessment[]; learningCheckins?: LearningCheckin[]; lessonTopics?: LessonTopic[]; learningSessions?: LearningSession[]; learningPlans?: LearningPlanTask[]; studyTasks?: StudyTask[]; scoreEvents?: ScoreEvent[]; firstHour: number; lastHour: number; lastUpdate: number }
+export type AppData = { calendarPreferences?: { showAlternatives?: boolean }; studySchedule?: Partial<StudySchedulePreferences>; soundEffects?: boolean; dailyScoreGoal?: number; streakDays?: string[]; studyTimer?: StudyTimerState; alternatives?: Alternative[]; creditGoals?: CreditGoal[]; weekEndDay?: 4 | 5 | 6; theme?: 'dark' | 'light'; themePreferenceVersion?: 1; notificationPreferences?: { mail?: boolean; lessonFeedback: boolean }; version: 2; profile: string; degrees: Degree[]; activeDegreeId: string; semesters: Semester[]; activeSemesterId: string; modules: StudyModule[]; offerings: Offering[]; assessments: Assessment[]; learningCheckins?: LearningCheckin[]; lessonTopics?: LessonTopic[]; learningSessions?: LearningSession[]; learningPlans?: LearningPlanTask[]; studyTasks?: StudyTask[]; scoreEvents?: ScoreEvent[]; firstHour: number; lastHour: number; lastUpdate: number }
 export type Occurrence = { key: string; offering: Offering; origin: string; date: string; from: string; to: string; isOverride: boolean; cancelled?: boolean }
 export const STORE = 'uniflow-v2-local'
 export const LEGACY_STORE = 'uniflow-v1-local'
@@ -62,6 +63,15 @@ export function semesterFromStart(start: string) { const y = +start.slice(0, 4),
 export const nextSemesterDates = (ref = today()) => { const cur = currentSemesterDates(ref); return semesterFromStart(addDays(cur.end, 1)) }
 export const overlaps = (a: string, b: string, c: string, d: string) => a <= d && c <= b
 export function acronym(input: string) { const segments = input.replace(/\b(und|and|of|der|die|das|für|the)\b/gi, ' ').split(/[\s\-\/]+/).filter(Boolean); let res = segments.map(w => /^[a-zA-ZäöüÄÖÜ]+\d+$/.test(w) ? w[0].toUpperCase() + w.match(/\d+$/)![0] : w[0].toUpperCase()).join(''); return (res || input.slice(0, 4).toUpperCase()).slice(0, 7) }
+export function inferOfferingCategory(input:string){
+  const value=input.trim().toLocaleLowerCase('de-DE')
+  if(/(?:^|\s)(?:vl|vorlesung)(?:\s|\d|$)/.test(value))return 'Vorlesung'
+  if(/(?:^|\s)(?:ü|ue|übung)(?:\s|\d|$)/.test(value))return 'Übung'
+  if(/(?:^|\s)(?:tut|tutorium)(?:\s|\d|$)/.test(value))return 'Tutorium'
+  if(/(?:^|\s)(?:se|seminar)(?:\s|\d|$)/.test(value))return 'Seminar'
+  if(/(?:^|\s)(?:praktikum|labor)(?:\s|\d|$)/.test(value))return 'Praktikum'
+  return 'Veranstaltung'
+}
 export function occursOn(o: Offering, d: string) { if (d < o.date || d > o.endDate) return false; if (o.recurrence === 'once') return d === o.date; if (weekday(d) !== weekday(o.date)) return false; const weeks = Math.round((fromDate(d).getTime() - fromDate(o.date).getTime()) / (7 * 86400000)); return o.recurrence === 'weekly' || weeks % 2 === 0 }
 /** Each real teaching group has ONE permanent offering ID. Selecting another
  * group changes visibility only; it must never create cloned series. */
