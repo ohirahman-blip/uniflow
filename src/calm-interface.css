@@ -2,14 +2,15 @@
    This file deliberately loads last so older feature styles cannot split the
    calendar, friends and editor surfaces into different visual systems. */
 :root{
-  --uf-calm-page:#080808;
-  --uf-calm-surface:#141416;
-  --uf-calm-surface-strong:#1c1c1f;
-  --uf-calm-control:#202024;
-  --uf-calm-hover:#29292e;
+  --uf-calm-page:#0b0b0c;
+  --uf-calm-surface:#151517;
+  --uf-calm-surface-strong:#1b1b1e;
+  --uf-calm-control:#232327;
+  --uf-calm-hover:#2a2a2f;
   --uf-calm-text:#f4f4f5;
-  --uf-calm-muted:#8d8d96;
-  --uf-calm-line:#ffffff0a;
+  --uf-calm-muted:#929299;
+  --uf-calm-line:#ffffff0d;
+  --uf-calm-control-line:#ffffff16;
   --uf-calm-radius-xl:28px;
   --uf-calm-radius-lg:22px;
   --uf-calm-radius-md:16px;
@@ -24,15 +25,20 @@ html[data-theme='light']{
   --uf-calm-hover:#e4e4e8;
   --uf-calm-text:#202126;
   --uf-calm-muted:#6d6e75;
-  --uf-calm-line:#2021260a;
+  --uf-calm-line:#2021260d;
+  --uf-calm-control-line:#2021261a;
 }
+
+/* Keep every main canvas on the same neutral grey scale. */
+html{--uf-page-background:var(--uf-calm-page)}
+body,.app-root,.app-main,.screen-calendar,.module-detail-screen{background-color:var(--uf-calm-page)!important}
 
 /* Shared fields and selection controls */
 body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen,.friends-page)
   :is(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']),select,.uf-picker-trigger,.big-choice,.uf-entry-module-choice,textarea){
   box-sizing:border-box!important;
   min-width:0;
-  border:0!important;
+  border:1px solid var(--uf-calm-control-line)!important;
   border-radius:var(--uf-calm-radius-sm)!important;
   background:var(--uf-calm-control)!important;
   color:var(--uf-calm-text)!important;
@@ -309,3 +315,148 @@ html[data-theme='light'] .friends-page :is(.friends-sharing small,.friends-add s
 .module-fast .module-fast-quick{margin-top:18px!important}.module-fast .module-fast-quick>summary{min-height:48px;padding:0 4px!important}.module-fast .module-fast-quick-locked{min-height:48px!important;margin:18px 0!important;padding:8px 4px!important;border:0!important;background:transparent!important}.module-fast .module-fast-quick-locked-icon{width:30px!important;height:30px!important;border-radius:10px!important}.module-fast .module-fast-quick-locked small{display:none}.module-fast .module-fast-quick-lock-label{font-size:9px!important}
 @media(min-width:800px){.module-event-overlay{animation:mlh-fade .16s ease}.module-event-sheet{animation:module-event-pop .2s cubic-bezier(.2,.8,.2,1)!important}}@keyframes module-event-pop{from{opacity:0;transform:scale(.985);filter:blur(2px)}to{opacity:1;transform:none;filter:none}}
 @media(max-width:520px){.module-event-row{padding-inline:2px}.module-event-count{max-width:58px;text-align:right}.module-event-sheet-body{padding-bottom:4px}.module-event-create-form>.uf-entry-grid{grid-template-columns:1fr 1fr}.module-event-create-form>.uf-entry-grid>.uf-entry-field:first-child{grid-column:1/-1}.module-event-term-list>button{grid-template-columns:8px minmax(0,1fr)}.module-event-term-list>button em{grid-column:2}}
+
+/* Final rhythm pass: one spacing, radius and motion language everywhere. */
+
+/* Calendar header and week strip */
+.screen-calendar{padding-top:23px}
+.uf-week-strip{padding-top:7px;padding-bottom:10px}
+.uf-week-strip-labels{margin-bottom:7px}
+.uf-week-strip-days{min-height:54px}
+.uf-week-strip-day{gap:3px}
+.uf-week-range,.uf-week-liquid,.uf-week-today-marker{display:none!important}
+.uf-week-strip-button{
+  width:36px!important;
+  height:36px!important;
+  min-width:36px;
+  flex:0 0 36px;
+  border:0!important;
+  border-radius:50%!important;
+  background:var(--uf-calm-surface-strong)!important;
+  color:var(--uf-calm-muted)!important;
+  font-size:14px;
+  font-weight:650;
+  transition:transform 160ms ease,background-color 160ms ease,color 160ms ease!important;
+}
+.uf-week-strip-button:is(.uf-week-first,.uf-week-second){
+  background:var(--uf-calm-text)!important;
+  color:var(--uf-calm-page)!important;
+  -webkit-text-fill-color:var(--uf-calm-page)!important;
+}
+.uf-week-strip-button.uf-week-second{opacity:.72}
+.uf-week-strip-button.uf-week-today:not(.uf-week-first):not(.uf-week-second){
+  background:color-mix(in srgb,var(--uniflow-accent,#f94f72) 17%,var(--uf-calm-surface-strong))!important;
+  color:var(--uniflow-accent,#f94f72)!important;
+  -webkit-text-fill-color:var(--uniflow-accent,#f94f72)!important;
+}
+.uf-week-strip-button:hover{transform:scale(1.045)}
+.uf-week-strip-button:focus-visible{outline:2px solid color-mix(in srgb,var(--uf-calm-text) 54%,transparent)!important;outline-offset:2px!important}
+.uf-week-strip-assessments{top:38px;height:13px}
+.uf-week-dates-previous{min-height:54px;align-items:start}
+.uf-week-dates-previous>span{justify-self:center;width:36px;height:36px;border-radius:50%;background:var(--uf-calm-surface-strong);color:var(--uf-calm-muted)}
+.uf-week-dates-previous>span.uf-week-previous-today{background:color-mix(in srgb,var(--uniflow-accent,#f94f72) 17%,var(--uf-calm-surface-strong));color:var(--uniflow-accent,#f94f72)}
+.uf-week-dates-previous>span.uf-week-previous-today::before{display:none}
+
+/* Selected timetable alternatives need breathing room around every control. */
+.calendar-course-expansion{padding-block:8px 12px}
+.screen-calendar .calendar-course-expansion .wallet-fan{gap:14px!important;padding:18px!important}
+.screen-calendar .calendar-course-expansion .wallet-cards{gap:10px!important}
+.screen-calendar .calendar-course-expansion .wallet-card{padding:15px!important;border-radius:var(--uf-calm-radius-md)!important}
+.screen-calendar .calendar-course-expansion .wallet-actions{gap:9px!important;padding-top:4px}
+.screen-calendar .calendar-course-expansion .wallet-actions :is(button,.wallet-choice-banner){min-height:42px;padding:10px 13px!important}
+
+/* The module page uses only the horizontal page transition. */
+.module-detail-screen.module-fast{animation:none!important}
+.uf-page-stage.uf-page-modules{overflow-x:clip}
+.uf-page-stage.uf-page-modules.uf-page-enter-forward{animation-name:uf-module-enter-forward}
+.uf-page-stage.uf-page-modules.uf-page-enter-backward{animation-name:uf-module-enter-backward}
+@keyframes uf-module-enter-forward{from{opacity:.94;transform:translate3d(18px,0,0)}to{opacity:1;transform:none}}
+@keyframes uf-module-enter-backward{from{opacity:.94;transform:translate3d(-18px,0,0)}to{opacity:1;transform:none}}
+
+/* Module sections share the same generous panel rhythm. */
+.module-fast .module-fast-meta,.module-fast .module-fast-quick{
+  overflow:hidden;
+  border-radius:var(--uf-calm-radius-lg)!important;
+  background:var(--uf-calm-surface)!important;
+}
+.module-fast .module-fast-meta{padding:0 20px!important}
+.module-fast .module-fast-meta>summary,.module-fast .module-fast-quick>summary{
+  min-height:58px!important;
+  box-sizing:border-box;
+  padding:17px 0!important;
+}
+.module-fast .module-fast-meta-grid{padding:0 0 21px;gap:18px}
+.module-fast .module-fast-quick{margin:14px 0 30px!important}
+.module-fast .module-fast-quick>summary{padding-inline:20px!important}
+.module-fast .module-fast-quick-body{padding:0 20px 21px!important}
+.module-fast .module-fast-quick textarea{min-height:50px!important;margin:2px 0 0}
+.module-fast .module-fast-preview-button{min-height:42px;margin-top:13px;padding:10px 15px}
+.module-fast .module-fast-preview{margin-top:16px;padding:17px}
+
+/* Event popups keep all advanced content inside their own scrolling body. */
+.module-event-sheet{display:flex!important;flex-direction:column;overflow:hidden!important}
+.module-event-sheet>header{flex:0 0 auto;padding-inline:2px}
+.module-event-sheet-body{
+  min-height:0;
+  flex:1 1 auto;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  padding:8px 3px 12px!important;
+}
+.module-event-create-form,.module-event-edit-form,.module-event-group-form,.module-exception-popup{gap:19px}
+.module-event-advanced{
+  overflow:hidden;
+  border-radius:var(--uf-calm-radius-md);
+  background:var(--uf-calm-surface-strong)
+}
+.module-event-advanced>summary{min-height:48px;padding:0 14px;color:var(--uf-calm-text)}
+.module-event-advanced-body{gap:18px;padding:4px 14px 16px}
+.module-event-term-list{gap:7px}
+.module-event-term-list>button{min-height:66px;padding:13px 14px;border:1px solid var(--uf-calm-control-line)}
+.module-event-sheet .danger-simple{
+  box-sizing:border-box;
+  width:100%;
+  min-height:44px;
+  justify-content:center;
+  margin:1px 0 0;
+  padding:11px 14px!important;
+  border-radius:var(--uf-calm-radius-sm)!important;
+  background:color-mix(in srgb,#c97980 10%,var(--uf-calm-surface-strong))!important;
+}
+.module-event-sheet .module-event-save{min-height:48px;margin:0!important}
+
+/* Friends: no bright white action in dark mode, and no framed control touches a panel edge. */
+.friends-sharing,.friends-add{padding:20px!important}
+.friends-add{gap:14px!important}
+.friends-add label{gap:8px}
+.friends-add input{min-height:48px!important}
+.friends-add>button,.friend-requests article button{
+  min-height:48px;
+  padding:11px 16px!important;
+  border:1px solid var(--uf-calm-control-line)!important;
+  background:var(--uf-calm-control)!important;
+  color:var(--uf-calm-text)!important;
+}
+.friends-add>button:hover,.friend-requests article button:hover{background:var(--uf-calm-hover)!important;transform:scale(1.012)}
+.friends-sharing>button[role=switch],.friends-pause,.friend-day-toggle>button{
+  border:1px solid var(--uf-calm-control-line)!important;
+}
+.friend-wallet>.friend-card{padding:20px!important}
+.friend-now,.friend-private{padding:16px!important}
+
+/* Framed controls always retain air inside their parent surface. */
+:is(.sheet,.mlh-sheet,.module-fast,.settings-screen,.friends-page) :is(button,input,textarea,.uf-picker-trigger){background-clip:padding-box}
+@media(max-width:720px){
+  .screen-calendar{padding-top:15px}
+  .uf-week-strip-button,.uf-week-dates-previous>span{width:34px!important;height:34px!important;min-width:34px}
+  .uf-week-strip-assessments{top:36px}
+  .screen-calendar .calendar-course-expansion .wallet-fan{padding:15px!important}
+  .module-fast .module-fast-meta{padding-inline:17px!important}
+  .module-fast .module-fast-quick>summary{padding-inline:17px!important}
+  .module-fast .module-fast-quick-body{padding:0 17px 18px!important}
+  .friends-sharing,.friends-add{padding:17px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .uf-page-stage.uf-page-modules,.uf-week-strip-button{animation:none!important;transition:none!important}
+}
