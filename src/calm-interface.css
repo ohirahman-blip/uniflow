@@ -238,3 +238,38 @@ html[data-theme='light'] .friends-page :is(.friends-sharing small,.friends-add s
   :is(.assessment-time-switch,.attendance-modes button,.scope-choices button,.detail-actions button):hover{transform:scale(1.012)}
 }
 @media(prefers-reduced-motion:reduce){.course,.calendar-tools button,.friend-card-actions>button{transition:none!important}}
+
+/* One creation flow for tasks, homework and exams. */
+.mlh-next>header>button.mlh-next-add{
+  width:38px;height:38px;padding:0!important;display:grid;place-items:center;border-radius:50%!important;
+  background:var(--uf-calm-control)!important;color:var(--uf-calm-text)!important
+}
+.mlh-create-menu{display:grid;gap:8px;padding:10px 0 4px}
+.mlh-create-menu>button{
+  display:grid;grid-template-columns:42px 1fr;grid-template-rows:auto auto;column-gap:12px;align-items:center;
+  width:100%;padding:13px;border:0;border-radius:var(--uf-calm-radius-md);background:var(--uf-calm-surface-strong);color:var(--uf-calm-text);text-align:left
+}
+.mlh-create-menu>button>span{grid-row:1/3;width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:var(--uf-calm-control);color:var(--mlh-accent,var(--uniflow-accent,#a98aa0))}
+.mlh-create-menu>button strong{font-size:14px;font-weight:650}.mlh-create-menu>button small{margin-top:3px;color:var(--uf-calm-muted);font-size:11px}
+.mlh-create-menu>button:hover{transform:scale(1.008);background:var(--uf-calm-hover)}
+.mlh-completed-open{display:grid;flex:1;gap:4px;min-width:0;padding:0;border:0;background:transparent;color:inherit;text-align:left}
+.mlh-completed-open s{overflow-wrap:anywhere}.mlh-history-list article>span{flex:1}
+
+/* Exam names become a stable component label as soon as an alternative is linked. */
+.assessment-title-field{position:relative}
+.assessment-title-suggestions{display:grid;gap:4px;margin-top:7px;padding:5px;border-radius:var(--uf-calm-radius-md);background:var(--uf-calm-surface-strong)}
+.assessment-title-suggestions>button{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:10px 11px;border:0;border-radius:11px;background:transparent;color:var(--uf-calm-text);text-align:left}
+.assessment-title-suggestions>button:hover{background:var(--uf-calm-hover)}
+.assessment-title-suggestions strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.assessment-title-suggestions span{flex:0 0 auto;color:var(--uf-calm-muted);font-size:10px}
+.assessment-title-lock{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:54px;padding:10px 10px 10px 14px;border-radius:var(--uf-calm-radius-sm);background:color-mix(in srgb,var(--module-accent,var(--uniflow-accent,#a98aa0)) 13%,var(--uf-calm-control))}
+.assessment-title-lock>span{display:grid;gap:3px;min-width:0}.assessment-title-lock strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.assessment-title-lock small{color:var(--uf-calm-muted);font-size:10px}
+.assessment-title-lock>button{width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;border:0;border-radius:50%;background:var(--uf-calm-control);color:var(--uf-calm-muted)}
+.assessment-editor-footer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;width:100%}
+.assessment-complete-action{min-height:48px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border:0;border-radius:var(--uf-calm-radius-sm);background:var(--uf-calm-control);color:var(--uf-calm-text);font-weight:650}
+.assessment-preview-alternatives{display:grid;gap:6px;margin-top:10px;padding-top:14px;border-top:1px solid var(--uf-calm-line)}
+.assessment-preview-alternatives>span{margin-bottom:2px;color:var(--uf-calm-muted);font-size:10px;font-weight:650;letter-spacing:.06em;text-transform:uppercase}
+.assessment-preview-alternatives>button{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:0;border-radius:12px;background:var(--uf-calm-surface-strong);color:var(--uf-calm-text);text-align:left}
+.assessment-preview-alternatives>button>i{width:20px;height:20px;display:grid;place-items:center;flex:0 0 auto;border-radius:50%;background:var(--uf-calm-control);font-style:normal}
+.assessment-preview-alternatives>button>span{display:grid;gap:2px}.assessment-preview-alternatives small{color:var(--uf-calm-muted)}
+.assessment-preview-alternatives>button.selected{background:color-mix(in srgb,var(--module-accent,var(--uniflow-accent,#a98aa0)) 13%,var(--uf-calm-surface-strong))}
+@media(max-width:520px){.assessment-editor-footer{grid-template-columns:1fr}.assessment-title-suggestions>button{align-items:flex-start;flex-direction:column;gap:3px}}

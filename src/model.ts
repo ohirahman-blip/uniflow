@@ -107,7 +107,7 @@ export const occurrencesOn = (offers: Offering[], date: string) => candidateOccu
 const assessmentAttemptWords = /(?:[-–—,:]?\s*)(?:erst(?:er|e|es)?\s*termin|zweit(?:er|e|es)?\s*termin|[12]\.?\s*termin|[12]\.\s*versuch|versuch\s*[12])\s*$/i
 export const assessmentBaseTitle = (title:string) => title.replace(assessmentAttemptWords,'').trim().toLocaleLowerCase('de-DE')
 export const assessmentComponentKey = (item:Assessment) => item.type==='exam'
-  ? item.componentId || `${item.moduleId}:${assessmentBaseTitle(item.title)}`
+  ? item.componentId || `${item.semesterId}:${item.moduleId}:${assessmentBaseTitle(item.title)}`
   : item.componentId || item.id
 export const selectedAssessment = (item:Assessment,all:Assessment[]) => {
   if(item.type!=='exam')return true
@@ -140,8 +140,10 @@ export function rebalanceAssessmentWeights(items:Assessment[],moduleId:string,ch
 export function upsertAssessment(items:Assessment[],next:Assessment):Assessment[]{
   const existing=items.find(item=>item.id===next.id)
   let componentId=existing?.componentId||next.componentId
+  let matchedAssessmentId:string|undefined
   if(next.type==='exam'&&!componentId){
-    const match=items.find(item=>item.id!==next.id&&item.type==='exam'&&item.moduleId===next.moduleId&&assessmentBaseTitle(item.title)===assessmentBaseTitle(next.title))
+    const match=items.find(item=>item.id!==next.id&&item.type==='exam'&&item.semesterId===next.semesterId&&item.moduleId===next.moduleId&&assessmentBaseTitle(item.title)===assessmentBaseTitle(next.title))
+    matchedAssessmentId=match?.id
     componentId=match?.componentId||match?.id||next.id
   }
   if(next.type==='homework')componentId=next.id
@@ -149,7 +151,7 @@ export function upsertAssessment(items:Assessment[],next:Assessment):Assessment[
   let result=existing?items.map(item=>item.id===next.id?inserted:item):[...items,inserted]
   if(next.type==='exam'){
     const key=assessmentComponentKey(inserted)
-    result=result.map(item=>item.type==='exam'&&assessmentComponentKey(item)===key?{...item,componentId}:item)
+    result=result.map(item=>item.type==='exam'&&(assessmentComponentKey(item)===key||item.id===matchedAssessmentId||item.id===componentId)?{...item,componentId}:item)
     const group=result.filter(item=>item.type==='exam'&&assessmentComponentKey(item)===key).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))
     if(!group.some(item=>item.selected))result=result.map(item=>assessmentComponentKey(item)===key?{...item,selected:item.id===group[0]?.id}:item)
   }

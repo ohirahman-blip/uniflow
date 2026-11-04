@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { ArrowLeft, Check, ChevronDown, ClipboardList, Copy, GraduationCap, Lock, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Copy, Lock, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
 import {
-  addDays, assessmentComponentKey, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
+  addDays, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
   intersects, isAssessment, minutes, occurrenceAtOrigin, timeString, today, uid,
-  selectedAssessment, upsertAssessment, weekday, weekStart,
+  upsertAssessment, weekday, weekStart,
   type Assessment, type Offering, type Repeat, type Semester, type StudyModule, type Occurrence
 } from './model'
 import type { Journey, LearningCheckin, LearningSession, LessonTopic } from './learning'
@@ -90,8 +90,6 @@ type Props = {
   onBack:()=>void;onUpdateModule:(next:StudyModule)=>void;onDeleteModule:()=>void;
   onChangeOfferings:(next:Offering[])=>void;
   onChangeAssessments:(next:Assessment[])=>void;
-  onEditAssessment:(item:Assessment)=>void;
-  onAddAssessment:(type:'exam'|'homework')=>void;
   onOpenOccurrence:(occ:Occurrence)=>void;
   onClearException:(offeringId:string,origin:string)=>void;
   learningSessions:LearningSession[];learningCheckins:LearningCheckin[];lessonTopics:LessonTopic[];
@@ -100,7 +98,7 @@ type Props = {
 }
 export default function ModuleScheduleEditor({
   module,moduleSemesterControl,semester,offerings,assessments,premium,onBack,onUpdateModule,onDeleteModule,
-  onChangeOfferings,onChangeAssessments,onEditAssessment,onAddAssessment,onOpenOccurrence,onClearException
+  onChangeOfferings,onChangeAssessments,onOpenOccurrence,onClearException
 }:Props) {
   const [quickText,setQuickText]=useState('')
   const quickInputRef=useRef<HTMLTextAreaElement|null>(null)
@@ -147,12 +145,6 @@ export default function ModuleScheduleEditor({
     o.moduleId===module.id&&o.semesterId===semester?.id&&!isAssessment(o.category)
   ),[offerings,module.id,semester?.id])
   const groups=useMemo(()=>contentGroups(own,module.id,semester?.id||''),[own,module.id,semester?.id])
-  const ownAssessments=useMemo(()=>assessments.filter(item=>item.moduleId===module.id&&item.semesterId===semester?.id),[assessments,module.id,semester?.id])
-  const assessmentGroups=useMemo(()=>{
-    const result=new Map<string,Assessment[]>()
-    for(const item of ownAssessments){const key=assessmentComponentKey(item);result.set(key,[...(result.get(key)||[]),item])}
-    return [...result.entries()].map(([key,items])=>({key,items:items.sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))}))
-  },[ownAssessments])
   if(!semester)return <div className="screen secondary-screen"><button className="text-back" onClick={onBack}>← Module</button><p>Bitte zuerst ein Semester auswählen.</p></div>
 
   const commit=(next:Offering[])=>{setWarning('');onChangeOfferings(next)}
@@ -247,8 +239,6 @@ export default function ModuleScheduleEditor({
     commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,contentLabel:label}:o))
   const recategorize=(items:Offering[],category:string)=>
     commit(own.map(o=>items.some(x=>x.id===o.id)?{...o,category}:o))
-  const selectAttempt=(key:string,id:string)=>onChangeAssessments(assessments.map(item=>assessmentComponentKey(item)===key?{...item,selected:item.id===id}:item))
-  const toggleHomework=(id:string)=>onChangeAssessments(assessments.map(item=>item.id===id?{...item,completed:!item.completed}:item))
   const openExceptionEditor=()=>{
     const first=own.find(item=>item.selected)||own[0]
     if(!first){setWarning('Lege zuerst eine Veranstaltung an.');return}
@@ -367,16 +357,6 @@ export default function ModuleScheduleEditor({
   const futureExceptions=own.flatMap(o=>Object.entries(o.overrides||{})
     .filter(([date,value])=>date>=today()&&(value.scope==='single'||(!value.scope&&(!!value.cancelled||!!value.date||!!value.from))))
     .map(([origin,value])=>({o,origin,value}))).sort((a,b)=>a.origin.localeCompare(b.origin))
-  const renderAssessmentCard=({key,items}:{key:string;items:Assessment[]})=>{
-    const first=items[0],exam=first.type==='exam',selected=items.find(item=>selectedAssessment(item,assessments))||first
-    return <article className="module-assessment-card" key={key}>
-      <div className="module-assessment-head"><span className="module-assessment-icon">{exam?<GraduationCap size={17}/>:<ClipboardList size={17}/>}</span><button className="module-assessment-title" onClick={()=>onEditAssessment(selected)}><strong>{first.title}</strong><small>{exam?`${items.length} ${items.length===1?'Termin':'Alternativen'}`:first.completed?'Fertig':'Noch abzugeben'}</small></button></div>
-      {exam?<div className="module-exam-attempts" role="radiogroup" aria-label={'Prüfungstermin für '+first.title}>{items.map((item,index)=><button type="button" role="radio" aria-checked={item.id===selected.id} className={item.id===selected.id?'selected':''} key={item.id} onClick={()=>selectAttempt(key,item.id)}><span>{index===0?'1. Termin':index===1?'2. Termin':`${index+1}. Termin`}</span><strong>{formatDate(item.date,{day:'numeric',month:'short',year:'numeric'})}</strong>{item.from&&<small>{item.from}{item.to?'–'+item.to:''} Uhr</small>}<i>{item.id===selected.id?<Check size={13}/>:null}</i></button>)}</div>
-        :<button type="button" role="checkbox" aria-checked={!!first.completed} className={'module-homework-state '+(first.completed?'done':'')} onClick={()=>toggleHomework(first.id)}><span>{first.completed?<Check size={14}/>:null}</span>{first.completed?'Fertig – wieder öffnen':'Als fertig markieren'}<small>{first.date?formatDate(first.date,{day:'numeric',month:'short'}):'Ohne Abgabetermin'}</small></button>}
-      {exam&&<button type="button" role="checkbox" aria-checked={!!selected.completed} className={'module-homework-state '+(selected.completed?'done':'')} onClick={()=>toggleHomework(selected.id)}><span>{selected.completed?<Check size={14}/>:null}</span>{selected.completed?'Erledigt – wieder öffnen':'Als erledigt markieren'}</button>}
-    </article>
-  }
-
   return <div className="screen secondary-screen module-detail-screen module-fast" style={{'--module-accent':module.color,'--mlh-accent':module.color} as CSSProperties}>
     <button className="text-back module-editor-back" onClick={onBack} aria-label="Zurück"><ArrowLeft size={20}/></button>
     <div className="module-detail-heading">
@@ -482,14 +462,6 @@ export default function ModuleScheduleEditor({
           <small>Mehrere Veranstaltungen und Alternativen direkt aus Text übernehmen.</small></div>
         <span className="module-fast-quick-lock-label">Premium</span>
       </div>}
-
-    <section className="module-assessments">
-      <div className="module-fast-section-head"><div><h2>Prüfungen <small>{assessmentGroups.filter(group=>group.items[0]?.type==='exam').length}</small></h2></div><button onClick={()=>onAddAssessment('exam')}><Plus size={16}/> Hinzufügen</button></div>
-      <div className="module-assessment-list">{assessmentGroups.filter(group=>group.items[0]?.type==='exam').map(renderAssessmentCard)}</div>
-      <div className="module-fast-section-head module-homework-heading"><div><h2>Hausaufgaben <small>{assessmentGroups.filter(group=>group.items[0]?.type==='homework').length}</small></h2></div><button onClick={()=>onAddAssessment('homework')}><Plus size={16}/> Hinzufügen</button></div>
-      <div className="module-assessment-list">{assessmentGroups.filter(group=>group.items[0]?.type==='homework').map(renderAssessmentCard)}</div>
-      {!assessmentGroups.length&&<div className="module-topic-empty">Noch keine Prüfungen oder Hausaufgaben eingetragen.</div>}
-    </section>
 
     <div className="module-fast-section-head"><div><h2>Veranstaltungen <small>{groups.length}</small></h2></div><button onClick={addTopic}><Plus size={16}/> Hinzufügen</button></div>
     {groups.map((group,index)=>{

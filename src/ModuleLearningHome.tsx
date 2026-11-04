@@ -30,6 +30,7 @@ type Props = {
   storageKey: string
   currentModuleId?:string
   onPreviewAssessment:(exam:Assessment)=>void
+  onAddAssessment:(type:'exam'|'homework',moduleId:string)=>void
   onToggleHomework:(homework:Assessment)=>void
   onActiveModuleChange:(moduleId:string)=>void
   onSession: (session: Omit<LearningSession, 'id' | 'updatedAt'>) => void
@@ -40,7 +41,7 @@ type Props = {
   onCreateModule: () => void
 }
 
-type Modal = 'session' | 'content' | 'history' | 'tasks' | 'task' | 'modules' | null
+type Modal = 'session' | 'content' | 'history' | 'tasks' | 'task' | 'create' | 'modules' | null
 const ratings: { value: Exclude<LearningRating, 'absent'>; label: string }[] = [
   { value: 'understood', label: 'Gut verstanden' },
   { value: 'partial', label: 'Teilweise verstanden' },
@@ -92,7 +93,7 @@ function ActivityHistory({ events, tasks, sessions, onEditSession, onToggleTask,
 }
 
 
-export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onStudyBundleOpened,onStudyScheduleChange,data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
+export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onStudyBundleOpened,onStudyScheduleChange,data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onAddAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
   const visible = modules.filter(module => !module.hidden && !['passed','planned','recognized'].includes(module.status))
   const [selectedModule, setSelectedModule] = useState(()=>{try{return localStorage.getItem(storageKey)||currentModuleId||''}catch{return currentModuleId||''}})
   const [directoryOpen,setDirectoryOpen]=useState(()=>{try{return !localStorage.getItem(storageKey)&&!currentModuleId}catch{return !currentModuleId}}),[openingModule,setOpeningModule]=useState('')
@@ -138,6 +139,8 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const events = (data.scoreEvents || []).filter(event => event.moduleId === active?.id)
   const homework=data.assessments.filter(item=>item.moduleId===active?.id&&item.semesterId===semester?.id&&item.type==='homework')
   const exams=data.assessments.filter(item=>item.moduleId===active?.id&&item.semesterId===semester?.id&&item.type==='exam'&&selectedAssessment(item,data.assessments))
+  const completedAssessments=[...homework,...exams].filter(item=>item.completed).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||a.title.localeCompare(b.title,'de'))
+  const completedCount=completed.length+completedAssessments.length
   const pointsThisWeek=events.filter(event=>!event.reversedAt&&event.occurredAt.slice(0,10)>=weekStart(today())).reduce((sum,event)=>sum+event.points,0)
   const nextStudyBundle=studyPlan.bundles.filter(bundle=>bundle.moduleId===active?.id&&!bundle.completed&&bundle.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))[0]
   const nextLesson=allLessons.find(lesson=>{const progress=progressByLesson.get(lesson.key);return !progress||progress.green+progress.yellow<4})||allLessons[0]
@@ -201,7 +204,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
 
     {data.studyTimer&&<StudyTimerCard timer={data.studyTimer} moduleName={data.modules.find(module=>module.id===data.studyTimer?.moduleId)?.name||'Lernsession'} color={data.modules.find(module=>module.id===data.studyTimer?.moduleId)?.color||active.color} onChange={onTimerChange} onDiscard={()=>onTimerChange(undefined)} onFinish={timer=>{onTimerChange(timer);setFinishingTimer(timer);setEditingSession(null);setModal('session')}}/>}
     <section className="mlh-next" aria-label="Als Nächstes">
-      <header><div><span>Dein Modul</span><h2>Als Nächstes</h2></div><button onClick={() => open('task')}><Plus size={17}/> Aufgabe</button></header>
+      <header><div><span>Dein Modul</span><h2>Als Nächstes</h2></div><button className="mlh-next-add" aria-label="Aufgabe, Hausaufgabe oder Klausur hinzufügen" title="Hinzufügen" onClick={() => open('create')}><Plus size={19}/></button></header>
       <div className="mlh-next-list">
         {timelineItems.map((item,position)=><article key={item.key} className={`mlh-next-row is-${item.kind}`} style={{animationDelay:`${position*35}ms`}}>
           {item.kind==='exam'?<span className="mlh-next-kind" aria-hidden="true"><GraduationCap size={17}/></span>:<button className="mlh-next-check" aria-label={`${item.title} als erledigt markieren`} onClick={()=>item.kind==='task'?onToggleTask(item.task):onToggleHomework(item.assessment)}><i/></button>}
@@ -212,9 +215,15 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
         </article>)}
         {!timelineItems.length&&<div className="mlh-next-empty"><Check size={18}/><span><strong>Alles im Blick</strong><small>Für dieses Modul ist gerade nichts offen.</small></span></div>}
       </div>
-      {completed.length>0&&<button className="mlh-next-completed" onClick={()=>open('tasks')}><Check size={15}/>{completed.length} erledigte {completed.length===1?'Aufgabe':'Aufgaben'}<ChevronRight size={15}/></button>}
+      {completedCount>0&&<button className="mlh-next-completed" onClick={()=>open('tasks')}><Check size={15}/>{completedCount} abgeschlossen<ChevronRight size={15}/></button>}
     </section>
     <SemesterOverview key={active.id} data={data} semester={semester} module={active} plan={studyPlan} onOpen={onPreviewAssessment} onToggle={onToggleHomework} onChange={onStudyScheduleChange} onStudy={(keys,minutes)=>{open('content');setSelectedLessons(keys.filter(key=>allLessons.some(lesson=>lesson.key===key)));setDuration(Math.max(5,Math.min(360,minutes)))}}/>
+
+    {modal === 'create' && <Overlay title="Neu hinzufügen" onClose={() => setModal(null)}><div className="mlh-create-menu">
+      <button onClick={()=>setModal('task')}><span><Check size={18}/></span><strong>Aufgabe</strong><small>Ein persönliches To-do für dieses Modul</small></button>
+      <button onClick={()=>{setModal(null);onAddAssessment('homework',active.id)}}><span><BookOpenCheck size={18}/></span><strong>Hausaufgabe</strong><small>Eine Abgabe mit optionalem Termin</small></button>
+      <button onClick={()=>{setModal(null);onAddAssessment('exam',active.id)}}><span><GraduationCap size={18}/></span><strong>Klausur</strong><small>Prüfung oder weiteren Alternativtermin anlegen</small></button>
+    </div></Overlay>}
 
     {modal === 'task' && <Overlay title="Neue Aufgabe" onClose={() => setModal(null)}><form className="mlh-form" onSubmit={event => { event.preventDefault(); if (!taskTitle.trim()) return; onAddTask(active.id, taskTitle.trim(), taskDate || undefined); setTaskTitle(''); setTaskDate(''); setModal(null) }}>
       <label><span>Aufgabe</span><input autoFocus value={taskTitle} onChange={event => setTaskTitle(event.target.value)} placeholder="Was möchtest du erledigen?" /></label>
@@ -239,7 +248,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
     </div></Overlay>}
 
     {modal === 'history' && <Overlay title="Letzte Aktivitäten" onClose={() => setModal(null)}><ActivityHistory events={events} tasks={tasks} sessions={data.learningSessions||[]} onEditSession={session=>{setEditingSession(session);setFinishingTimer(null);setModal('session')}} onToggleTask={onToggleTask} onDeleteTask={onDeleteTask} onDeleteActivity={onDeleteActivity}/></Overlay>}
-    {modal === 'tasks' && <Overlay title="Erledigte Aufgaben" onClose={() => setModal(null)}><div className="mlh-history-list">{completed.map(task=><article key={task.id}><span><s>{task.title}</s><small>{task.completedAt?new Date(task.completedAt).toLocaleDateString('de-DE'):''}</small></span><div className="mlh-history-actions"><button aria-label={`${task.title} wieder öffnen`} title="Rückgängig" onClick={()=>onToggleTask(task)}><RotateCcw size={17}/></button><button aria-label={`${task.title} löschen`} title="Löschen" onClick={()=>onDeleteTask(task)}><Trash2 size={17}/></button></div></article>)}</div></Overlay>}
+    {modal === 'tasks' && <Overlay title="Abgeschlossen" onClose={() => setModal(null)}><div className="mlh-history-list">{completed.map(task=><article key={'task-'+task.id}><span><small>Aufgabe</small><s>{task.title}</s><small>{task.completedAt?new Date(task.completedAt).toLocaleDateString('de-DE'):''}</small></span><div className="mlh-history-actions"><button aria-label={`${task.title} wieder öffnen`} title="Rückgängig" onClick={()=>onToggleTask(task)}><RotateCcw size={17}/></button><button aria-label={`${task.title} löschen`} title="Löschen" onClick={()=>onDeleteTask(task)}><Trash2 size={17}/></button></div></article>)}{completedAssessments.map(item=><article key={'assessment-'+item.id}><button className="mlh-completed-open" onClick={()=>{setModal(null);onPreviewAssessment(item)}}><small>{item.type==='exam'?'Klausur':'Hausaufgabe'}</small><s>{item.title}</s><small>{item.date?formatDate(item.date,{day:'numeric',month:'short',year:'numeric'}):'Ohne Termin'}</small></button><div className="mlh-history-actions"><button aria-label={`${item.title} wieder öffnen`} title="Rückgängig" onClick={()=>onToggleHomework(item)}><RotateCcw size={17}/></button></div></article>)}</div></Overlay>}
         </div>
       </section>
     </div>

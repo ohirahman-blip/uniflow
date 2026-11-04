@@ -3,7 +3,7 @@ import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight, House, Users } from 'lucide-react'
-import { acronym, candidateOccurrencesOn, occurrenceAtOrigin, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, examVisibilityEnd, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
+import { acronym, assessmentBaseTitle, assessmentComponentKey, candidateOccurrencesOn, occurrenceAtOrigin, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, examVisibilityEnd, formatDate, fromDate, loadData, migrateLegacy, minutes, moveOccurrence, nextSemesterDates, occurrencesOn, overlaps, semesterFromStart, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, publishFriendStatus, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
@@ -360,10 +360,10 @@ function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModu
 }
 /** Unlike a scheduled teaching event, an assessment lives on a calendar date
  * and never has a recurring group, attendance or a Wallet stack. */
-function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDelete}:{
+function AssessmentEditor({initial,existing,modules,semester,assessments,onSave,onClose,onDelete,onToggleComplete}:{
   initial:{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string};
-  existing?:Assessment;modules:StudyModule[];semester:Semester;
-  onSave:(a:Assessment)=>void;onClose:()=>void;onDelete?:()=>void
+  existing?:Assessment;modules:StudyModule[];semester:Semester;assessments:Assessment[];
+  onSave:(a:Assessment)=>void;onClose:()=>void;onDelete?:()=>void;onToggleComplete?:()=>void
 }) {
   const [type,setType]=useState<'exam'|'homework'>(existing?.type||initial.type)
   const [title,setTitle]=useState(existing?.title||'')
@@ -375,31 +375,58 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
   const [hasTime,setHasTime]=useState(!!(existing ? existing.from : initial.type==='exam'))
   const [from,setFrom]=useState(existing?.from||initial.from)
   const [to,setTo]=useState(existing?.to||initial.to)
-  const [completed,setCompleted]=useState(existing?.completed||false)
+  const [alternativeSourceId,setAlternativeSourceId]=useState(()=>{
+    if(existing?.type!=='exam')return ''
+    const key=assessmentComponentKey(existing)
+    return assessments.find(item=>item.id!==existing.id&&item.type==='exam'&&assessmentComponentKey(item)===key)?.id||''
+  })
   const [err,setErr]=useState('')
   const chosen=modules.find(m=>m.id===moduleId)
+  const availableExamNames=useMemo(()=>{
+    const query=assessmentBaseTitle(title)
+    if(type!=='exam'||alternativeSourceId||query.length<2)return []
+    const seen=new Set<string>()
+    return assessments.filter(item=>item.id!==existing?.id&&item.type==='exam'&&item.semesterId===semester.id&&item.moduleId===moduleId)
+      .filter(item=>{
+        const candidate=assessmentBaseTitle(item.title)
+        if(seen.has(candidate)||(!candidate.includes(query)&&!query.includes(candidate)))return false
+        seen.add(candidate);return true
+      }).slice(0,3)
+  },[assessments,alternativeSourceId,existing?.id,moduleId,semester.id,title,type])
+  const alternativeSource=assessments.find(item=>item.id===alternativeSourceId)
+  const changeTitle=(value:string)=>{
+    setTitle(value);setErr('')
+    if(type!=='exam'||!value.trim())return
+    const exact=assessments.find(item=>item.id!==existing?.id&&item.type==='exam'&&item.semesterId===semester.id&&item.moduleId===moduleId&&assessmentBaseTitle(item.title)===assessmentBaseTitle(value))
+    if(exact){setTitle(exact.title);setAlternativeSourceId(exact.id)}
+  }
+  const linkAlternative=(source:Assessment)=>{setTitle(source.title);setAlternativeSourceId(source.id);setErr('')}
+  const unlinkAlternative=()=>{setAlternativeSourceId('');setTitle('')}
   const save=()=>{
     if (!title.trim()) return setErr('Gib bitte einen Titel ein.')
     if ((type==='exam'||hasDeadline)&&!date) return setErr('Wähle bitte ein Datum aus.')
     if (type==='exam'&&hasTime && minutes(to)<=minutes(from)) return setErr('Das Ende muss nach dem Beginn liegen.')
     onSave({id:existing?.id||uid(),semesterId:existing?.semesterId||semester.id,moduleId,type,title:title.trim(),date:type==='exam'||hasDeadline?date:'',notes:notes.trim()||undefined,
-      from:(type==='exam'||hasDeadline)&&hasTime?from:undefined,to:type==='exam'&&hasTime?to:undefined,completed,componentId:existing?.componentId,selected:existing?.selected,weight:existing?.weight})
+      from:(type==='exam'||hasDeadline)&&hasTime?from:undefined,to:type==='exam'&&hasTime?to:undefined,completed:existing?.completed||false,
+      componentId:type==='exam'?(alternativeSource?.componentId||alternativeSource?.id||existing?.componentId):undefined,selected:existing?.selected,weight:existing?.weight})
   }
   return <BottomSheet title={existing?'Eintrag bearbeiten':type==='exam'?'Neue Prüfung':'Neue Hausaufgabe'} onClose={onClose}
-    footer={<button className="primary-action" onClick={save}>{existing?'Speichern':'Hinzufügen'}<Check size={18}/></button>}>
+    footer={<div className="assessment-editor-footer"><button className="primary-action" onClick={save}>{existing?'Speichern':'Hinzufügen'}<Check size={18}/></button>{existing&&onToggleComplete&&<button type="button" className="assessment-complete-action" onClick={()=>{onToggleComplete();onClose()}}>{existing.completed?'Wieder öffnen':'Erledigt'}<Check size={17}/></button>}</div>}>
     <div className="uf-entry-form">
-    <div className="editor-field"><span className="field-label">Art</span><UniflowPicker label="Eintragsart" value={type} options={[{value:'exam',label:'Prüfung'},{value:'homework',label:'Hausaufgabe'}]} onChange={value=>{setType(value as 'exam'|'homework');setHasTime(value==='exam')}}/></div>
-    <div className="editor-field"><span className="field-label">Titel</span><input autoFocus className="line-input" value={title} placeholder={type==='exam'?'z. B. Analysis 1 – Prüfung':'z. B. Übungsblatt 4 abgeben'} onChange={e=>setTitle(e.target.value)}/></div>
+    <div className="editor-field"><span className="field-label">Art</span><UniflowPicker label="Eintragsart" value={type} options={[{value:'exam',label:'Prüfung'},{value:'homework',label:'Hausaufgabe'}]} onChange={value=>{setType(value as 'exam'|'homework');setHasTime(value==='exam');setAlternativeSourceId('')}}/></div>
+    <div className="editor-field assessment-title-field"><span className="field-label">Titel</span>{alternativeSource
+      ?<div className="assessment-title-lock"><span><strong>{alternativeSource.title}</strong><small>Alternative zur bestehenden Prüfung</small></span><button type="button" aria-label="Verknüpfung entfernen und neuen Namen eingeben" onClick={unlinkAlternative}><X size={16}/></button></div>
+      :<><input autoFocus className="line-input" value={title} placeholder={type==='exam'?'z. B. Schriftliche Klausur':'z. B. Übungsblatt 4 abgeben'} onChange={e=>changeTitle(e.target.value)}/>{availableExamNames.length>0&&<div className="assessment-title-suggestions" role="listbox" aria-label="Passende Prüfungen">{availableExamNames.map(item=><button type="button" role="option" aria-selected="false" key={assessmentComponentKey(item)} onClick={()=>linkAlternative(item)}><strong>{item.title}</strong><span>Alternative hinzufügen</span></button>)}</div>}</>}
+    </div>
     <div className="editor-field"><span className="field-label">Modul</span><button className="big-choice" onClick={()=>setPicker(v=>!v)}><span>{chosen?.name||'Kein Modul'}</span><ChevronDown size={18}/></button>
-      {picker&&<div className="module-dropdown"><div className="module-pick-list"><button onClick={()=>{setModuleId('');setPicker(false)}}>Ohne Modul</button>
-        {modules.map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}</div></div>}
+      {picker&&<div className="module-dropdown"><div className="module-pick-list"><button onClick={()=>{setModuleId('');setAlternativeSourceId('');setPicker(false)}}>Ohne Modul</button>
+        {modules.map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);setAlternativeSourceId('');setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}</div></div>}
     </div>
     {type==='homework'&&<div className="editor-field"><button className={'assessment-time-switch '+(hasDeadline?'enabled':'')} onClick={()=>setHasDeadline(value=>!value)}><CalendarDays size={17}/>{hasDeadline?'Abgabetermin angegeben':'Abgabetermin hinzufügen'}<span>{hasDeadline?'Entfernen':'Optional'}</span></button></div>}
     {(type==='exam'||hasDeadline)&&<div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={type==='exam'?examVisibilityEnd(semester):semester.end} onChange={setDate}/>{type==='exam'&&<small className="setting-hint">Prüfungen können noch bis einen Monat nach Semesterende stattfinden.</small>}</div>}
     {(type==='exam'||hasDeadline)&&<div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>}
     {(type==='exam'||hasDeadline)&&hasTime&&(type==='exam'?<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>:<div className="editor-field"><span className="field-label">Abgabezeit</span><UniflowPicker kind="time" label="Abgabezeit" value={from} onChange={setFrom}/></div>)}
     <label className="editor-field"><span className="field-label">Notizen · optional</span><textarea className="assessment-notes-input" rows={3} value={notes} onChange={event=>setNotes(event.target.value)} placeholder="Was möchtest du dir dazu merken?"/></label>
-    {<button className={'assessment-check '+(completed?'completed':'')} onClick={()=>setCompleted(v=>!v)}><span>{completed?<Check size={15}/>:null}</span>{completed?'Erledigt':'Als erledigt markieren'}</button>}
     {existing&&onDelete&&<button className="danger-simple" onClick={onDelete}><Trash2 size={18}/> {type==='exam'?'Prüfung':'Hausaufgabe'} löschen</button>}
     {err&&<p className="inline-error" role="alert">{err}</p>}
     </div>
@@ -407,11 +434,11 @@ function AssessmentEditor({initial,existing,modules,semester,onSave,onClose,onDe
 }
 
 /** A calendar assessment opens in preview mode; editing is a separate action. */
-function AssessmentPreview({item,module,onToggle,onEdit,onClose}:{
-  item:Assessment;module?:StudyModule;onToggle:()=>void;onEdit:()=>void;onClose:()=>void
+function AssessmentPreview({item,module,alternatives,onSelectAlternative,onToggle,onEdit,onClose}:{
+  item:Assessment;module?:StudyModule;alternatives:Assessment[];onSelectAlternative:(item:Assessment)=>void;onToggle:()=>void;onEdit:()=>void;onClose:()=>void
 }){
   return <BottomSheet title={item.type==='exam'?'Prüfung':'Hausaufgabe'} onClose={onClose}
-    footer={<button type="button" className="primary-action" onClick={onEdit}><PenLine size={17}/> Bearbeiten</button>}>
+    footer={<div className="assessment-editor-footer"><button type="button" className="primary-action" onClick={onEdit}><PenLine size={17}/> Bearbeiten</button><button type="button" className="assessment-complete-action" onClick={()=>{onToggle();onClose()}}>{item.completed?'Wieder öffnen':'Erledigt'}<Check size={17}/></button></div>}>
     <div className="uf-assessment-preview">
       <span className="uf-assessment-preview-kind">{item.type==='exam'?<GraduationCap size={16}/>:<ClipboardList size={16}/>}
         {item.type==='exam'?'Prüfung':'Hausaufgabe'}</span>
@@ -419,12 +446,7 @@ function AssessmentPreview({item,module,onToggle,onEdit,onClose}:{
       {module&&<p>{module.name}</p>}
       {item.date&&<p>{formDate(item.date)}{item.from?' · '+item.from+(item.to?'–'+item.to:'')+' Uhr':''}</p>}
       {item.notes&&<p className="assessment-notes-copy">{item.notes}</p>}
-      <button type="button" role="checkbox" aria-checked={!!item.completed}
-        className={'assessment-check uf-assessment-preview-toggle '+(item.completed?'completed':'')}
-        onClick={onToggle}>
-        <span>{item.completed?<Check size={15}/>:null}</span>
-        {item.completed?'Erledigt – rückgängig machen':'Als erledigt markieren'}
-      </button>
+      {item.type==='exam'&&alternatives.length>1&&<div className="assessment-preview-alternatives" role="radiogroup" aria-label="Prüfungstermin auswählen"><span>Alternativtermine</span>{alternatives.map((alternative,index)=><button type="button" role="radio" aria-checked={alternative.id===item.id} className={alternative.id===item.id?'selected':''} key={alternative.id} onClick={()=>onSelectAlternative(alternative)}><i>{alternative.id===item.id?<Check size={13}/>:null}</i><span><strong>{index+1}. Termin</strong><small>{formDate(alternative.date)}{alternative.from?' · '+alternative.from+' Uhr':''}</small></span></button>)}</div>}
     </div>
   </BottomSheet>
 }
@@ -1792,6 +1814,9 @@ export default function App() {
   const saveBackup = () => { const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `uniflow-backup-${today()}.json`; a.click(); URL.revokeObjectURL(url); note('Backup heruntergeladen.') }
   const readBackup = async (file?: File) => { if (!file) return; try { const raw = JSON.parse(await file.text()); if (!Array.isArray(raw.degrees) || !Array.isArray(raw.modules) || !Array.isArray(raw.offerings) || !Array.isArray(raw.semesters)) throw Error('Ungültiges Backup'); const converted = raw.version === 2 ? normalizeWorkspace(raw as AppData) : migrateLegacy(raw); if (!converted) throw Error('Ungültiges Backup'); setPendingBackup(converted) } catch { note('Diese Datei ist kein gültiges uniflow-Backup.') } }
   const previewAssessment=data.assessments.find(item=>item.id===previewAssessmentId)
+  const previewAssessmentAlternatives=previewAssessment?.type==='exam'
+    ?data.assessments.filter(item=>item.type==='exam'&&assessmentComponentKey(item)===assessmentComponentKey(previewAssessment)).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))
+    :previewAssessment?[previewAssessment]:[]
   const semesterDeletePhrase=confirmDeleteSemester?`Ich möchte ${confirmDeleteSemester.name} endgültig löschen`:''
   if (!supabase) return <main className="auth-loading auth-config-missing"><div><h1>Verbindung einrichten.</h1><p>uniflow benötigt ein Supabase-Konto. Trage VITE_SUPABASE_URL und VITE_SUPABASE_PUBLISHABLE_KEY in der Datei .env.local ein und starte Vite neu.</p></div></main>
   if (!authReady) return <main className="app-loading-shell" aria-label="uniflow wird geladen"><aside/><div><header/><section/><section/><section/></div></main>
@@ -1831,6 +1856,7 @@ export default function App() {
       {page === 'dashboard' && <ModuleLearningHome requestedStudyBundle={requestedStudyBundle} onStudyBundleOpened={consumeStudyBundle} studyPlan={deterministicPlan} onStudyScheduleChange={studySchedule=>mutate(workspace=>({...workspace,studySchedule}))} data={data} semester={semester} modules={semesterModules}
         currentModuleId={currentModuleId}
         onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
+        onAddAssessment={(type,moduleId)=>{if(!semester)return;const end=type==='exam'?examVisibilityEnd(semester):semester.end;const base=today()<semester.start?semester.start:today()>end?end:today();setAssessmentDraft({date:base,from:'10:00',to:'12:00',type,moduleId})}}
         onToggleHomework={item=>{
           const completed=!item.completed
           mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed}:old)}))
@@ -1874,8 +1900,6 @@ export default function App() {
             alternatives:(d.alternatives||[]).filter(a=>!removedIds.has(a.parentOfferingId))}
         })}
         onChangeAssessments={assessments=>mutate(d=>({...d,assessments}))}
-        onEditAssessment={setEditingAssessment}
-        onAddAssessment={type=>{if(!moduleEditorSemester)return;const examEnd=examVisibilityEnd(moduleEditorSemester);const base=today()<moduleEditorSemester.start?moduleEditorSemester.start:today()>examEnd?examEnd:today();setAssessmentDraft({date:base,from:'10:00',to:'12:00',type,moduleId:selectedModuleId})}}
         onOpenOccurrence={setDetail}
         onClearException={(id,origin)=>mutate(d=>({...d,offerings:d.offerings.map(o=>o.id===id
           ?{...o,overrides:Object.fromEntries(Object.entries(o.overrides||{}).filter(([day])=>day!==origin))}
@@ -1915,14 +1939,16 @@ export default function App() {
     {newModule&&<BottomSheet title="Neues Modul" onClose={()=>setNewModule(false)} footer={<button className="primary-action" onClick={saveNewModule}>Modul erstellen · +100 <Sparkles size={18}/></button>}>
       <div className="uf-entry-form"><div className="editor-field"><span className="field-label">Modulname</span><input autoFocus className="line-input" value={newName} onChange={event=>setNewName(event.target.value)} placeholder="z. B. Geographie" /></div><div className="editor-field"><span className="field-label">Leistungspunkte</span><input className="line-input" type="number" min="0" step="0.5" value={newCredits} onChange={event=>setNewCredits(event.target.value)} /></div><label className="editor-field">Status<UniflowPicker label="Modulstatus" value={newModuleStatus} onChange={value=>setNewModuleStatus(value as StudyModule['status'])} options={[{value:'planned',label:'Geplant'},{value:'current',label:'Aktuell'}]}/></label><SemesterAssignment data={data} module={{id:'draft',degreeId:data.activeDegreeId,name:newName,shortName:'',credits:Number(newCredits)||0,color:'#aaa',status:newModuleStatus,grade:'',counted:true,hidden:false,semesterIds:newModuleSemesterIds}} onMutate={mutate} onChange={module=>setNewModuleSemesterIds(module.semesterIds)}/><p className="scope-intro">Dein neues Modul startet sofort mit einem Bonus von 100 Punkten.</p></div>
     </BottomSheet>}
-    {assessmentDraft&&(page==='modules'?moduleEditorSemester:semester)&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={(page==='modules'?moduleEditorSemester:semester)!} modules={page==='modules'?degreeModules:semesterModules} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setAssessmentDraft(null);note(assessment.type==='exam'?'Prüfung hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
+    {assessmentDraft&&(page==='modules'?moduleEditorSemester:semester)&&<AssessmentEditor key={`${assessmentDraft.type}-${assessmentDraft.date}`} initial={assessmentDraft} semester={(page==='modules'?moduleEditorSemester:semester)!} modules={page==='modules'?degreeModules:semesterModules} assessments={data.assessments} onClose={()=>setAssessmentDraft(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setAssessmentDraft(null);note(assessment.type==='exam'?'Prüfung hinzugefügt.':'Hausaufgabe hinzugefügt.')}}/>}
     {previewAssessment&&<AssessmentPreview item={previewAssessment}
       module={data.modules.find(m=>m.id===previewAssessment.moduleId)}
+      alternatives={previewAssessmentAlternatives}
+      onSelectAlternative={alternative=>{const key=assessmentComponentKey(alternative);mutate(d=>({...d,assessments:d.assessments.map(item=>assessmentComponentKey(item)===key?{...item,selected:item.id===alternative.id}:item)}));setPreviewAssessmentId(alternative.id)}}
       onClose={()=>setPreviewAssessmentId(null)}
       onToggle={()=>mutate(d=>({...d,assessments:d.assessments.map(item=>
         item.id===previewAssessment.id?{...item,completed:!item.completed}:item)}))}
       onEdit={()=>{setEditingAssessment(previewAssessment);setPreviewAssessmentId(null)}}/>}
-    {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={data.semesters.find(item=>item.id===editingAssessment.semesterId)||semester} modules={degreeModules} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
+    {editingAssessment&&semester&&<AssessmentEditor key={editingAssessment.id} initial={{date:editingAssessment.date,from:editingAssessment.from||'10:00',to:editingAssessment.to||'12:00',type:editingAssessment.type}} existing={editingAssessment} semester={data.semesters.find(item=>item.id===editingAssessment.semesterId)||semester} modules={degreeModules} assessments={data.assessments} onClose={()=>setEditingAssessment(null)} onSave={assessment=>{mutate(d=>({...d,assessments:upsertAssessment(d.assessments,assessment)}));setEditingAssessment(null);note('Eintrag gespeichert.')}} onToggleComplete={()=>{mutate(d=>({...d,assessments:d.assessments.map(item=>item.id===editingAssessment.id?{...item,completed:!item.completed}:item)}));note(editingAssessment.completed?'Eintrag wieder geöffnet.':'Eintrag erledigt.')}} onDelete={()=>{setDeletingAssessment(editingAssessment);setEditingAssessment(null)}}/>}
     {deletingAssessment&&<BottomSheet title={deletingAssessment.type==='exam'?'Prüfung löschen?':'Hausaufgabe löschen?'} onClose={()=>setDeletingAssessment(null)}><p className="scope-intro">„{deletingAssessment.title}“{deletingAssessment.date?' am '+formDate(deletingAssessment.date):''} wird endgültig gelöscht. Andere Termine und Veranstaltungen bleiben unverändert.</p><button className="danger-simple" onClick={()=>{mutate(d=>{const remaining=d.assessments.filter(x=>x.id!==deletingAssessment.id);return {...d,assessments:remaining}});setDeletingAssessment(null);note('Eintrag gelöscht.')}}><Trash2 size={18}/> Eintrag endgültig löschen</button><button className="dismiss-action" onClick={()=>setDeletingAssessment(null)}>Abbrechen</button></BottomSheet>}
     {entry && semester && <EntryEditor key={entry.date + entry.from} initial={entry} modules={semesterModules} semester={semester} onSave={onAddOffer} onClose={() => setEntry(null)} onCreateModule={(name, credits) => { const id = uid(); if (degree) { const now=new Date().toISOString(); mutate(d => ({ ...d, modules: [...d.modules, { id, degreeId: degree.id, name, shortName: acronym(name), credits, color: colors[degreeModules.length % colors.length], emoji: '', status: 'current', grade: '', counted: true, hidden: false, semesterIds: semester ? [semester.id] : [] }],scoreEvents:[...(d.scoreEvents||[]),makeScoreEvent({id:`module-created:${id}`,moduleId:id,type:'module-created',basePoints:SCORE_RULES.moduleCreated,occurredAt:now,sourceId:id,label:'Startbonus'})] })); note('Modul hinzugefügt · +100 Startpunkte') } return id }} />}
     {ratingLesson&&ratingOccurrence&&<BottomSheet title="Check-in" onClose={()=>setRatingOccurrence(null)} compactHeader
