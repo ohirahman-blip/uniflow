@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowLeft, Check, ChevronDown, Lock, Plus, RotateCcw, Sparkles, Trash2, X } from 'lucide-react'
 import {
   addDays, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
@@ -11,6 +12,7 @@ import UniflowPicker from './UniflowPicker'
 import { supabase } from './supabase'
 import { describeAiRequestError } from './ai-errors'
 import { parseAiSchedulePreview, type AiScheduleSlot, type AiScheduleTopic, type AiSchedulePreview } from './ai-schedule'
+import { useSwipeToDismiss } from './useSwipeToDismiss'
 import './module-schedule.css'
 
 const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
@@ -33,6 +35,22 @@ const offeringSentence=(offering:Offering)=>{
 }
 const initialDate = (semester:Semester, day:number) =>
   addDays(semester.start,(day-weekday(semester.start)+7)%7)
+function ModuleOverlay({title,onClose,accent,children}:{title:string;onClose:()=>void;accent:string;children:ReactNode}){
+  const sheet=useRef<HTMLElement>(null)
+  useSwipeToDismiss(sheet,onClose)
+  useEffect(()=>{
+    const close=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()}
+    window.addEventListener('keydown',close)
+    return()=>window.removeEventListener('keydown',close)
+  },[onClose])
+  return createPortal(<div className="mlh-overlay module-event-overlay" onPointerDown={event=>{if(event.target===event.currentTarget)onClose()}}>
+    <section ref={sheet} className="mlh-sheet module-event-sheet" role="dialog" aria-modal="true" aria-label={title} style={{'--module-accent':accent,'--mlh-accent':accent} as CSSProperties}>
+      <i className="mlh-sheet-handle" aria-hidden="true"/>
+      <header><h2>{title}</h2><button type="button" onClick={onClose} aria-label="Schließen"><X size={20}/></button></header>
+      <div className="module-event-sheet-body">{children}</div>
+    </section>
+  </div>,document.body)
+}
 const typeFromPrefix = (text:string) => {
   const p=text.toLocaleUpperCase('de-DE')
   if(p==='VL'||p==='VORLESUNG')return {prefix:'VL',category:'Vorlesung'}
@@ -120,27 +138,29 @@ export default function ModuleScheduleEditor({
   const [exceptionDate,setExceptionDate]=useState(()=>today())
   const [exceptionFrom,setExceptionFrom]=useState('10:00')
   const [exceptionTo,setExceptionTo]=useState('12:00')
-  const [expandedTopics,setExpandedTopics]=useState<Record<string,boolean>>({})
   const [editingSlotId,setEditingSlotId]=useState<string|null>(null)
+  const [groupEditorId,setGroupEditorId]=useState('')
   const [eventDraft,setEventDraft]=useState<EventDraft|null>(null)
   const [deleted,setDeleted]=useState<Offering[]>([])
   const [warning,setWarning]=useState('')
   const [thinking,setThinking]=useState(false)
   const [quickError,setQuickError]=useState('')
   useEffect(()=>{
-    if(!editingSlotId&&!exceptionEditor&&!preview&&!eventDraft)return
+    if(!editingSlotId&&!groupEditorId&&!exceptionsOpen&&!exceptionEditor&&!preview&&!eventDraft)return
     const onBack=(event:Event)=>{
       const detail=(event as CustomEvent<{handled:boolean}>).detail
       if(detail?.handled)return
       detail.handled=true
       if(eventDraft)setEventDraft(null)
-      else if(preview)setPreview(null)
+      else if(editingSlotId)setEditingSlotId(null)
+      else if(groupEditorId)setGroupEditorId('')
       else if(exceptionEditor)setExceptionEditor(false)
-      else setEditingSlotId(null)
+      else if(exceptionsOpen)setExceptionsOpen(false)
+      else if(preview)setPreview(null)
     }
     window.addEventListener('uniflow-back',onBack)
     return()=>window.removeEventListener('uniflow-back',onBack)
-  },[editingSlotId,exceptionEditor,preview,eventDraft])
+  },[editingSlotId,groupEditorId,exceptionsOpen,exceptionEditor,preview,eventDraft])
   const previewRequest=useRef<AbortController|null>(null)
   useEffect(()=>()=>{previewRequest.current?.abort()},[])
   const imported=useRef(false)
@@ -204,7 +224,6 @@ export default function ModuleScheduleEditor({
     const fresh=newOffering(contentId,eventDraft.name.trim(),source?.category||inferOfferingCategory(eventDraft.name),slot,false,eventDraft.importance)
     fresh.selected=source?false:!collides(fresh,offerings)
     const nextOwn=source?own.map(item=>(item.contentId||item.familyId||item.id)===contentId?{...item,importance:eventDraft.importance}:item):own
-    setExpandedTopics(previous=>({...previous,[contentId]:true}))
     commit([...nextOwn,fresh]);setEventDraft(null)
   }
   const remove=(items:Offering[])=>{
@@ -362,6 +381,8 @@ export default function ModuleScheduleEditor({
   const futureExceptions=own.flatMap(o=>Object.entries(o.overrides||{})
     .filter(([date,value])=>date>=today()&&(value.scope==='single'||(!value.scope&&(!!value.cancelled||!!value.date||!!value.from))))
     .map(([origin,value])=>({o,origin,value}))).sort((a,b)=>a.origin.localeCompare(b.origin))
+  const editingGroup=groups.find(group=>group.id===groupEditorId)
+  const editingOffering=editingGroup?.offerings.find(item=>item.id===editingSlotId)
   return <div className="screen secondary-screen module-detail-screen module-fast" style={{'--module-accent':module.color,'--mlh-accent':module.color} as CSSProperties}>
     <button className="text-back module-editor-back" onClick={onBack} aria-label="Zurück"><ArrowLeft size={20}/></button>
     <div className="module-detail-heading">
@@ -465,101 +486,40 @@ export default function ModuleScheduleEditor({
       </div>}
 
     <div className="module-fast-section-head"><div><h2>Veranstaltungen <small>{groups.length}</small></h2></div><button type="button" className="module-event-add" aria-label="Veranstaltung hinzufügen" onClick={openEventCreator}><Plus size={19}/></button></div>
-    {eventDraft&&<section className="module-event-creator">
-      <header><div><span>Neue Veranstaltung</span><strong>{eventDraft.linkedGroupId?'Alternativtermin':'Termin anlegen'}</strong></div><button type="button" aria-label="Schließen" onClick={()=>setEventDraft(null)}><X size={18}/></button></header>
-      <div className="editor-field module-event-name-field"><span className="field-label">Name</span>
-        {eventDraft.linkedGroupId
-          ?<div className="module-event-name-lock"><span><strong>{eventDraft.name}</strong><small>Alternative zur bestehenden Veranstaltung</small></span><button type="button" aria-label="Verknüpfung entfernen" onClick={()=>setEventDraft(current=>current?{...current,name:'',linkedGroupId:'',importance:'normal'}:current)}><X size={16}/></button></div>
-          :<><input autoFocus className="line-input" value={eventDraft.name} placeholder="z. B. Vorlesung 1" onChange={event=>changeEventName(event.target.value)}/>{eventNameSuggestions.length>0&&<div className="module-event-name-suggestions" role="listbox" aria-label="Passende Veranstaltungen">{eventNameSuggestions.map(group=>{const item=group.offerings[0];return <button type="button" role="option" aria-selected="false" key={group.id} onClick={()=>linkEventGroup(group.id)}><strong>{item.contentLabel||item.category}</strong><span>Alternative hinzufügen</span></button>})}</div>}</>}
-      </div>
-      <div className="uf-entry-grid">
-        <div className="uf-entry-field"><span className="field-label">Wochentag</span><UniflowPicker label="Wochentag" value={String(eventDraft.day)} options={dayNames.map((label,index)=>({value:String(index),label}))} onChange={value=>changeEventDay(Number(value))}/></div>
-        <div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={eventDraft.from} onChange={from=>setEventDraft(current=>current?{...current,from}:current)}/></div>
-        <div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={eventDraft.to} onChange={to=>setEventDraft(current=>current?{...current,to}:current)}/></div>
-      </div>
-      <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={eventDraft.room} onChange={event=>setEventDraft(current=>current?{...current,room:event.target.value}:current)}/></div>
-      <details className="module-event-advanced" open={eventDraft.advanced} onToggle={event=>setEventDraft(current=>current?{...current,advanced:event.currentTarget.open}:current)}>
-        <summary><span>Weitere Angaben</span><ChevronDown size={17}/></summary>
-        <div className="module-event-advanced-body">
-          <div className="editor-field"><span className="field-label">Wichtigkeit für den Lernplan</span><div className="module-event-importance" role="group" aria-label="Wichtigkeit">{([{value:'low',label:'Niedrig'},{value:'normal',label:'Normal'},{value:'high',label:'Hoch'}] as const).map(option=><button type="button" className={eventDraft.importance===option.value?'selected':''} aria-pressed={eventDraft.importance===option.value} key={option.value} onClick={()=>setEventDraft(current=>current?{...current,importance:option.value}:current)}>{option.label}</button>)}</div></div>
-          <div className="editor-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={eventDraft.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>setEventDraft(current=>current?{...current,recurrence:value as Repeat,endDate:value==='once'?current.date:current.endDate<current.date?semester.lectureEnd:current.endDate}:current)}/></div>
-          {eventDraft.recurrence==='once'
-            ?<div className="editor-field"><span className="field-label">Datum</span><UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={eventDraft.date} onChange={date=>setEventDraft(current=>current?{...current,date,endDate:date,day:weekday(date)}:current)}/></div>
-            :<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" min={semester.start} max={eventDraft.endDate} value={eventDraft.date} onChange={date=>setEventDraft(current=>current?{...current,date,day:weekday(date)}:current)}/></div><div className="uf-entry-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" min={eventDraft.date} max={semester.end} value={eventDraft.endDate} onChange={endDate=>setEventDraft(current=>current?{...current,endDate}:current)}/></div></div>}
-          <div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={eventDraft.organizer} onChange={event=>setEventDraft(current=>current?{...current,organizer:event.target.value}:current)}/></div>
-          <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://…" value={eventDraft.onlineLink} onChange={event=>setEventDraft(current=>current?{...current,onlineLink:event.target.value}:current)}/></div>
-        </div>
-      </details>
-      <button type="button" className="primary-action module-event-save" onClick={saveEventDraft}>{eventDraft.linkedGroupId?'Alternative speichern':'Veranstaltung speichern'}<Check size={17}/></button>
-    </section>}
-    {groups.map((group,index)=>{
-      const first=group.offerings[0]
-      const expanded=expandedTopics[group.id]??false
-      return <section className={'module-fast-topic '+(expanded?'topic-expanded':'topic-collapsed')} key={group.id}>
-        <div className="module-fast-topic-bar">
-          <button type="button" className="module-fast-topic-toggle" aria-expanded={expanded} onClick={()=>setExpandedTopics(prev=>({...prev,[group.id]:!expanded}))}>
-            <ChevronDown size={17} className={expanded?'expanded':''}/>
-            <span>{first.contentLabel||first.category}</span>
-            <small>{group.offerings.length} {group.offerings.length===1?'Termin':'Termine'}</small>
-          </button>
-        </div>
-        {expanded&&<><div className="module-fast-topic-head">
-          <div className="module-fast-topic-inputs">
-            <label>Name<input aria-label={'Name Veranstaltung '+(index+1)} value={first.contentLabel??first.category} onChange={e=>renameTopic(group.offerings,e.target.value)}/></label>
-          </div>
-          <details className="module-event-group-more"><summary><span>Weitere Angaben</span><ChevronDown size={16}/></summary><div className="module-event-importance" role="group" aria-label="Wichtigkeit für den Lernplan">{([{value:'low',label:'Niedrig'},{value:'normal',label:'Normal'},{value:'high',label:'Hoch'}] as const).map(option=><button type="button" className={(first.importance||'normal')===option.value?'selected':''} aria-pressed={(first.importance||'normal')===option.value} key={option.value} onClick={()=>setTopicImportance(group.offerings,option.value)}>{option.label}</button>)}</div></details>
-        </div>
-        <div className="module-fast-slot-list">
-          {group.offerings.map(o=>{
-            const active=!!occurrenceAtOrigin(o,o.date,false)
-            const editing=editingSlotId===o.id
-            return <div className={'module-fast-slot '+(editing?'is-editing':'')} key={o.id}>
-              <button type="button" className="module-fast-slot-preview" aria-expanded={editing} onClick={()=>setEditingSlotId(editing?null:o.id)}>
-                <span className={'module-fast-dot '+(active?'active':'')}/>
-                <span className="module-fast-slot-copy"><strong>{dayNames[weekday(o.date)]} · {o.from}–{o.to}<em>{active?'Im Plan':'Nicht im Plan'}</em></strong><small>{offeringSentence(o)}</small>{(o.room||o.organizer)&&<small>{[o.room,o.organizer].filter(Boolean).join(' · ')}</small>}</span>
-                <span className="module-fast-edit-label">{editing?'Schließen':'Bearbeiten'}</span>
-              </button>
-              {editing&&<div className="module-slot-edit-form uf-entry-form">
-                <div className="editor-field"><span className="field-label">{o.recurrence==='once'?'Datum':'Wochentag'}</span>{o.recurrence==='once'
-                  ?<UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={o.date} onChange={value=>{if(value>=semester.start&&value<=semester.end)update(o.id,{date:value,endDate:value})}}/>
-                  :<UniflowPicker label="Wochentag" value={String(weekday(o.date))} onChange={value=>setDay(o,Number(value))} options={dayNames.map((label,n)=>({value:String(n),label:label+'s'}))}/>}</div>
-                <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={o.from} maxMinutes={1440-durationOf(o)} onChange={value=>setClock(o,value)}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={o.to} onChange={value=>setEnd(o,value)}/></div></div>
-                <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={o.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>update(o.id,{recurrence:value as Repeat,endDate:value==='once'?o.date:o.recurrence==='once'?semester.lectureEnd:o.endDate<o.date?semester.lectureEnd:o.endDate})}/></div>{o.recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" min={semester.start} max={o.endDate} value={o.date} onChange={value=>setSeriesStart(o,value)}/></div>}</div>
-                {o.recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" min={o.date} max={semester.end} value={o.endDate} onChange={value=>{if(value>=o.date&&value<=semester.end)update(o.id,{endDate:value})}}/></div>}
-                <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={o.room} onChange={e=>update(o.id,{room:e.target.value})}/></div>
-                <div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://…" value={o.onlineLink||''} onChange={e=>update(o.id,{onlineLink:e.target.value})}/></div>
-                <div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={o.organizer||''} onChange={e=>update(o.id,{organizer:e.target.value})}/></div>
-                <div className="module-fast-slot-actions"><button type="button" className="danger" onClick={()=>remove([o])}><Trash2 size={16}/> Termin löschen</button></div>
-              </div>}
-            </div>
-          })}
-        </div>
-        <div className="module-fast-topic-foot">
-          <div className="module-fast-icon-actions">
-            <button title="Veranstaltung löschen" aria-label="Veranstaltung löschen" onClick={()=>remove(group.offerings)}><Trash2 size={17}/></button>
-          </div>
-        </div></>}
-      </section>
-    })}
+    <div className="module-event-list">{groups.map(group=>{
+      const first=group.offerings[0],planned=group.offerings.find(item=>item.selected)||first
+      const active=!!occurrenceAtOrigin(planned,planned.date,false)
+      return <button type="button" className="module-event-row" key={group.id} onClick={()=>{setEditingSlotId(null);setGroupEditorId(group.id)}}>
+        <span className={'module-fast-dot '+(active?'active':'')}/><span className="module-event-row-copy"><strong>{first.contentLabel||first.category}</strong><small>{dayNames[weekday(planned.date)]} · {planned.from}–{planned.to}{planned.room?' · '+planned.room:''}</small></span>
+        {(first.importance||'normal')==='high'&&<i className="module-event-priority" role="img" aria-label="Hohe Wichtigkeit"/>}<span className="module-event-count">{group.offerings.length} {group.offerings.length===1?'Termin':'Termine'}</span>
+      </button>
+    })}</div>
     {!groups.length&&<div className="module-topic-empty">Noch keine Veranstaltungen. Du kannst eine Veranstaltung anlegen oder die Schnelleingabe verwenden.</div>}
     {deleted.length>0&&<div className="module-fast-undo">Gelöscht: {deleted.length} {deleted.length===1?'Gruppe':'Gruppen'} <button onClick={undoDelete}><RotateCcw size={15}/> Rückgängig</button></div>}
-    {warning&&<p className="module-fast-warning" role="alert">{warning}</p>}
+    <button type="button" className="module-event-row module-exception-row" onClick={()=>setExceptionsOpen(true)}><span className="module-exception-symbol" aria-hidden="true">↗</span><span className="module-event-row-copy"><strong>Zukünftige Ausnahmen</strong><small>Verschobene oder ausfallende Termine</small></span><span className="module-event-count">{futureExceptions.length}</span></button>
 
-    <details className="module-fast-exceptions" open={exceptionsOpen} onToggle={e=>setExceptionsOpen(e.currentTarget.open)}>
-      <summary><span>Zukünftige Ausnahmen · {futureExceptions.length}</span><ChevronDown size={17}/></summary>
-      <button type="button" className="module-fast-add-exception" onClick={event=>{event.preventDefault();openExceptionEditor()}}><Plus size={16}/> Ausnahme hinzufügen</button>
-      {exceptionEditor&&<div className="module-exception-editor">
-        <label>Veranstaltung<UniflowPicker label="Veranstaltung" value={exceptionOfferingId} options={own.map(item=>({value:item.id,label:`${item.contentLabel||item.category} · ${dayNames[weekday(item.date)]} ${item.from}`}))} onChange={value=>{setExceptionOfferingId(value);const item=own.find(entry=>entry.id===value);if(item){setExceptionOrigin(item.date);setExceptionDate(item.date);setExceptionFrom(item.from);setExceptionTo(item.to)}}}/></label>
-        <label>Ursprüngliches Datum<UniflowPicker kind="date" label="Ursprüngliches Datum" min={semester.start} max={semester.end} value={exceptionOrigin} onChange={setExceptionOrigin}/></label>
-        <label>Änderung<UniflowPicker label="Änderung" value={exceptionKind} options={[{value:'move',label:'Verschieben'},{value:'cancel',label:'Fällt ohne Ersatz aus'}]} onChange={value=>setExceptionKind(value as 'move'|'cancel')}/></label>
-        {exceptionKind==='move'&&<><label>Neues Datum<UniflowPicker kind="date" label="Neues Datum" min={semester.start} max={semester.end} value={exceptionDate} onChange={setExceptionDate}/></label><label>Beginn<UniflowPicker kind="time" label="Beginn" value={exceptionFrom} onChange={setExceptionFrom}/></label><label>Ende<UniflowPicker kind="time" label="Ende" value={exceptionTo} onChange={setExceptionTo}/></label></>}
-        <div className="module-exception-actions"><button onClick={()=>setExceptionEditor(false)}>Abbrechen</button><button className="primary" onClick={saveException}>Übernehmen</button></div>
-      </div>}
-      {futureExceptions.length===0&&!exceptionEditor?<p>Keine zukünftigen Ausnahmen.</p>:futureExceptions.map(({o,origin,value})=>
-        <div className="module-fast-exception" key={o.id+origin}><span>{formatDate(origin)} · {o.contentLabel||o.category}<small>{value.cancelled?'Fällt aus':value.reason==='move'?'Verschoben':value.selected?'Einmalig besuchen':'Einmalig nicht besuchen'}</small></span>
-          {!value.cancelled&&<button onClick={()=>{const occ=occurrenceAtOrigin(o,origin,true,true);if(occ)onOpenOccurrence(occ)}}>Ansehen</button>}
-          <button onClick={()=>onClearException(o.id,origin)}>Zurücksetzen</button>
-        </div>)}
-    </details>
+    {eventDraft&&<ModuleOverlay title={eventDraft.linkedGroupId?'Alternativtermin':'Neue Veranstaltung'} accent={module.color} onClose={()=>{setEventDraft(null);setWarning('')}}><div className="module-event-create-form">
+      <div className="editor-field module-event-name-field"><span className="field-label">Name</span>{eventDraft.linkedGroupId?<div className="module-event-name-lock"><span><strong>{eventDraft.name}</strong><small>Alternative zur bestehenden Veranstaltung</small></span><button type="button" aria-label="Verknüpfung entfernen" onClick={()=>setEventDraft(current=>current?{...current,name:'',linkedGroupId:'',importance:'normal'}:current)}><X size={16}/></button></div>:<><input autoFocus className="line-input" value={eventDraft.name} placeholder="z. B. Vorlesung 1" onChange={event=>changeEventName(event.target.value)}/>{eventNameSuggestions.length>0&&<div className="module-event-name-suggestions" role="listbox" aria-label="Passende Veranstaltungen">{eventNameSuggestions.map(group=>{const item=group.offerings[0];return <button type="button" role="option" aria-selected="false" key={group.id} onClick={()=>linkEventGroup(group.id)}><strong>{item.contentLabel||item.category}</strong><span>Alternative hinzufügen</span></button>})}</div>}</>}</div>
+      <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Wochentag</span><UniflowPicker label="Wochentag" value={String(eventDraft.day)} options={dayNames.map((label,index)=>({value:String(index),label}))} onChange={value=>changeEventDay(Number(value))}/></div><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={eventDraft.from} onChange={from=>setEventDraft(current=>current?{...current,from}:current)}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={eventDraft.to} onChange={to=>setEventDraft(current=>current?{...current,to}:current)}/></div></div>
+      <div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. MA 041" value={eventDraft.room} onChange={event=>setEventDraft(current=>current?{...current,room:event.target.value}:current)}/></div>
+      <details className="module-event-advanced" open={eventDraft.advanced} onToggle={event=>setEventDraft(current=>current?{...current,advanced:event.currentTarget.open}:current)}><summary><span>Weitere Angaben</span><ChevronDown size={17}/></summary><div className="module-event-advanced-body">
+        <div className="editor-field"><span className="field-label">Wichtigkeit für den Lernplan</span><div className="module-event-importance" role="group" aria-label="Wichtigkeit">{([{value:'low',label:'Niedrig'},{value:'normal',label:'Normal'},{value:'high',label:'Hoch'}] as const).map(option=><button type="button" className={eventDraft.importance===option.value?'selected':''} aria-pressed={eventDraft.importance===option.value} key={option.value} onClick={()=>setEventDraft(current=>current?{...current,importance:option.value}:current)}>{option.label}</button>)}</div></div>
+        <div className="editor-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={eventDraft.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>setEventDraft(current=>current?{...current,recurrence:value as Repeat,endDate:value==='once'?current.date:current.endDate<current.date?semester.lectureEnd:current.endDate}:current)}/></div>
+        {eventDraft.recurrence==='once'?<div className="editor-field"><span className="field-label">Datum</span><UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={eventDraft.date} onChange={date=>setEventDraft(current=>current?{...current,date,endDate:date,day:weekday(date)}:current)}/></div>:<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" min={semester.start} max={eventDraft.endDate} value={eventDraft.date} onChange={date=>setEventDraft(current=>current?{...current,date,day:weekday(date)}:current)}/></div><div className="uf-entry-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" min={eventDraft.date} max={semester.end} value={eventDraft.endDate} onChange={endDate=>setEventDraft(current=>current?{...current,endDate}:current)}/></div></div>}
+        <div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={eventDraft.organizer} onChange={event=>setEventDraft(current=>current?{...current,organizer:event.target.value}:current)}/></div><div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" placeholder="https://…" value={eventDraft.onlineLink} onChange={event=>setEventDraft(current=>current?{...current,onlineLink:event.target.value}:current)}/></div>
+      </div></details>{warning&&<p className="module-fast-warning" role="alert">{warning}</p>}<button type="button" className="primary-action module-event-save" onClick={saveEventDraft}>{eventDraft.linkedGroupId?'Alternative speichern':'Veranstaltung speichern'}<Check size={17}/></button>
+    </div></ModuleOverlay>}
+
+    {editingGroup&&<ModuleOverlay title={editingOffering?'Termin bearbeiten':editingGroup.offerings[0].contentLabel||editingGroup.offerings[0].category} accent={module.color} onClose={()=>{setEditingSlotId(null);setGroupEditorId('');setWarning('')}}>{editingOffering?<div className="module-event-edit-form uf-entry-form">
+      <button type="button" className="module-event-sheet-back" onClick={()=>setEditingSlotId(null)}><ArrowLeft size={16}/> Alle Termine</button>
+      <div className="editor-field"><span className="field-label">{editingOffering.recurrence==='once'?'Datum':'Wochentag'}</span>{editingOffering.recurrence==='once'?<UniflowPicker kind="date" label="Datum" min={semester.start} max={semester.end} value={editingOffering.date} onChange={value=>{if(value>=semester.start&&value<=semester.end)update(editingOffering.id,{date:value,endDate:value})}}/>:<UniflowPicker label="Wochentag" value={String(weekday(editingOffering.date))} onChange={value=>setDay(editingOffering,Number(value))} options={dayNames.map((label,index)=>({value:String(index),label:label+'s'}))}/>}</div>
+      <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={editingOffering.from} maxMinutes={1440-durationOf(editingOffering)} onChange={value=>setClock(editingOffering,value)}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={editingOffering.to} onChange={value=>setEnd(editingOffering,value)}/></div></div>
+      <details className="module-event-advanced"><summary><span>Weitere Angaben</span><ChevronDown size={17}/></summary><div className="module-event-advanced-body"><div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={editingOffering.recurrence} options={[{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'},{value:'once',label:'Einmalig'}]} onChange={value=>update(editingOffering.id,{recurrence:value as Repeat,endDate:value==='once'?editingOffering.date:editingOffering.recurrence==='once'?semester.lectureEnd:editingOffering.endDate<editingOffering.date?semester.lectureEnd:editingOffering.endDate})}/></div>{editingOffering.recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" min={semester.start} max={editingOffering.endDate} value={editingOffering.date} onChange={value=>setSeriesStart(editingOffering,value)}/></div>}</div>{editingOffering.recurrence!=='once'&&<div className="editor-field"><span className="field-label">Bis</span><UniflowPicker kind="date" label="Bis" min={editingOffering.date} max={semester.end} value={editingOffering.endDate} onChange={value=>{if(value>=editingOffering.date&&value<=semester.end)update(editingOffering.id,{endDate:value})}}/></div>}<div className="editor-field"><span className="field-label">Raum <span className="optional">optional</span></span><input className="line-input" value={editingOffering.room} onChange={event=>update(editingOffering.id,{room:event.target.value})}/></div><div className="editor-field"><span className="field-label">Online-Link <span className="optional">optional</span></span><input className="line-input" type="url" inputMode="url" value={editingOffering.onlineLink||''} onChange={event=>update(editingOffering.id,{onlineLink:event.target.value})}/></div><div className="editor-field"><span className="field-label">Lehrperson <span className="optional">optional</span></span><input className="line-input" value={editingOffering.organizer||''} onChange={event=>update(editingOffering.id,{organizer:event.target.value})}/></div></div></details>
+      <button type="button" className="danger-simple" onClick={()=>{const last=editingGroup.offerings.length===1;remove([editingOffering]);setEditingSlotId(null);if(last)setGroupEditorId('')}}><Trash2 size={17}/> Termin löschen</button>{warning&&<p className="module-fast-warning" role="alert">{warning}</p>}<button type="button" className="primary-action module-event-save" onClick={()=>setEditingSlotId(null)}>Fertig <Check size={17}/></button>
+    </div>:<div className="module-event-group-form"><div className="editor-field"><span className="field-label">Name</span><input autoFocus className="line-input" value={editingGroup.offerings[0].contentLabel||editingGroup.offerings[0].category} onChange={event=>renameTopic(editingGroup.offerings,event.target.value)}/></div><div className="module-event-term-list">{editingGroup.offerings.map(item=>{const active=!!occurrenceAtOrigin(item,item.date,false);return <button type="button" key={item.id} onClick={()=>setEditingSlotId(item.id)}><span className={'module-fast-dot '+(active?'active':'')}/><span><strong>{dayNames[weekday(item.date)]} · {item.from}–{item.to}</strong><small>{item.room||offeringSentence(item)}</small></span>{editingGroup.offerings.length>1&&<em>{active?'Im Plan':'Nicht im Plan'}</em>}</button>})}</div>
+      <details className="module-event-advanced"><summary><span>Weitere Angaben</span><ChevronDown size={17}/></summary><div className="module-event-advanced-body"><div className="editor-field"><span className="field-label">Wichtigkeit für den Lernplan</span><div className="module-event-importance" role="group" aria-label="Wichtigkeit für den Lernplan">{([{value:'low',label:'Niedrig'},{value:'normal',label:'Normal'},{value:'high',label:'Hoch'}] as const).map(option=><button type="button" className={(editingGroup.offerings[0].importance||'normal')===option.value?'selected':''} aria-pressed={(editingGroup.offerings[0].importance||'normal')===option.value} key={option.value} onClick={()=>setTopicImportance(editingGroup.offerings,option.value)}>{option.label}</button>)}</div></div></div></details>
+      <button type="button" className="danger-simple" onClick={()=>{remove(editingGroup.offerings);setGroupEditorId('')}}><Trash2 size={17}/> Veranstaltung löschen</button><button type="button" className="primary-action module-event-save" onClick={()=>setGroupEditorId('')}>Fertig <Check size={17}/></button></div>}</ModuleOverlay>}
+
+    {exceptionsOpen&&<ModuleOverlay title="Zukünftige Ausnahmen" accent={module.color} onClose={()=>{setExceptionsOpen(false);setExceptionEditor(false);setWarning('')}}><div className="module-exception-popup"><button type="button" className="module-fast-add-exception" onClick={openExceptionEditor}><Plus size={16}/> Ausnahme hinzufügen</button>{exceptionEditor&&<div className="module-exception-editor"><label>Veranstaltung<UniflowPicker label="Veranstaltung" value={exceptionOfferingId} options={own.map(item=>({value:item.id,label:`${item.contentLabel||item.category} · ${dayNames[weekday(item.date)]} ${item.from}`}))} onChange={value=>{setExceptionOfferingId(value);const item=own.find(entry=>entry.id===value);if(item){setExceptionOrigin(item.date);setExceptionDate(item.date);setExceptionFrom(item.from);setExceptionTo(item.to)}}}/></label><label>Ursprüngliches Datum<UniflowPicker kind="date" label="Ursprüngliches Datum" min={semester.start} max={semester.end} value={exceptionOrigin} onChange={setExceptionOrigin}/></label><label>Änderung<UniflowPicker label="Änderung" value={exceptionKind} options={[{value:'move',label:'Verschieben'},{value:'cancel',label:'Fällt ohne Ersatz aus'}]} onChange={value=>setExceptionKind(value as 'move'|'cancel')}/></label>{exceptionKind==='move'&&<><label>Neues Datum<UniflowPicker kind="date" label="Neues Datum" min={semester.start} max={semester.end} value={exceptionDate} onChange={setExceptionDate}/></label><label>Beginn<UniflowPicker kind="time" label="Beginn" value={exceptionFrom} onChange={setExceptionFrom}/></label><label>Ende<UniflowPicker kind="time" label="Ende" value={exceptionTo} onChange={setExceptionTo}/></label></>}<div className="module-exception-actions"><button type="button" onClick={()=>setExceptionEditor(false)}>Abbrechen</button><button type="button" className="primary" onClick={saveException}>Übernehmen</button></div></div>}{futureExceptions.length===0&&!exceptionEditor?<p className="module-popup-empty">Keine zukünftigen Ausnahmen.</p>:futureExceptions.map(({o,origin,value})=><div className="module-fast-exception" key={o.id+origin}><span>{formatDate(origin)} · {o.contentLabel||o.category}<small>{value.cancelled?'Fällt aus':value.reason==='move'?'Verschoben':value.selected?'Einmalig besuchen':'Einmalig nicht besuchen'}</small></span>{!value.cancelled&&<button type="button" onClick={()=>{const occ=occurrenceAtOrigin(o,origin,true,true);if(occ){setExceptionsOpen(false);onOpenOccurrence(occ)}}}>Ansehen</button>}<button type="button" onClick={()=>onClearException(o.id,origin)}>Zurücksetzen</button></div>)}{warning&&<p className="module-fast-warning" role="alert">{warning}</p>}</div></ModuleOverlay>}
   </div>
 }
