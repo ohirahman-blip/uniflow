@@ -1040,3 +1040,108 @@ html[data-theme='light'] .profile-goals .study-goal-form :is(input:not([type='ch
   .mlh-slider-window .mlh-module-head-simple{margin-bottom:0}
   .mlh-focus-copy{max-width:calc(100% - 54px)}
 }
+
+/* Dashboard dialogs stay detached from the card flow. */
+.overview-task-dialog{width:min(520px,100%)}
+.overview-task-dialog .overview-new-task{
+  display:grid;
+  gap:16px;
+  margin:0;
+  padding:12px 0 4px;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.overview-task-dialog .overview-new-task label{display:grid;gap:8px;color:var(--uf-calm-muted);font-size:11px}
+.overview-task-dialog .overview-new-task>button{min-height:48px;border:0;border-radius:var(--uf-calm-radius-sm);background:var(--uf-calm-text);color:var(--uf-calm-page);font-weight:700}
+
+/* Assessment preview actions sit directly on the sheet instead of a grey tray. */
+.sheet:has(.uf-assessment-preview) .sheet-footer{background:transparent!important}
+.assessment-editor-footer{background:transparent!important}
+html[data-theme='light'] .assessment-editor-footer .primary-action{background:#202126!important;color:#fff!important}
+html[data-theme='light'] .assessment-complete-action{background:transparent!important;color:#202126!important}
+
+/* Learning actions use the same quiet grey and no outlines. */
+.mlh-actions.mlh-compact-actions>button{
+  border:0!important;
+  background:var(--uf-grey)!important;
+  box-shadow:none!important;
+}
+.mlh-actions.mlh-compact-actions>button:hover{background:var(--uf-calm-hover)!important}
+html[data-theme='light'] .mlh-actions.mlh-compact-actions>button{background:#f1f1f3!important;color:#66676f!important}
+html[data-theme='light'] .mlh-actions.mlh-compact-actions>button:hover{background:#e8e8eb!important;color:#202126!important}
+
+/* Module editing: one popup entry and calm event banners. */
+.module-meta-open{
+  order:3;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:11px;
+  width:100%;
+  min-height:58px;
+  margin:0 0 12px;
+  padding:11px 13px;
+  border:0!important;
+  border-radius:15px;
+  background:transparent;
+  color:var(--uf-calm-text);
+  text-align:left;
+  box-shadow:none!important;
+}
+.module-meta-open>span{display:grid;gap:3px;min-width:0}.module-meta-open strong{font-size:13px}.module-meta-open small{color:var(--uf-calm-muted);font-size:10px}
+.module-meta-open>svg{color:var(--uf-calm-muted)}.module-meta-open:hover{background:var(--uf-grey)}
+.module-meta-popup{display:grid;gap:17px;padding:8px 0 2px}.module-meta-popup .module-fast-meta-grid{padding:0}
+.module-fast :is(.module-fast-quick,.module-fast-quick-body,.module-fast-preview,.module-fast-topic,.module-fast-slot,.module-fast-journey,.module-learning-history,.module-assessments,.module-event-row,.module-event-advanced,.module-event-term-list>button){border:0!important;box-shadow:none!important}
+.module-fast .module-event-list{display:grid;gap:8px}
+.module-fast .module-event-row{
+  min-height:60px;
+  margin:0!important;
+  padding:12px 14px!important;
+  border:0!important;
+  border-radius:16px!important;
+  background:var(--uf-calm-surface)!important;
+  box-shadow:none!important;
+}
+.module-fast .module-event-row:hover{background:var(--uf-calm-hover)!important;transform:scale(1.006)}
+.module-fast .module-event-add{
+  width:36px!important;
+  height:36px!important;
+  min-height:36px!important;
+  border:0!important;
+  background:var(--uf-grey)!important;
+  color:var(--uf-calm-text)!important;
+}
+.module-fast .module-event-add:hover{background:var(--uf-calm-hover)!important;transform:scale(1.035)}
+html[data-theme='light'] .module-meta-open:hover,
+html[data-theme='light'] .module-fast .module-event-add{background:#f1f1f3!important}
+html[data-theme='light'] .module-fast .module-event-row{background:#f4f4f6!important;color:#202126!important}
+html[data-theme='light'] .module-fast .module-event-row:hover{background:#ececef!important}
+
+/* Friends share the same neutral surfaces without decorative outlines. */
+.friends-page :is(.friends-sharing,.friends-add,.friend-requests article,.friend-card,.friend-now,.friend-private,.friend-day,.friend-day>div,.friends-pause,.friend-day-toggle>button,input,button){box-shadow:none!important}
+.friends-page :is(.friends-sharing,.friends-add,.friend-requests article,.friend-wallet>.friend-card){border:0!important;background:var(--uf-grey)!important}
+.friends-page :is(.friend-now,.friend-private,.friend-day>div.is-current){border:0!important;background:#1b1b1b!important}
+.friends-page :is(.friends-add input,.friend-accept input,.friend-name-edit input){border:0!important;background:#1b1b1b!important}
+html[data-theme='light'] .friends-page :is(.friends-sharing,.friends-add,.friend-requests article,.friend-wallet>.friend-card){background:#f4f4f6!important}
+html[data-theme='light'] .friends-page :is(.friend-now,.friend-private,.friend-day>div.is-current,.friends-add input,.friend-accept input,.friend-name-edit input){background:#fff!important}
+
+/* Calendar spacing, stronger module colours and a stable six-row month. */
+.screen-calendar{padding-top:23px}
+.course:not(.course-inactive):not(.course-cancelled){background:color-mix(in srgb,var(--course-accent) 68%,#151517)!important;color:var(--course-ink)!important}
+.course:not(.course-inactive):not(.course-cancelled) :is(.course-title,.course-meta,.course-place,.course-hours,svg){color:inherit!important}
+.uf-month-swipe,.uf-month{background:var(--uf-calm-page)!important}
+.uf-month-grid{grid-template-rows:repeat(6,minmax(94px,1fr));border-color:var(--uf-calm-line)}
+.uf-month-cell{min-height:0;border-color:var(--uf-calm-line);background:var(--uf-calm-surface)}
+.uf-month-cell.other-month{background:color-mix(in srgb,var(--uf-calm-surface) 45%,var(--uf-calm-page))}
+.uf-month-pill{background:color-mix(in srgb,var(--month-accent) 54%,var(--uf-calm-control));color:var(--uf-calm-text)}
+.uf-month-pill.exam{background:color-mix(in srgb,var(--month-accent) 68%,var(--uf-calm-control))}
+html[data-theme='light'] .course:not(.course-inactive):not(.course-cancelled){background:color-mix(in srgb,var(--course-accent) 44%,#fff)!important;color:#202126!important}
+html[data-theme='light'] .uf-month-cell{background:#f4f4f6!important;border-color:#2021260d!important}
+html[data-theme='light'] .uf-month-cell.other-month{background:#fafafa!important}
+html[data-theme='light'] .uf-month-pill{background:color-mix(in srgb,var(--month-accent) 40%,#fff);color:#202126}
+html[data-theme='light'] .uf-month-pill.exam{background:color-mix(in srgb,var(--month-accent) 56%,#fff)}
+@media(max-width:720px){
+  .screen-calendar{padding-top:15px}
+  .uf-month-grid{grid-template-rows:repeat(6,minmax(72px,1fr))}
+}

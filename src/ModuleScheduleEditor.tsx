@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, Check, ChevronDown, Lock, Plus, RotateCcw, Sparkles, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Lock, PenLine, Plus, RotateCcw, Sparkles, Trash2, X } from 'lucide-react'
 import {
   addDays, candidateOccurrencesOn, colors, contentGroups, formatDate, fromDate,
   inferOfferingCategory, intersects, isAssessment, minutes, occurrenceAtOrigin, timeString, today, uid,
@@ -146,7 +146,7 @@ export default function ModuleScheduleEditor({
   const [thinking,setThinking]=useState(false)
   const [quickError,setQuickError]=useState('')
   useEffect(()=>{
-    if(!editingSlotId&&!groupEditorId&&!exceptionsOpen&&!exceptionEditor&&!preview&&!eventDraft)return
+    if(!advanced&&!editingSlotId&&!groupEditorId&&!exceptionsOpen&&!exceptionEditor&&!preview&&!eventDraft)return
     const onBack=(event:Event)=>{
       const detail=(event as CustomEvent<{handled:boolean}>).detail
       if(detail?.handled)return
@@ -157,10 +157,11 @@ export default function ModuleScheduleEditor({
       else if(exceptionEditor)setExceptionEditor(false)
       else if(exceptionsOpen)setExceptionsOpen(false)
       else if(preview)setPreview(null)
+      else if(advanced)setAdvanced(false)
     }
     window.addEventListener('uniflow-back',onBack)
     return()=>window.removeEventListener('uniflow-back',onBack)
-  },[editingSlotId,groupEditorId,exceptionsOpen,exceptionEditor,preview,eventDraft])
+  },[advanced,editingSlotId,groupEditorId,exceptionsOpen,exceptionEditor,preview,eventDraft])
   const previewRequest=useRef<AbortController|null>(null)
   useEffect(()=>()=>{previewRequest.current?.abort()},[])
   const imported=useRef(false)
@@ -388,9 +389,8 @@ export default function ModuleScheduleEditor({
     <div className="module-detail-heading">
       <div><h1>{module.name}</h1></div>
     </div>
-    <details className="module-fast-meta" open={advanced} onToggle={e=>setAdvanced(e.currentTarget.open)}>
-      <summary><span>Modulangaben bearbeiten</span><ChevronDown size={17}/></summary>
-      <div className="module-fast-meta-grid">
+    <button type="button" className="module-meta-open" onClick={()=>setAdvanced(true)}><PenLine size={17}/><span><strong>Modulangaben bearbeiten</strong><small>Name, Status, Leistungspunkte und Farbe</small></span><ChevronDown size={17}/></button>
+    {advanced&&<ModuleOverlay title="Modulangaben bearbeiten" accent={module.color} onClose={()=>setAdvanced(false)}><div className="module-meta-popup"><div className="module-fast-meta-grid">
         <label>Name<input value={module.name} onChange={e=>onUpdateModule({...module,name:e.target.value})}/></label>
         <label>Kurzname<input value={module.shortName} maxLength={10} onChange={e=>onUpdateModule({...module,shortName:e.target.value})}/></label>
         <label>Leistungspunkte<input type="number" min="0" step="0.5" value={module.credits} onChange={e=>onUpdateModule({...module,credits:Math.max(0,Number(e.target.value)||0)})}/></label>
@@ -400,7 +400,7 @@ export default function ModuleScheduleEditor({
       </div>
       <div className="module-fast-colors">{colors.map(c=><button key={c} title={c} aria-label={'Modulfarbe '+c} className={module.color===c?'picked':''} style={{background:c}} onClick={()=>onUpdateModule({...module,color:c})}>{module.color===c&&<Check size={15}/>}</button>)}</div>
       <button className="module-fast-remove" onClick={onDeleteModule}><Trash2 size={16}/> Modul löschen</button>
-    </details>
+    </div></ModuleOverlay>}
 
     {premium?
       <details className="module-fast-quick module-fast-quick-premium"
