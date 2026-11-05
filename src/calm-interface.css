@@ -2,7 +2,7 @@
    This file deliberately loads last so older feature styles cannot split the
    calendar, friends and editor surfaces into different visual systems. */
 :root{
-  --uf-grey:#171717;
+  --uf-grey:#141414;
   --uf-calm-page:#0b0b0c;
   --uf-calm-surface:#151517;
   --uf-calm-surface-strong:#1b1b1e;
