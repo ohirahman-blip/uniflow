@@ -1662,6 +1662,21 @@ export default function App() {
     setRatingOccurrence(null)
     note('Check-in gespeichert.')
   }
+  const saveLiveCheckin=(occurrence:Occurrence,rating?:'understood'|'partial')=>{
+    const lesson=lessonForOccurrence(occurrence,data),now=new Date().toISOString()
+    mutate(workspace=>{
+      const previous=(workspace.learningCheckins||[]).find(checkin=>checkin.key===lesson.key)
+      let events=workspace.scoreEvents||[]
+      const attendanceId=`attendance:${lesson.key}`,existingAttendance=events.find(event=>event.id===attendanceId)
+      events=upsertScoreEvent(events,makeScoreEvent({id:attendanceId,moduleId:lesson.moduleId,type:'attendance',basePoints:attendancePoints(occurrence.offering.category),occurredAt:existingAttendance?.occurredAt||now,sourceId:lesson.key,label:`${occurrence.offering.category} besucht`}))
+      if(rating){
+        const checkinId=`checkin:${lesson.key}`,existingCheckin=events.find(event=>event.id===checkinId),points=understandingPoints(rating)
+        events=upsertScoreEvent(events,makeScoreEvent({id:checkinId,moduleId:lesson.moduleId,type:'checkin',basePoints:points,occurredAt:existingCheckin?.occurredAt||now,sourceId:lesson.key,label:'Verständnis eingetragen'}))
+      }
+      const nextRating=rating||(previous?.understandingSelected?previous.rating:'partial')
+      return {...workspace,scoreEvents:events,learningCheckins:[...(workspace.learningCheckins||[]).filter(checkin=>checkin.key!==lesson.key),{key:lesson.key,moduleId:lesson.moduleId,contentId:lesson.contentId,date:lesson.date,rating:nextRating,attended:true,understandingSelected:rating?true:(previous?.understandingSelected??false),updatedAt:now}]}
+    })
+  }
   const degree = data.degrees.find(d => d.id === data.activeDegreeId)
   const semester = data.semesters.find(s => s.id === data.activeSemesterId)
   const selectedModule=data.modules.find(module=>module.id===selectedModuleId)
@@ -1822,7 +1837,7 @@ export default function App() {
         if(!semesterId){note('Bitte ordne dem Modul zuerst ein Semester zu.');return}
         if(semesterId!==data.activeSemesterId)mutate(workspace=>({...workspace,activeSemesterId:semesterId}))
         setRequestedStudyBundle(bundle);navigatePage('dashboard')
-      }} data={data} advice={ai.advice} aiEnabled={premium&&ai.consent} aiWorking={ai.working} aiError={ai.errorMessage} aiGeneratedAt={ai.generatedAt} aiStale={ai.isStale} onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))} onSession={saveLearningSession} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onDeleteTask={deleteStudyTask} onGoal={goal=>mutate(d=>({...d,dailyScoreGoal:goal}))} onAssessment={item=>setPreviewAssessmentId(item.id)} onCalendar={occ=>{setFocusModuleId(occ.offering.moduleId);navigatePage('calendar')}}/>}
+      }} data={data} advice={ai.advice} aiEnabled={premium&&ai.consent} aiWorking={ai.working} aiError={ai.errorMessage} aiGeneratedAt={ai.generatedAt} aiStale={ai.isStale} onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))} onSession={saveLearningSession} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onDeleteTask={deleteStudyTask} onGoal={goal=>mutate(d=>({...d,dailyScoreGoal:goal}))} onAssessment={item=>setPreviewAssessmentId(item.id)} onCalendar={occ=>{setFocusModuleId(occ.offering.moduleId);navigatePage('calendar')}} onLiveCheckin={saveLiveCheckin}/>}
       {page === 'dashboard' && <ModuleLearningHome requestedStudyBundle={requestedStudyBundle} onStudyBundleOpened={consumeStudyBundle} studyPlan={deterministicPlan} onStudyScheduleChange={studySchedule=>mutate(workspace=>({...workspace,studySchedule}))} data={data} semester={semester} modules={semesterModules}
         currentModuleId={currentModuleId}
         onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
