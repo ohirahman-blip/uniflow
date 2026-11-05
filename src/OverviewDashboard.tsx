@@ -42,7 +42,7 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
   },[activeLecture?.key])
   useEffect(()=>{
     if(!activeLecture){setLiveScrolled(false);return}
-    const update=()=>setLiveScrolled(window.scrollY>12)
+    const update=()=>setLiveScrolled(current=>current?window.scrollY>4:window.scrollY>18)
     update();window.addEventListener('scroll',update,{passive:true})
     return()=>window.removeEventListener('scroll',update)
   },[activeLecture?.key])

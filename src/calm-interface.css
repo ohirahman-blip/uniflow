@@ -1237,3 +1237,87 @@ html[data-theme='light'] .screen-calendar .course:not(.course-inactive):not(.cou
 .screen-calendar :is(.course,.calendar-tools button,.view-switch button,.wallet-card,.uf-week-strip-button):hover{transform:none!important;filter:none!important}
 @media(max-width:720px){.screen-calendar{padding-top:24px}}
 @media(prefers-reduced-motion:reduce){.overview-live-confirm,.overview-live-confirmed{animation:none}}
+
+/* Timetable cards keep one calm surface; module colour belongs to the title. */
+.screen-calendar .course:not(.course-cancelled):not(.course-inactive){
+  background:#171719!important;
+  color:#d7d7dc!important;
+  opacity:1!important;
+  filter:none!important;
+  outline:0!important;
+}
+.screen-calendar .course.course-past:not(.course-cancelled){opacity:1!important;filter:none!important}
+.screen-calendar .course:not(.course-inactive):not(.course-cancelled) .course-title,
+.screen-calendar .course:not(.course-inactive):not(.course-cancelled) .course-kind-icon,
+.screen-calendar .course:not(.course-inactive):not(.course-cancelled) .course-kind-icon svg{
+  color:var(--course-accent)!important;
+  -webkit-text-fill-color:var(--course-accent)!important;
+}
+.screen-calendar .course:not(.course-cancelled):not(.course-inactive) :is(.course-meta,.course-organizer,.course-place,.course-hours){
+  color:#b0b0b7!important;
+  -webkit-text-fill-color:#b0b0b7!important;
+}
+html[data-theme='light'] .screen-calendar .course:not(.course-cancelled):not(.course-inactive){
+  background:#f0f0f2!important;
+  color:#202126!important;
+}
+html[data-theme='light'] .screen-calendar .course:not(.course-cancelled):not(.course-inactive) :is(.course-meta,.course-organizer,.course-place,.course-hours){
+  color:#66676f!important;
+  -webkit-text-fill-color:#66676f!important;
+}
+
+/* Two selected days read as one connected window; today is a neutral dashboard-style tile. */
+.uf-week-strip--two .uf-week-range{
+  display:block!important;
+  top:0;
+  height:36px;
+  border:0;
+  border-radius:13px;
+  background:var(--uf-grey)!important;
+}
+.uf-week-strip--two .uf-week-strip-button:is(.uf-week-first,.uf-week-second){
+  border-radius:12px!important;
+  background:transparent!important;
+  color:var(--uf-calm-text)!important;
+  -webkit-text-fill-color:var(--uf-calm-text)!important;
+  opacity:1;
+}
+.uf-week-strip-button.uf-week-today,
+.uf-week-dates-previous>span.uf-week-previous-today{
+  border-radius:12px!important;
+  background:var(--uf-calm-control)!important;
+  color:var(--uf-calm-text)!important;
+  -webkit-text-fill-color:var(--uf-calm-text)!important;
+}
+.uf-week-strip--two .uf-week-strip-button.uf-week-today{background:var(--uf-calm-control)!important}
+html[data-theme='light'] .uf-week-strip--two .uf-week-range{background:#e8e8eb!important}
+html[data-theme='light'] .uf-week-strip-button.uf-week-today,
+html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{background:#e8e8eb!important;color:#202126!important;-webkit-text-fill-color:#202126!important}
+
+/* Destructive series actions stay fully inside the timetable sheet. */
+.sheet .uf-entry-form>.danger-simple{
+  box-sizing:border-box;
+  display:flex!important;
+  width:100%;
+  min-height:48px;
+  flex:0 0 auto;
+  justify-content:center;
+  overflow:visible;
+  margin:2px 0 8px!important;
+  padding:12px 15px!important;
+  white-space:normal;
+  line-height:1.3;
+  text-align:center;
+}
+
+/* The live prompt starts roomier and uses hysteresis in React to avoid mobile scroll oscillation. */
+.overview-live-hero{
+  min-height:clamp(340px,54dvh,500px);
+  overflow:clip;
+  transition:min-height 420ms cubic-bezier(.2,.75,.2,1);
+}
+.overview-live-hero.is-greeting{min-height:clamp(150px,21dvh,200px)}
+@media(max-width:720px){
+  .overview-live-hero{min-height:clamp(300px,46dvh,390px);transition-duration:360ms}
+  .overview-live-hero.is-greeting{min-height:clamp(132px,19dvh,176px)}
+}

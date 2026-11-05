@@ -1141,7 +1141,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
         </div>
       </div>
     </div>
-    {!monthOpen&&<div className={'uf-week-strip'+(mode==='week'?' uf-week-strip--week':'')} aria-label="Wochenauswahl" style={{'--uf-days':stripDates.length} as CSSProperties}>
+    {!monthOpen&&<div className={`uf-week-strip uf-week-strip--${mode}`} aria-label="Wochenauswahl" style={{'--uf-days':stripDates.length} as CSSProperties}>
       <button type="button" className="uf-week-strip-month" onClick={()=>setMonthOpen(true)}
         title="Monatsübersicht öffnen" aria-label="Monatsübersicht für Prüfungen und Hausaufgaben öffnen">
         <strong>{fromDate(displayCalendarStart).toLocaleDateString('de-DE',{month:'short'}).split('.').join('')}</strong>

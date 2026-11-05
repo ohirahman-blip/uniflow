@@ -100,6 +100,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const [detailMotion,setDetailMotion]=useState<'out'|'in'|''>('')
   const [switchDirection,setSwitchDirection]=useState<'up'|'down'>('down')
   const moduleScroll=useRef(0)
+  const externalModuleId=useRef(currentModuleId)
   const directoryScroll=useRef<HTMLDivElement|null>(null)
   const railScroll=useRef<HTMLElement|null>(null)
   const scrollSyncFrame=useRef(0)
@@ -115,7 +116,13 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const safeIndex = Math.max(0, visible.findIndex(module=>module.id===selectedModule))
   const active = visible[safeIndex]
   useEffect(()=>{if(active)onActiveModuleChange(active.id)},[active?.id,onActiveModuleChange])
-  useEffect(()=>{if(currentModuleId&&currentModuleId!==selectedModule){setSelectedModule(currentModuleId);setDirectoryOpen(false);try{localStorage.setItem(storageKey,currentModuleId)}catch{/* Keep navigation usable when storage is unavailable. */}}},[currentModuleId,selectedModule,storageKey])
+  useEffect(()=>{
+    if(!currentModuleId||currentModuleId===externalModuleId.current)return
+    externalModuleId.current=currentModuleId
+    setSelectedModule(current=>current===currentModuleId?current:currentModuleId)
+    setDirectoryOpen(false)
+    try{localStorage.setItem(storageKey,currentModuleId)}catch{/* Keep navigation usable when storage is unavailable. */}
+  },[currentModuleId,storageKey])
   const allLessons = useMemo(() => {
     if(!active)return []
     const lessons=new Map(numberedLessons(data,semester,active.id).map(lesson=>[lesson.key,lesson]))
