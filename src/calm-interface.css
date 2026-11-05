@@ -2,6 +2,7 @@
    This file deliberately loads last so older feature styles cannot split the
    calendar, friends and editor surfaces into different visual systems. */
 :root{
+  --uf-grey:#1b1b1b;
   --uf-calm-page:#0b0b0c;
   --uf-calm-surface:#151517;
   --uf-calm-surface-strong:#1b1b1e;
@@ -459,4 +460,189 @@ html[data-theme='light'] .friends-page :is(.friends-sharing small,.friends-add s
 }
 @media(prefers-reduced-motion:reduce){
   .uf-page-stage.uf-page-modules,.uf-week-strip-button{animation:none!important;transition:none!important}
+}
+
+/* Grey pass: one opaque dark surface and borderless, compact profile rows. */
+
+/* Desktop navigation uses the named Grey for both selection and hover. */
+@media(min-width:721px){
+  .app-desktop-side nav button{
+    border:0!important;
+    transition:background-color 150ms ease,color 150ms ease!important;
+  }
+  .app-desktop-side nav button.active,
+  .app-desktop-side nav button:hover{
+    background:var(--uf-grey)!important;
+    color:#fff!important;
+  }
+  html[data-theme='light'] .app-desktop-side nav button.active,
+  html[data-theme='light'] .app-desktop-side nav button:hover{
+    background:#ececef!important;
+    color:#202126!important;
+  }
+}
+
+/* Dashboard dark cards are fully opaque instead of alpha overlays. */
+html:not([data-theme='light']) .overview-dashboard-clean :is(.overview-upcoming,.overview-learning-map){
+  background:var(--uf-grey)!important;
+  background-image:none!important;
+}
+html:not([data-theme='light']) .overview-dashboard-clean .overview-upcoming:nth-child(2){background:var(--uf-grey)!important}
+.overview-tasks>header>button{
+  border:0!important;
+  background:transparent!important;
+  transition:transform 150ms ease,background-color 150ms ease!important;
+}
+.overview-task{
+  border:0!important;
+  background:transparent!important;
+  transition:transform 150ms ease,background-color 150ms ease!important;
+}
+html[data-theme='light'] .overview-tasks>header>button{background:#f1f1f3!important}
+@media(hover:hover) and (pointer:fine){
+  html:not([data-theme='light']) .overview-tasks>header>button:hover,
+  html:not([data-theme='light']) .overview-task:hover{background:var(--uf-grey)!important;transform:scale(1.008)}
+  html[data-theme='light'] .overview-tasks>header>button:hover,
+  html[data-theme='light'] .overview-task:hover{background:#f1f1f3!important;transform:scale(1.008)}
+}
+
+/* Today is a neutral filled state, never an outline. */
+.overview-attendance>div .is-today{
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  background:var(--uf-grey)!important;
+}
+.overview-attendance>div .is-today i{border:0!important;outline:0!important;box-shadow:none!important}
+.overview-month-grid>div.is-today{
+  border:0!important;
+  outline:0!important;
+  border-radius:12px!important;
+  background:var(--uf-grey)!important;
+}
+.overview-month-grid>div.is-today>span{box-shadow:none!important}
+html[data-theme='light'] .overview-attendance>div .is-today{background:#f1f1f3!important}
+html[data-theme='light'] .overview-month-grid>div.is-today{background:#ececef!important}
+
+/* Profile shell and home actions are flat; Grey appears only on interaction. */
+.profile-panel,.profile-panel>header,.profile-name input,.profile-menu>button{
+  border:0!important;
+  box-shadow:none!important;
+}
+.profile-panel>header{background:var(--uf-calm-surface)}
+.profile-name input{background:var(--uf-calm-control)!important}
+.profile-menu{gap:5px}
+.profile-menu>button{
+  min-height:58px;
+  padding:12px 13px!important;
+  border-radius:14px!important;
+  background:transparent!important;
+  transform:none!important;
+}
+.profile-menu>button:hover{background:var(--uf-grey)!important;transform:scale(1.006)!important}
+
+/* Modules become slim index rows without separators or banners. */
+.profile-modules section+section{margin-top:22px}
+.profile-modules section>button,.study-add-module{
+  box-sizing:border-box;
+  width:100%;
+  min-height:54px;
+  margin:2px 0!important;
+  padding:10px 12px!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  transition:transform 150ms ease,background-color 150ms ease!important;
+}
+.profile-modules section>button:hover,.study-add-module:hover{background:var(--uf-grey)!important;transform:scale(1.006)}
+.profile-modules button>i{width:6px;height:24px}
+.profile-modules button>span{gap:3px}
+
+/* Goals use the same narrow row language. */
+.profile-goals{gap:6px}
+.profile-goals article{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto auto;
+  align-items:center;
+  gap:7px;
+  min-height:58px;
+  margin:0;
+  padding:11px 12px!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  transition:transform 150ms ease,background-color 150ms ease!important;
+}
+.profile-goals article:hover{background:var(--uf-grey)!important;transform:scale(1.006)}
+.profile-goals article h2{margin:0!important;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.profile-goals article>strong{font-size:16px!important;letter-spacing:-.02em!important;white-space:nowrap}
+.profile-goals article>strong small{font-size:10px!important}
+.profile-goals progress{grid-column:1/-1;height:3px!important;margin:1px 0 0!important}
+.profile-goals article>button,.profile-goals>button{
+  min-height:38px;
+  margin:0!important;
+  padding:8px 11px!important;
+  border:0!important;
+  border-radius:11px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.profile-goals>button{width:100%;text-align:left}
+.profile-goals article>button:hover,.profile-goals>button:hover{background:var(--uf-grey)!important}
+.study-goal-form,.study-goal-form fieldset{
+  border:0!important;
+  box-shadow:none!important;
+}
+.study-goal-form{padding:16px!important;background:var(--uf-calm-surface-strong);border-radius:16px}
+.study-goal-form fieldset{padding:13px!important;background:var(--uf-calm-control)}
+.study-goal-form :is(input,button){border:0!important}
+
+/* Settings keep whitespace between groups and enough padding inside controls. */
+.profile-panel .settings-screen{display:grid;gap:8px}
+.profile-panel .settings-section{
+  margin:0!important;
+  padding:15px 4px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.profile-panel .settings-section h2{margin:0 0 12px!important}
+.profile-panel :is(.settings-action,.semester-picker-list button,.semester-manage-row){
+  min-height:48px;
+  margin:4px 0!important;
+  padding:13px 14px!important;
+  border:0!important;
+  border-radius:13px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.profile-panel :is(.settings-action,.semester-picker-list button,.semester-manage-row):hover{background:var(--uf-grey)!important}
+.profile-panel :is(.setting-line,.settings-theme,.settings-sound-row,.setting-input){padding-inline:10px}
+.profile-panel .admin-settings-link{margin-bottom:14px!important}
+.profile-panel .settings-section.settings-ai-section{
+  margin-top:18px!important;
+  padding:16px 10px!important;
+  border:0!important;
+  border-radius:16px!important;
+  background:var(--uf-calm-surface-strong)!important;
+}
+.profile-panel .settings-ai-inline{padding:5px 2px;border:0!important}
+
+/* Preserve the already approved light palette while matching its flat hover language. */
+html[data-theme='light'] .profile-panel>header{background:#fff}
+html[data-theme='light'] .profile-name input{background:#f4f4f6!important}
+html[data-theme='light'] :is(.profile-menu>button,.profile-modules section>button,.study-add-module,.profile-goals article,.profile-goals>button){border:0!important;background:transparent!important}
+html[data-theme='light'] :is(.profile-menu>button,.profile-modules section>button,.study-add-module,.profile-goals article,.profile-goals>button):hover{background:#f1f1f3!important}
+html[data-theme='light'] .study-goal-form{background:#f4f4f6}
+html[data-theme='light'] .study-goal-form fieldset{background:#ececef}
+html[data-theme='light'] .profile-panel :is(.settings-action,.semester-picker-list button,.semester-manage-row):hover{background:#f1f1f3!important}
+html[data-theme='light'] .profile-panel .settings-section.settings-ai-section{background:#f4f4f6!important}
+
+@media(max-width:520px){
+  .profile-goals article{grid-template-columns:minmax(0,1fr) auto}
+  .profile-goals article>button{grid-row:3}
+  .profile-goals progress{grid-row:2}
 }
