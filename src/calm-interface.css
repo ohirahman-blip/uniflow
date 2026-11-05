@@ -1172,7 +1172,9 @@ html[data-theme='light'] .overview-live-ratings>button:hover{background:#dedee2;
   justify-content:center;
   min-height:clamp(300px,43dvh,420px);
   box-sizing:border-box;
+  transition:min-height 420ms cubic-bezier(.2,.8,.2,1),padding 420ms cubic-bezier(.2,.8,.2,1);
 }
+.overview-dashboard-clean>.overview-welcome.is-compact{min-height:clamp(150px,21dvh,200px);padding-block:24px}
 .overview-welcome{overflow:visible}
 .overview-welcome-rotator{
   display:flex;
@@ -1182,6 +1184,8 @@ html[data-theme='light'] .overview-live-ratings>button:hover{background:#dedee2;
   min-height:1.2em;
   max-width:920px;
   margin-inline:auto!important;
+  padding:.08em 0 .14em;
+  line-height:1.08!important;
   animation:overview-welcome-in 560ms cubic-bezier(.2,.8,.2,1) both;
 }
 .overview-welcome-rotator.is-destination{font-size:clamp(32px,5.3vw,56px)!important;line-height:1.08;letter-spacing:-.05em}
@@ -1194,7 +1198,7 @@ html[data-theme='light'] .overview-live-ratings>button:hover{background:#dedee2;
   background:transparent;
   color:inherit;
   font:inherit;
-  line-height:1.03;
+  line-height:1.12;
   letter-spacing:inherit;
   text-align:center;
   cursor:pointer;
@@ -1232,10 +1236,12 @@ html[data-theme='light'] .overview-live-ratings>button:hover{background:#dedee2;
 html[data-theme='light'] .overview-welcome-action strong{background-image:linear-gradient(100deg,var(--welcome-color,#805489) 18%,#202126 48%,var(--welcome-color,#805489) 76%)}
 @media(max-width:720px){
   .overview-dashboard-clean>.overview-welcome{min-height:clamp(280px,40dvh,350px);padding-inline:4px}
+  .overview-dashboard-clean>.overview-welcome.is-compact{min-height:clamp(132px,19dvh,176px);padding-block:18px}
   .overview-welcome-rotator{font-size:clamp(27px,7.6vw,37px)!important;min-height:2.7em}
   .overview-welcome-rotator.is-destination{font-size:clamp(24px,6.7vw,33px)!important;line-height:1.13;letter-spacing:-.045em}
 }
 @media(prefers-reduced-motion:reduce){
+  .overview-dashboard-clean>.overview-welcome{transition:none}
   .overview-live-attendance-confirm>button.is-confirmed,.overview-live-heading-copy,.overview-welcome-rotator,.overview-welcome-rotator.is-leaving,.overview-welcome-action strong,.overview-welcome-action strong>i{animation:none}
 }
 
