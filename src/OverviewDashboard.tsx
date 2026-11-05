@@ -56,7 +56,7 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
       settleTimer=0
       const elapsed=performance.now()-lastAt
       if(animating||(Math.abs(velocity)>.6&&elapsed<190))return
-      const selector=':scope>.mlh-running-timer,:scope>.overview-attendance,:scope>.overview-now-grid,:scope>.overview-learning-map,.overview-live-page>.overview-attendance,.overview-live-next'
+      const selector=':scope>.mlh-running-timer,:scope>.overview-now-grid,:scope>.overview-learning-map,.overview-live-next'
       const maxY=Math.max(0,(document.scrollingElement?.scrollHeight||document.documentElement.scrollHeight)-window.innerHeight)
       const currentY=window.scrollY
       const targets=[...root.querySelectorAll<HTMLElement>(selector)].map(element=>Math.max(0,Math.min(maxY,currentY+element.getBoundingClientRect().top-16)))
