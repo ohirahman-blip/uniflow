@@ -164,7 +164,17 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
   const goToWelcomeTarget=(target:WelcomeTarget)=>{
     if(target==='calendar'||target==='friends'){onNavigate(target);return}
     const element=dashboardRef.current?.querySelector<HTMLElement>(target==='learning'?'.overview-learning-map':'.overview-tasks-focus')
-    if(element)window.scrollTo({top:Math.max(0,window.scrollY+element.getBoundingClientRect().top-16),behavior:'smooth'})
+    if(element){
+      const welcome=dashboardRef.current?.querySelector<HTMLElement>('.overview-welcome')
+      let collapseDelta=0
+      if(welcome&&!welcome.classList.contains('is-compact')){
+        const expandedHeight=welcome.getBoundingClientRect().height,inlineTransition=welcome.style.transition
+        welcome.style.transition='none';welcome.classList.add('is-compact')
+        collapseDelta=Math.max(0,expandedHeight-welcome.getBoundingClientRect().height)
+        welcome.classList.remove('is-compact');welcome.style.transition=inlineTransition
+      }
+      window.scrollTo({top:Math.max(0,window.scrollY+element.getBoundingClientRect().top-collapseDelta-16),behavior:'smooth'})
+    }
   }
   const welcomePrompt=welcomePrompts[welcomeIndex],WelcomeIcon=welcomePrompt.id==='hello'?null:welcomePrompt.icon
   return <main ref={dashboardRef} className={'screen overview-dashboard overview-dashboard-clean'+(activeLecture?' has-live-lecture':'')}><StudyUtilities days={data.streakDays} onProfile={onProfile} onStreak={onStreak}/>{activeLecture&&<section className="overview-live-page" aria-label="Laufende Veranstaltung"><div className={'overview-live-hero'+(liveScrolled?' is-greeting':'')}><h1><span key={liveHeadingKey} className="overview-live-heading-copy">{liveHeading}</span></h1><p>{liveSubtitle}</p>{attendanceConfirm?<div className="overview-live-ratings overview-live-attendance-confirm"><button className={liveFeedback==='Ich bin da'?'is-confirmed':''} disabled={liveFeedback==='Ich bin da'} onClick={confirmLiveAttendance}>Ich bin da</button></div>:liveChoices&&<div className="overview-live-ratings"><button onClick={()=>rateLive('understood')}>Gut</button><button onClick={()=>rateLive('partial')}>Teilweise</button><button onClick={()=>rateLive('struggling')}>Gar nicht</button></div>}</div>{attendanceStrip}<div className="overview-live-next">{nextEventCard}</div></section>}<DashboardTimer data={data} onChange={onTimerChange} onSession={onSession}/>{!activeLecture&&<header className={'overview-welcome'+(welcomeScrolled?' is-compact':'')}><h1 key={welcomePrompt.id} className={'overview-welcome-rotator'+(welcomePrompt.id==='hello'?' is-hello':' is-destination')+(welcomeLeaving?' is-leaving':'')}>{welcomePrompt.id==='hello'?(data.profile?`Hallo, ${data.profile}.`:'Hallo.'):<button type="button" className="overview-welcome-action" style={{'--welcome-color':welcomePrompt.color} as CSSProperties} onClick={()=>goToWelcomeTarget(welcomePrompt.id)}><span>Schauen wir uns {welcomePrompt.possessive} <strong><span>{welcomePrompt.label}</span>{WelcomeIcon&&<i aria-hidden="true"><WelcomeIcon size={22}/></i>}</strong> an.</span></button>}</h1><p>{formatDate(day,{weekday:'long',day:'numeric',month:'long'})}</p></header>}
