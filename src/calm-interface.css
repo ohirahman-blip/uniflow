@@ -1231,8 +1231,8 @@ html[data-theme='light'] .friends-add-dialog .friends-add{background:transparent
 /* Calendar: more top air, neutral text on coloured events, no live gradient or hover motion. */
 .screen-calendar{padding-top:35px}
 .course-live-ambient{display:none!important;animation:none!important;background:none!important}
-.screen-calendar .course:not(.course-inactive):not(.course-cancelled) :is(.course-title,.course-meta,.course-organizer,.course-place,.course-hours,svg){color:#f4f4f5!important;-webkit-text-fill-color:#f4f4f5!important}
-html[data-theme='light'] .screen-calendar .course:not(.course-inactive):not(.course-cancelled) :is(.course-title,.course-meta,.course-organizer,.course-place,.course-hours,svg){color:#202126!important;-webkit-text-fill-color:#202126!important}
+.screen-calendar .course:not(.course-inactive):not(.course-cancelled) :is(.course-meta,.course-organizer,.course-place,.course-hours){color:#f4f4f5!important;-webkit-text-fill-color:#f4f4f5!important}
+html[data-theme='light'] .screen-calendar .course:not(.course-inactive):not(.course-cancelled) :is(.course-meta,.course-organizer,.course-place,.course-hours){color:#202126!important;-webkit-text-fill-color:#202126!important}
 .screen-calendar :is(.course,.calendar-tools button,.view-switch button,.wallet-card,.uf-week-strip-button){transition:none!important}
 .screen-calendar :is(.course,.calendar-tools button,.view-switch button,.wallet-card,.uf-week-strip-button):hover{transform:none!important;filter:none!important}
 @media(max-width:720px){.screen-calendar{padding-top:24px}}
@@ -1248,6 +1248,7 @@ html[data-theme='light'] .screen-calendar .course:not(.course-inactive):not(.cou
 }
 .screen-calendar .course.course-past:not(.course-cancelled){opacity:1!important;filter:none!important}
 .screen-calendar .course:not(.course-inactive):not(.course-cancelled) .course-title,
+.screen-calendar .course:not(.course-inactive):not(.course-cancelled) .course-title>span,
 .screen-calendar .course:not(.course-inactive):not(.course-cancelled) .course-kind-icon,
 .screen-calendar .course:not(.course-inactive):not(.course-cancelled) .course-kind-icon svg{
   color:var(--course-accent)!important;
