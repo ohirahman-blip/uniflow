@@ -1282,13 +1282,18 @@ html[data-theme='light'] .mlh-sheet :is(.session-discard,.session-discard>button
 @media(min-width:800px){.module-event-sheet:has(.module-meta-popup){width:min(720px,100%)!important}}
 .module-meta-popup .module-fast-meta-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .module-fast .module-event-add{
-  width:35px!important;
-  height:35px!important;
-  min-height:35px!important;
-  padding:8px 11px!important;
-  border-radius:999px!important;
-  background:color-mix(in srgb,currentColor 4.5%,transparent)!important;
-  color:inherit!important;
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 38px!important;
+  width:38px!important;
+  height:38px!important;
+  min-height:38px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:var(--uf-calm-control)!important;
+  color:var(--uf-calm-text)!important;
+  box-sizing:border-box!important;
 }
 .module-event-sheet .danger-simple{
   overflow:visible!important;
