@@ -529,8 +529,8 @@ html[data-theme='light'] .overview-month-grid>div.is-today{background:#ececef!im
   border:0!important;
   box-shadow:none!important;
 }
-.profile-panel>header{background:var(--uf-calm-surface)}
-.profile-name input{background:var(--uf-calm-control)!important}
+.profile-panel>header{background:transparent!important}
+.profile-name input{background:var(--uf-grey)!important}
 .profile-menu{gap:5px}
 .profile-menu>button{
   min-height:58px;
