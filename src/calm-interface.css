@@ -646,3 +646,139 @@ html[data-theme='light'] .profile-panel .settings-section.settings-ai-section{ba
   .profile-goals article>button{grid-row:3}
   .profile-goals progress{grid-row:2}
 }
+
+/* Profile settings: one quiet, borderless dark hierarchy. */
+html:not([data-theme='light']) .profile-panel .settings-screen{
+  gap:0;
+  background:transparent!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-section{
+  margin:0!important;
+  padding:20px 0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-section+.settings-section{
+  margin-top:4px!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-section h2{
+  margin:0 10px 8px!important;
+  color:#74747b!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(
+  .setting-line,
+  .settings-theme,
+  .settings-sound-row,
+  .setting-input,
+  .settings-ai-inline,
+  .cloud-account-state
+){
+  box-sizing:border-box;
+  min-height:50px;
+  margin:0!important;
+  padding:10px!important;
+  border:0!important;
+  border-radius:13px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(.setting-line,.setting-input)+.setting-line{
+  margin-top:2px!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']),
+  select,
+  .uf-picker-trigger
+){
+  border:0!important;
+  background:#101011!important;
+  color:#e9e9ec!important;
+  box-shadow:none!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(.number-setting input,.setting-input-plain input){
+  background:transparent!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(input,select,.uf-picker-trigger):focus-visible{
+  outline:2px solid #ffffff1c!important;
+  outline-offset:2px!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(
+  .settings-action,
+  .semester-picker-list button,
+  .semester-manage-row
+){
+  min-height:48px;
+  margin:3px 0!important;
+  padding:11px 10px!important;
+  border:0!important;
+  border-radius:13px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+@media(hover:hover) and (pointer:fine){
+  html:not([data-theme='light']) .profile-panel .settings-screen :is(
+    .settings-action,
+    .semester-picker-list button,
+    .semester-manage-row
+  ):hover{
+    background:var(--uf-grey)!important;
+    transform:scale(1.006)!important;
+  }
+}
+html:not([data-theme='light']) .profile-panel .settings-screen .semester-picker-list button.current{
+  background:var(--uf-grey)!important;
+  color:#f4f4f5!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(.inline-toggle,.week-end-toggle){
+  padding:3px!important;
+  border:0!important;
+  background:#101011!important;
+  box-shadow:none!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(.inline-toggle,.week-end-toggle)>button{
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(.inline-toggle,.week-end-toggle)>button.selected{
+  background:var(--uf-grey)!important;
+  color:#f4f4f5!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-section.settings-ai-section{
+  margin:4px 0!important;
+  padding:20px 0!important;
+  background:transparent!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(.settings-ai-toggle,.settings-switch){
+  border:0!important;
+  background:#222225!important;
+  box-shadow:none!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(.settings-ai-toggle,.settings-switch).is-on{
+  background:var(--module-accent,var(--uniflow-accent,#a98aa0))!important;
+}
+html:not([data-theme='light']) .profile-panel .study-plan-settings fieldset{
+  margin:12px 0 0;
+  padding:10px;
+  border:0;
+  border-radius:14px;
+  background:transparent;
+}
+html:not([data-theme='light']) .profile-panel .study-plan-weekdays>button,
+html:not([data-theme='light']) .profile-panel .study-plan-day-off>button,
+html:not([data-theme='light']) .profile-panel .study-plan-days-off>button{
+  border:0!important;
+  background:#101011!important;
+  box-shadow:none!important;
+}
+html:not([data-theme='light']) .profile-panel .study-plan-weekdays>button[aria-pressed='true']{
+  background:color-mix(in srgb,var(--module-accent,var(--uniflow-accent,#a98aa0)) 24%,#101011)!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen :is(.setting-hint,.quiet-copy){
+  color:#74747b!important;
+}
+html:not([data-theme='light']) .profile-panel .settings-screen .settings-danger{
+  color:#c98287!important;
+}
