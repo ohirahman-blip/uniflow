@@ -914,14 +914,16 @@ html[data-theme='light'] .profile-goals .study-goal-form :is(input:not([type='ch
   padding:0 0 clamp(24px,4vh,38px);
 }
 .overview-live-hero{
-  min-height:clamp(250px,38dvh,360px);
+  min-height:clamp(300px,46dvh,430px);
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
   padding:0 clamp(4px,3vw,24px);
   text-align:center;
+  transition:min-height 260ms cubic-bezier(.22,1,.36,1);
 }
+.overview-live-hero.is-greeting{min-height:clamp(145px,20dvh,190px)}
 .overview-live-hero h1{
   max-width:900px;
   margin:0;
@@ -999,7 +1001,8 @@ html[data-theme='light'] .profile-goals .study-goal-form :is(input:not([type='ch
     margin:0;
   }
   .overview-live-page{padding-top:max(58px,calc(env(safe-area-inset-top) + 52px));padding-bottom:28px}
-  .overview-live-hero{min-height:clamp(210px,32dvh,285px)}
+  .overview-live-hero{min-height:clamp(250px,38dvh,330px)}
+  .overview-live-hero.is-greeting{min-height:clamp(130px,18dvh,170px)}
   .overview-live-hero h1{font-size:clamp(25px,7vw,34px)}
   .overview-live-next>.overview-current-event{min-height:116px;padding:16px 18px}
 }
@@ -1013,6 +1016,7 @@ html[data-theme='light'] .profile-goals .study-goal-form :is(input:not([type='ch
 @keyframes overview-live-choice-in{from{opacity:0;transform:translateY(5px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
 @keyframes overview-live-feedback-in{from{opacity:0;transform:scale(.96);filter:blur(7px)}to{opacity:1;transform:none;filter:none}}
 @media(prefers-reduced-motion:reduce){
+  .overview-live-hero{transition:none}
   .overview-live-ratings,.overview-live-feedback{animation:none}
 }
 
