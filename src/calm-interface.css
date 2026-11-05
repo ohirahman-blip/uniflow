@@ -1166,7 +1166,14 @@ html[data-theme='light'] .overview-live-ratings>button:hover{background:#dedee2;
 @keyframes overview-live-heading-swap{from{opacity:0;filter:blur(10px);transform:translateY(13px) scale(.975)}to{opacity:1;filter:none;transform:none}}
 
 /* The idle dashboard hero cycles through useful destinations. */
-.overview-welcome{overflow:hidden}
+.overview-dashboard-clean>.overview-welcome{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  min-height:clamp(300px,43dvh,420px);
+  box-sizing:border-box;
+}
+.overview-welcome{overflow:visible}
 .overview-welcome-rotator{
   display:flex;
   align-items:center;
@@ -1177,12 +1184,10 @@ html[data-theme='light'] .overview-live-ratings>button:hover{background:#dedee2;
   margin-inline:auto!important;
   animation:overview-welcome-in 560ms cubic-bezier(.2,.8,.2,1) both;
 }
+.overview-welcome-rotator.is-destination{font-size:clamp(32px,5.3vw,56px)!important;line-height:1.08;letter-spacing:-.05em}
 .overview-welcome-rotator.is-leaving{animation:overview-welcome-out 260ms cubic-bezier(.4,0,1,1) both}
 .overview-welcome-action{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:.28em;
+  display:block;
   max-width:100%;
   padding:0;
   border:0;
@@ -1194,41 +1199,44 @@ html[data-theme='light'] .overview-live-ratings>button:hover{background:#dedee2;
   text-align:center;
   cursor:pointer;
 }
-.overview-welcome-action>span{min-width:0}
+.overview-welcome-action>span{display:block;min-width:0;overflow-wrap:anywhere}
 .overview-welcome-action strong{
-  color:var(--uniflow-accent,#9b79a8);
+  display:inline-flex;
+  align-items:center;
+  gap:.1em;
+  white-space:nowrap;
+  color:var(--welcome-color,#9b79a8);
   font:inherit;
-  background:linear-gradient(100deg,var(--uniflow-accent,#9b79a8) 18%,#e9dff0 48%,var(--uniflow-accent,#9b79a8) 76%);
+  background:linear-gradient(100deg,var(--welcome-color,#9b79a8) 18%,#f5f1f7 48%,var(--welcome-color,#9b79a8) 76%);
   background-size:240% 100%;
   background-clip:text;
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
   animation:overview-welcome-sweep 950ms 120ms ease both;
 }
-.overview-welcome-action>i{
-  display:grid;
+.overview-welcome-action strong>i{
+  display:inline-grid;
   place-items:center;
-  flex:0 0 .9em;
-  width:.9em;
-  height:.9em;
-  border-radius:50%;
-  background:var(--uf-grey);
-  color:var(--uniflow-accent,#9b79a8);
+  flex:0 0 .56em;
+  width:.56em;
+  height:.56em;
+  color:var(--welcome-color,#9b79a8);
+  -webkit-text-fill-color:initial;
   animation:overview-welcome-icon-in 520ms 100ms cubic-bezier(.2,.8,.2,1) both;
 }
-.overview-welcome-action>i svg{width:.43em;height:.43em}
+.overview-welcome-action strong>i svg{width:100%;height:100%;stroke-width:2.15}
 @keyframes overview-welcome-in{from{opacity:0;filter:blur(12px);transform:translateY(18px) scale(.98)}to{opacity:1;filter:none;transform:none}}
 @keyframes overview-welcome-out{to{opacity:0;filter:blur(10px);transform:translateY(-14px) scale(.985)}}
 @keyframes overview-welcome-sweep{from{background-position:120% 0}to{background-position:-25% 0}}
 @keyframes overview-welcome-icon-in{from{opacity:0;filter:blur(6px);transform:translateX(-9px) rotate(-12deg) scale(.82)}to{opacity:1;filter:none;transform:none}}
-html[data-theme='light'] .overview-welcome-action strong{background-image:linear-gradient(100deg,var(--uniflow-accent,#805489) 18%,#2a202e 48%,var(--uniflow-accent,#805489) 76%)}
-html[data-theme='light'] .overview-welcome-action>i{background:#f1f1f3}
+html[data-theme='light'] .overview-welcome-action strong{background-image:linear-gradient(100deg,var(--welcome-color,#805489) 18%,#202126 48%,var(--welcome-color,#805489) 76%)}
 @media(max-width:720px){
-  .overview-welcome-rotator{font-size:clamp(28px,8.4vw,42px)!important;min-height:2.25em}
-  .overview-welcome-action{align-items:center;gap:.22em}
+  .overview-dashboard-clean>.overview-welcome{min-height:clamp(280px,40dvh,350px);padding-inline:4px}
+  .overview-welcome-rotator{font-size:clamp(27px,7.6vw,37px)!important;min-height:2.7em}
+  .overview-welcome-rotator.is-destination{font-size:clamp(24px,6.7vw,33px)!important;line-height:1.13;letter-spacing:-.045em}
 }
 @media(prefers-reduced-motion:reduce){
-  .overview-live-attendance-confirm>button.is-confirmed,.overview-live-heading-copy,.overview-welcome-rotator,.overview-welcome-rotator.is-leaving,.overview-welcome-action strong,.overview-welcome-action>i{animation:none}
+  .overview-live-attendance-confirm>button.is-confirmed,.overview-live-heading-copy,.overview-welcome-rotator,.overview-welcome-rotator.is-leaving,.overview-welcome-action strong,.overview-welcome-action strong>i{animation:none}
 }
 
 /* Popup fields are flat and legible in both themes. */
