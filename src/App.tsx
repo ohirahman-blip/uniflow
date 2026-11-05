@@ -1839,6 +1839,7 @@ export default function App() {
         if(semesterId!==data.activeSemesterId)mutate(workspace=>({...workspace,activeSemesterId:semesterId}))
         setRequestedStudyBundle(bundle);navigatePage('dashboard')
       }} data={data} advice={ai.advice} aiEnabled={premium&&ai.consent} aiWorking={ai.working} aiError={ai.errorMessage} aiGeneratedAt={ai.generatedAt} aiStale={ai.isStale} onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))} onSession={saveLearningSession} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onDeleteTask={deleteStudyTask} onGoal={goal=>mutate(d=>({...d,dailyScoreGoal:goal}))} onAssessment={item=>setPreviewAssessmentId(item.id)} onLearning={moduleId=>{if(moduleId)setActiveLearningModuleId(moduleId);navigatePage('dashboard')}}
+        onNavigate={destination=>navigatePage(destination)}
         onLiveCheckin={saveLiveCheckin}/>}
       {page === 'dashboard' && <ModuleLearningHome requestedStudyBundle={requestedStudyBundle} onStudyBundleOpened={consumeStudyBundle} studyPlan={deterministicPlan} onStudyScheduleChange={studySchedule=>mutate(workspace=>({...workspace,studySchedule}))} data={data} semester={semester} modules={semesterModules}
         currentModuleId={activeLearningModuleId||currentModuleId}

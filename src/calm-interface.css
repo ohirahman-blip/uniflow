@@ -932,7 +932,7 @@ html[data-theme='light'] .profile-goals .study-goal-form :is(input:not([type='ch
   line-height:.98;
   letter-spacing:-.06em;
 }
-.overview-live-hero h1>button{
+.overview-live-hero h1 button{
   display:inline;
   padding:0;
   border:0;
@@ -944,7 +944,7 @@ html[data-theme='light'] .profile-goals .study-goal-form :is(input:not([type='ch
   cursor:pointer;
   transition:filter 160ms ease,opacity 160ms ease,transform 160ms ease;
 }
-.overview-live-hero h1>button:hover{filter:brightness(1.12);transform:scale(1.012)}
+.overview-live-hero h1 button:hover{filter:brightness(1.12);transform:scale(1.012)}
 .overview-live-feedback{display:inline-block;animation:overview-live-feedback-in 220ms cubic-bezier(.2,.8,.2,1) both}
 .overview-live-hero>p{
   margin:18px 0 0;
@@ -1160,7 +1160,76 @@ html[data-theme='light'] .uf-month-pill.exam{background:color-mix(in srgb,var(--
 html[data-theme='light'] .overview-live-ratings>button{background:#e7e7ea;color:#202126}
 html[data-theme='light'] .overview-live-ratings>button:hover{background:#dedee2;color:#202126}
 .overview-live-attendance-confirm>button{min-width:112px}
-.overview-live-attendance-confirm>button.is-confirmed{opacity:.72;cursor:default}
+.overview-live-attendance-confirm>button.is-confirmed{cursor:default;animation:overview-live-confirmed-hold 3s ease both}
+@keyframes overview-live-confirmed-hold{0%,76%{opacity:.72;filter:none;transform:none}100%{opacity:0;filter:blur(7px);transform:translateY(-7px) scale(.96)}}
+.overview-live-heading-copy{display:inline-block;animation:overview-live-heading-swap 480ms cubic-bezier(.2,.8,.2,1) both}
+@keyframes overview-live-heading-swap{from{opacity:0;filter:blur(10px);transform:translateY(13px) scale(.975)}to{opacity:1;filter:none;transform:none}}
+
+/* The idle dashboard hero cycles through useful destinations. */
+.overview-welcome{overflow:hidden}
+.overview-welcome-rotator{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:1.2em;
+  max-width:920px;
+  margin-inline:auto!important;
+  animation:overview-welcome-in 560ms cubic-bezier(.2,.8,.2,1) both;
+}
+.overview-welcome-rotator.is-leaving{animation:overview-welcome-out 260ms cubic-bezier(.4,0,1,1) both}
+.overview-welcome-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:.28em;
+  max-width:100%;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+  line-height:1.03;
+  letter-spacing:inherit;
+  text-align:center;
+  cursor:pointer;
+}
+.overview-welcome-action>span{min-width:0}
+.overview-welcome-action strong{
+  color:var(--uniflow-accent,#9b79a8);
+  font:inherit;
+  background:linear-gradient(100deg,var(--uniflow-accent,#9b79a8) 18%,#e9dff0 48%,var(--uniflow-accent,#9b79a8) 76%);
+  background-size:240% 100%;
+  background-clip:text;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:overview-welcome-sweep 950ms 120ms ease both;
+}
+.overview-welcome-action>i{
+  display:grid;
+  place-items:center;
+  flex:0 0 .9em;
+  width:.9em;
+  height:.9em;
+  border-radius:50%;
+  background:var(--uf-grey);
+  color:var(--uniflow-accent,#9b79a8);
+  animation:overview-welcome-icon-in 520ms 100ms cubic-bezier(.2,.8,.2,1) both;
+}
+.overview-welcome-action>i svg{width:.43em;height:.43em}
+@keyframes overview-welcome-in{from{opacity:0;filter:blur(12px);transform:translateY(18px) scale(.98)}to{opacity:1;filter:none;transform:none}}
+@keyframes overview-welcome-out{to{opacity:0;filter:blur(10px);transform:translateY(-14px) scale(.985)}}
+@keyframes overview-welcome-sweep{from{background-position:120% 0}to{background-position:-25% 0}}
+@keyframes overview-welcome-icon-in{from{opacity:0;filter:blur(6px);transform:translateX(-9px) rotate(-12deg) scale(.82)}to{opacity:1;filter:none;transform:none}}
+html[data-theme='light'] .overview-welcome-action strong{background-image:linear-gradient(100deg,var(--uniflow-accent,#805489) 18%,#2a202e 48%,var(--uniflow-accent,#805489) 76%)}
+html[data-theme='light'] .overview-welcome-action>i{background:#f1f1f3}
+@media(max-width:720px){
+  .overview-welcome-rotator{font-size:clamp(28px,8.4vw,42px)!important;min-height:2.25em}
+  .overview-welcome-action{align-items:center;gap:.22em}
+}
+@media(prefers-reduced-motion:reduce){
+  .overview-live-attendance-confirm>button.is-confirmed,.overview-live-heading-copy,.overview-welcome-rotator,.overview-welcome-rotator.is-leaving,.overview-welcome-action strong,.overview-welcome-action>i{animation:none}
+}
 
 /* Popup fields are flat and legible in both themes. */
 .overview-task-dialog :is(input,.uf-picker-trigger),

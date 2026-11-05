@@ -5,17 +5,26 @@ import type {StudyTimerState} from './study-timer'
 import {lessonKeyForOccurrence,type LearningSession,type StudyTask} from './learning'
 import {useEffect,useRef,useState,type CSSProperties} from 'react'
 import {createPortal} from 'react-dom'
-import {BookOpenCheck,CalendarDays,Check,ClipboardList,Clock3,GraduationCap,Plus,Trash2,X} from 'lucide-react'
+import {BookOpenCheck,CalendarDays,Check,ClipboardList,Clock3,GraduationCap,Plus,Trash2,Users,X} from 'lucide-react'
 import {addDays,dateString,formatDate,fromDate,isAssessment,minutes,occurrencesOn,selectedAssessment,weekStart,type AppData,type Assessment,type Occurrence} from './model'
 import StudyUtilities from './StudyUtilities'
 import UniflowPicker from './UniflowPicker'
-type Props={studyPlan:StudyPlan;onStudyPlan:(bundle:StudyDayBundle)=>void;aiGeneratedAt:string|null;aiStale:boolean;advice:StudyAdvice|null;aiEnabled:boolean;aiWorking:boolean;aiError:string;onTimerChange:(timer:StudyTimerState|undefined)=>void;onSession:(session:Omit<LearningSession,'id'|'updatedAt'>)=>void;data:AppData;onProfile:()=>void;onStreak:()=>void;onAddTask:(moduleId:string,title:string,dueDate?:string)=>void;onToggleTask:(task:StudyTask)=>void;onDeleteTask:(task:StudyTask)=>void;onGoal:(goal:number)=>void;onAssessment:(assessment:Assessment)=>void;onLearning:(moduleId?:string)=>void;onLiveCheckin:(occurrence:Occurrence,rating?:'understood'|'partial'|'struggling')=>void}
+type WelcomeTarget='learning'|'tasks'|'calendar'|'friends'
+const welcomePrompts=[
+  {id:'hello' as const},
+  {id:'learning' as const,label:'deinen Lernplan',icon:BookOpenCheck},
+  {id:'tasks' as const,label:'deine offenen Aufgaben',icon:ClipboardList},
+  {id:'calendar' as const,label:'deinen Stundenplan',icon:CalendarDays},
+  {id:'friends' as const,label:'deine Freunde',icon:Users}
+]
+type Props={studyPlan:StudyPlan;onStudyPlan:(bundle:StudyDayBundle)=>void;aiGeneratedAt:string|null;aiStale:boolean;advice:StudyAdvice|null;aiEnabled:boolean;aiWorking:boolean;aiError:string;onTimerChange:(timer:StudyTimerState|undefined)=>void;onSession:(session:Omit<LearningSession,'id'|'updatedAt'>)=>void;data:AppData;onProfile:()=>void;onStreak:()=>void;onAddTask:(moduleId:string,title:string,dueDate?:string)=>void;onToggleTask:(task:StudyTask)=>void;onDeleteTask:(task:StudyTask)=>void;onGoal:(goal:number)=>void;onAssessment:(assessment:Assessment)=>void;onLearning:(moduleId?:string)=>void;onNavigate:(page:'calendar'|'friends')=>void;onLiveCheckin:(occurrence:Occurrence,rating?:'understood'|'partial'|'struggling')=>void}
 function dashboardInk(color:string){const hex=color.replace('#',''),full=hex.length===3?hex.split('').map(value=>value+value).join(''):hex;if(!/^[0-9a-f]{6}$/i.test(full))return'#17171a';const values=[0,2,4].map(index=>parseInt(full.slice(index,index+2),16)/255).map(value=>value<=.04045?value/12.92:((value+.055)/1.055)**2.4);return values[0]*.2126+values[1]*.7152+values[2]*.0722>.179?'#17171a':'#fff'}
 type AttendanceState='free'|'future'|'complete'|'open'
-export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,onStreak,onAddTask,onToggleTask,onDeleteTask,onAssessment,onLearning,onTimerChange,onSession,onLiveCheckin}:Props){
+export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,onStreak,onAddTask,onToggleTask,onDeleteTask,onAssessment,onLearning,onNavigate,onTimerChange,onSession,onLiveCheckin}:Props){
   const [clock,setClock]=useState(()=>new Date()),[title,setTitle]=useState(''),[moduleId,setModuleId]=useState(''),[dueDate,setDueDate]=useState(''),[adding,setAdding]=useState(false),[attendanceOpen,setAttendanceOpen]=useState(false)
   const [livePhase,setLivePhase]=useState<'attendance'|'confirm'|'confirmed'|'rating'|'rated'>('attendance'),[liveChoices,setLiveChoices]=useState(false),[liveFeedback,setLiveFeedback]=useState('')
   const [liveScrolled,setLiveScrolled]=useState(false)
+  const [welcomeIndex,setWelcomeIndex]=useState(0),[welcomeLeaving,setWelcomeLeaving]=useState(false)
   const liveTimer=useRef(0)
   const dashboardRef=useRef<HTMLElement|null>(null)
   useEffect(()=>{const timer=window.setInterval(()=>setClock(new Date()),30000);return()=>clearInterval(timer)},[])
@@ -30,6 +39,7 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
   const todayOccurrences=occurrencesOn(teachingOfferings,day).filter(item=>!item.cancelled).sort((a,b)=>a.from.localeCompare(b.from))
   const nowMinutes=clock.getHours()*60+clock.getMinutes()
   const activeLecture=todayOccurrences.find(item=>minutes(item.from)<=nowMinutes&&minutes(item.to)>nowMinutes)
+  const hasActiveLecture=!!activeLecture
   let nextLesson=todayOccurrences.find(item=>minutes(item.from)>nowMinutes)
   if(!nextLesson)for(let offset=1;offset<=60&&!nextLesson;offset++)nextLesson=occurrencesOn(teachingOfferings,addDays(day,offset)).filter(item=>!item.cancelled).sort((a,b)=>a.from.localeCompare(b.from))[0]
   const nextColor=moduleFor(nextLesson?.offering.moduleId)?.color||'#e8e8eb'
@@ -88,6 +98,16 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
     window.addEventListener('wheel',cancel,{passive:true})
     return()=>{window.clearTimeout(settleTimer);stopAnimation();window.removeEventListener('scroll',onScroll);window.removeEventListener('pointerdown',cancel);window.removeEventListener('touchstart',cancel);window.removeEventListener('wheel',cancel)}
   },[])
+  useEffect(()=>{
+    if(activeLecture){setWelcomeIndex(0);setWelcomeLeaving(false);return}
+    let swapTimer=0
+    const cycle=window.setInterval(()=>{
+      setWelcomeLeaving(true)
+      window.clearTimeout(swapTimer)
+      swapTimer=window.setTimeout(()=>{setWelcomeIndex(current=>(current+1)%welcomePrompts.length);setWelcomeLeaving(false)},260)
+    },4300)
+    return()=>{window.clearInterval(cycle);window.clearTimeout(swapTimer)}
+  },[hasActiveLecture])
   const attendanceFor=(date:string):{events:number;attended:number;state:AttendanceState}=>{const events=occurrencesOn(teachingOfferings,date).filter(item=>!item.cancelled),attended=events.filter(event=>{const checkin=checkins.get(lessonKeyForOccurrence(event));return !!checkin&&(checkin.attended??checkin.rating!=='absent')}).length;return{events:events.length,attended,state:events.length===0?'free':date>day?'future':attended>0?'complete':'open'}}
   const weekDays=Array.from({length:7},(_,index)=>{const date=addDays(weekStart(day),index);return{date,...attendanceFor(date)}})
   const universityDaysThisWeek=weekDays.filter(item=>item.date<=day&&item.events>0),visitedThisWeek=universityDaysThisWeek.filter(item=>item.attended>0).length
@@ -112,9 +132,17 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
   const revealLiveRating=()=>{setLiveChoices(true);window.clearTimeout(liveTimer.current);liveTimer.current=window.setTimeout(()=>setLiveChoices(false),3000)}
   const rateLive=(rating:'understood'|'partial'|'struggling')=>{if(!activeLecture)return;onLiveCheckin(activeLecture,rating);setLiveChoices(false);setLivePhase('rated');setLiveFeedback(rating==='understood'?'Gut':rating==='partial'?'Teilweise':'Gar nicht');window.clearTimeout(liveTimer.current);liveTimer.current=window.setTimeout(()=>setLiveFeedback(''),3000)}
   const attendanceHeading=<>Bist du schon in <button style={{color:activeColor}} onClick={livePhase==='attendance'?requestLiveAttendance:undefined}>{activeTitle}?</button></>
-  const liveHeading=livePhase==='attendance'||livePhase==='confirm'||livePhase==='confirmed'||liveFeedback==='Ich bin da'?attendanceHeading:liveFeedback?<span className="overview-live-feedback" style={{color:activeColor}}>{liveFeedback}</span>:<>Wie läuft <button style={{color:activeColor}} onClick={revealLiveRating}>{activeTitle}?</button></>
+  const attendanceHeadingVisible=livePhase==='attendance'||livePhase==='confirm'||livePhase==='confirmed'||liveFeedback==='Ich bin da'
+  const liveHeading=attendanceHeadingVisible?attendanceHeading:liveFeedback?<span className="overview-live-feedback" style={{color:activeColor}}>{liveFeedback}</span>:<>Wie läuft <button style={{color:activeColor}} onClick={revealLiveRating}>{activeTitle}?</button></>
+  const liveHeadingKey=attendanceHeadingVisible?'attendance':liveFeedback?`feedback-${liveFeedback}`:'rating'
   const attendanceConfirm=livePhase==='confirm'||liveFeedback==='Ich bin da'
-  return <main ref={dashboardRef} className={'screen overview-dashboard overview-dashboard-clean'+(activeLecture?' has-live-lecture':'')}><StudyUtilities days={data.streakDays} onProfile={onProfile} onStreak={onStreak}/>{activeLecture&&<section className="overview-live-page" aria-label="Laufende Veranstaltung"><div className={'overview-live-hero'+(liveScrolled?' is-greeting':'')}><h1>{liveHeading}</h1><p>{liveSubtitle}</p>{attendanceConfirm?<div className="overview-live-ratings overview-live-attendance-confirm"><button className={liveFeedback==='Ich bin da'?'is-confirmed':''} disabled={liveFeedback==='Ich bin da'} onClick={confirmLiveAttendance}>Ich bin da</button></div>:liveChoices&&<div className="overview-live-ratings"><button onClick={()=>rateLive('understood')}>Gut</button><button onClick={()=>rateLive('partial')}>Teilweise</button><button onClick={()=>rateLive('struggling')}>Gar nicht</button></div>}</div>{attendanceStrip}<div className="overview-live-next">{nextEventCard}</div></section>}<DashboardTimer data={data} onChange={onTimerChange} onSession={onSession}/>{!activeLecture&&<header className="overview-welcome"><h1>{data.profile?`Hallo, ${data.profile}.`:'Hallo.'}</h1><p>{formatDate(day,{weekday:'long',day:'numeric',month:'long'})}</p></header>}
+  const goToWelcomeTarget=(target:WelcomeTarget)=>{
+    if(target==='calendar'||target==='friends'){onNavigate(target);return}
+    const element=dashboardRef.current?.querySelector<HTMLElement>(target==='learning'?'.overview-learning-map':'.overview-tasks-focus')
+    if(element)window.scrollTo({top:Math.max(0,window.scrollY+element.getBoundingClientRect().top-16),behavior:'smooth'})
+  }
+  const welcomePrompt=welcomePrompts[welcomeIndex],WelcomeIcon=welcomePrompt.id==='hello'?null:welcomePrompt.icon
+  return <main ref={dashboardRef} className={'screen overview-dashboard overview-dashboard-clean'+(activeLecture?' has-live-lecture':'')}><StudyUtilities days={data.streakDays} onProfile={onProfile} onStreak={onStreak}/>{activeLecture&&<section className="overview-live-page" aria-label="Laufende Veranstaltung"><div className={'overview-live-hero'+(liveScrolled?' is-greeting':'')}><h1><span key={liveHeadingKey} className="overview-live-heading-copy">{liveHeading}</span></h1><p>{liveSubtitle}</p>{attendanceConfirm?<div className="overview-live-ratings overview-live-attendance-confirm"><button className={liveFeedback==='Ich bin da'?'is-confirmed':''} disabled={liveFeedback==='Ich bin da'} onClick={confirmLiveAttendance}>Ich bin da</button></div>:liveChoices&&<div className="overview-live-ratings"><button onClick={()=>rateLive('understood')}>Gut</button><button onClick={()=>rateLive('partial')}>Teilweise</button><button onClick={()=>rateLive('struggling')}>Gar nicht</button></div>}</div>{attendanceStrip}<div className="overview-live-next">{nextEventCard}</div></section>}<DashboardTimer data={data} onChange={onTimerChange} onSession={onSession}/>{!activeLecture&&<header className="overview-welcome"><h1 key={welcomePrompt.id} className={'overview-welcome-rotator'+(welcomeLeaving?' is-leaving':'')}>{welcomePrompt.id==='hello'?(data.profile?`Hallo, ${data.profile}.`:'Hallo.'):<button type="button" className="overview-welcome-action" onClick={()=>goToWelcomeTarget(welcomePrompt.id)}><span>Schauen wir uns <strong>{welcomePrompt.label}</strong> an.</span>{WelcomeIcon&&<i aria-hidden="true"><WelcomeIcon size={22}/></i>}</button>}</h1><p>{formatDate(day,{weekday:'long',day:'numeric',month:'long'})}</p></header>}
     {!activeLecture&&attendanceStrip}
     <section className={'overview-now-grid'+(activeLecture?' is-secondary-only':'')} aria-label="Heute und demnächst">{!activeLecture&&nextEventCard}{upcomingStack}</section>
     <section className="overview-learning-map" aria-label="Dein täglicher Lernplan"><header><div><BookOpenCheck size={18}/><span><small>Deine Route für heute</small><h2>Täglicher Lernplan</h2></span></div>{dailyStudyBundles.length>0&&<strong>{Math.round(openStudyBundles.reduce((sum,bundle)=>sum+bundle.minutes,0))} Min. offen</strong>}</header>{dailyStudyBundles.length>0?<><div className="overview-learning-route">{openStudyBundles.map(renderStudyBundle)}</div>{completedStudyBundles.length>0&&<details className="overview-learning-completed"><summary>{completedStudyBundles.length} abgeschlossen</summary><div className="overview-learning-route">{completedStudyBundles.map((bundle,index)=>renderStudyBundle(bundle,openStudyBundles.length+index))}</div></details>}</>:<div className="overview-learning-empty"><i><Check size={17}/></i><span><strong>{studyPlan.preferences.enabled?'Heute ist deine Lernroute frei.':'Der Lernplan ist pausiert.'}</strong><small>{studyPlan.preferences.enabled?'Kein Tagespaket offen – Zeit zum Durchatmen.':'Du kannst ihn in den Einstellungen wieder einschalten.'}</small></span></div>}</section>
