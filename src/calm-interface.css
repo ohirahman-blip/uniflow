@@ -1245,6 +1245,29 @@ html[data-theme='light'] .overview-welcome-action strong{background-image:linear
   .overview-live-attendance-confirm>button.is-confirmed,.overview-live-heading-copy,.overview-welcome-rotator,.overview-welcome-rotator.is-leaving,.overview-welcome-action strong,.overview-welcome-action strong>i{animation:none}
 }
 
+/* The first learning stop acknowledges the first hero jump on each dashboard visit. */
+.overview-learning-stop.is-arrival-highlight .overview-learning-card{
+  position:relative;
+  isolation:isolate;
+  animation:overview-learning-arrival-zoom 1.25s cubic-bezier(.2,.8,.2,1) both;
+}
+.overview-learning-stop.is-arrival-highlight .overview-learning-card::after{
+  content:"";
+  position:absolute;
+  z-index:3;
+  inset:-35% -55%;
+  pointer-events:none;
+  background:linear-gradient(108deg,transparent 37%,color-mix(in srgb,var(--study-color) 24%,#fff) 46%,#ffffffb8 50%,color-mix(in srgb,var(--study-color) 18%,#fff) 54%,transparent 63%);
+  transform:translateX(-72%);
+  animation:overview-learning-arrival-sweep 1.05s 90ms cubic-bezier(.2,.7,.2,1) both;
+}
+@keyframes overview-learning-arrival-zoom{0%,100%{transform:scale(1)}42%{transform:scale(1.018)}}
+@keyframes overview-learning-arrival-sweep{to{transform:translateX(72%)}}
+@media(prefers-reduced-motion:reduce){
+  .overview-learning-stop.is-arrival-highlight .overview-learning-card,
+  .overview-learning-stop.is-arrival-highlight .overview-learning-card::after{animation:none}
+}
+
 /* Popup fields are flat and legible in both themes. */
 .overview-task-dialog :is(input,.uf-picker-trigger),
 .mlh-sheet .mlh-form :is(input,.uf-picker-trigger),
