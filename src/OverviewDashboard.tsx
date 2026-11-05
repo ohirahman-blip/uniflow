@@ -130,6 +130,21 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
   const learningModuleIds=new Set(openStudyBundles.map(bundle=>bundle.moduleId))
   const linkedLearningTasks=pending.filter(task=>learningModuleIds.has(task.moduleId)&&(!task.dueDate||task.dueDate===day)),linkedLearningTaskIds=new Set(linkedLearningTasks.map(task=>task.id))
   const generalPending=pending.filter(task=>!linkedLearningTaskIds.has(task.id)),todaysTasks=generalPending.filter(task=>task.dueDate===day),dashboardTasks=(todaysTasks.length?todaysTasks:generalPending).slice(0,5)
+  useEffect(()=>{
+    if(!openStudyBundles.length||learningSpotlightUsed.current)return
+    const firstStop=dashboardRef.current?.querySelector<HTMLElement>('.overview-learning-stop .overview-learning-card')
+    if(!firstStop)return
+    const observer=new IntersectionObserver(entries=>{
+      if(!entries.some(entry=>entry.isIntersecting)||learningSpotlightUsed.current)return
+      learningSpotlightUsed.current=true
+      setLearningSpotlight(true)
+      window.clearTimeout(learningSpotlightTimer.current)
+      learningSpotlightTimer.current=window.setTimeout(()=>setLearningSpotlight(false),1350)
+      observer.disconnect()
+    },{threshold:.62,rootMargin:'0px 0px -10% 0px'})
+    observer.observe(firstStop)
+    return()=>observer.disconnect()
+  },[openStudyBundles.length])
   const renderTask=(task:StudyTask)=>{const module=data.modules.find(item=>item.id===task.moduleId);return <article key={task.id} className={'overview-task'+(task.completedAt?' is-complete':'')} style={{'--task-color':module?.color||'#b5a0c9'} as CSSProperties}><button role="checkbox" aria-checked={!!task.completedAt} aria-label={`${task.title}${task.completedAt?' wieder öffnen':' erledigen'}`} onClick={()=>onToggleTask(task)}><i>{task.completedAt&&<Check size={13}/>}</i><span><strong>{task.title}</strong><small>{module?.name||'Allgemein'}{task.dueDate?` · ${formatDate(task.dueDate,{day:'numeric',month:'short'})}`:''}</small></span>{!task.completedAt&&<b>+{task.points||20}</b>}</button><button aria-label={`${task.title} löschen`} onClick={()=>onDeleteTask(task)}><Trash2 size={16}/></button></article>}
   const renderStudyBundle=(bundle:StudyDayBundle,index:number)=>{const module=moduleFor(bundle.moduleId),color=module?.color||'#9b8eaa',linkedTasks=linkedLearningTasks.filter(task=>task.moduleId===bundle.moduleId);return <article key={bundle.id} className={'overview-learning-stop'+(bundle.completed?' is-complete':'')+(index===0&&learningSpotlight?' is-arrival-highlight':'')} style={{'--study-color':color} as CSSProperties}><div className="overview-learning-node"><i>{bundle.completed?<Check size={13}/>:index+1}</i></div><div className="overview-learning-card"><button className="overview-learning-main" type="button" disabled={bundle.completed} onClick={()=>onStudyPlan(bundle)}><span className="overview-learning-copy"><small>{module?.name||'Allgemeines Lernen'}</small><strong>{bundle.items.map(item=>item.label).join(' · ')}</strong><b><Clock3 size={13}/>{bundle.completed?'Heute gelernt':`ca. ${Math.round(bundle.minutes)} Minuten`}</b></span><span className="overview-learning-action">{bundle.completed?<Check size={17}/>:<BookOpenCheck size={17}/>}</span></button>{linkedTasks.length>0&&<div className="overview-learning-linked">{linkedTasks.map(task=><button key={task.id} role="checkbox" aria-checked={false} onClick={()=>onToggleTask(task)}><i/><span>{task.title}</span><b>+{task.points||20}</b></button>)}</div>}</div></article>}
   const attendanceStrip=<section className="overview-attendance" role="button" tabIndex={0} aria-label="Gesamte Anwesenheit öffnen" onClick={()=>setAttendanceOpen(true)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setAttendanceOpen(true)}}}><header><span>Deine Woche</span><strong>{universityDaysThisWeek.length?`${visitedThisWeek} von ${universityDaysThisWeek.length} Uni-Tagen`:'Bisher keine Uni-Termine'}</strong></header><div>{weekDays.map(item=><div key={item.date} className={`is-${item.state}${item.date===day?' is-today':''}`}><span>{formatDate(item.date,{weekday:'short'}).slice(0,2)}</span><i>{item.state==='free'||item.state==='complete'?<Check size={14}/>:null}</i><small>{item.state==='free'?'frei':item.attended?'besucht':item.events?'nicht besucht':'frei'}</small></div>)}</div></section>
@@ -150,14 +165,6 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
     if(target==='calendar'||target==='friends'){onNavigate(target);return}
     const element=dashboardRef.current?.querySelector<HTMLElement>(target==='learning'?'.overview-learning-map':'.overview-tasks-focus')
     if(element)window.scrollTo({top:Math.max(0,window.scrollY+element.getBoundingClientRect().top-16),behavior:'smooth'})
-    if(target==='learning'&&openStudyBundles.length&&!learningSpotlightUsed.current){
-      learningSpotlightUsed.current=true
-      window.clearTimeout(learningSpotlightTimer.current)
-      learningSpotlightTimer.current=window.setTimeout(()=>{
-        setLearningSpotlight(true)
-        learningSpotlightTimer.current=window.setTimeout(()=>setLearningSpotlight(false),1350)
-      },480)
-    }
   }
   const welcomePrompt=welcomePrompts[welcomeIndex],WelcomeIcon=welcomePrompt.id==='hello'?null:welcomePrompt.icon
   return <main ref={dashboardRef} className={'screen overview-dashboard overview-dashboard-clean'+(activeLecture?' has-live-lecture':'')}><StudyUtilities days={data.streakDays} onProfile={onProfile} onStreak={onStreak}/>{activeLecture&&<section className="overview-live-page" aria-label="Laufende Veranstaltung"><div className={'overview-live-hero'+(liveScrolled?' is-greeting':'')}><h1><span key={liveHeadingKey} className="overview-live-heading-copy">{liveHeading}</span></h1><p>{liveSubtitle}</p>{attendanceConfirm?<div className="overview-live-ratings overview-live-attendance-confirm"><button className={liveFeedback==='Ich bin da'?'is-confirmed':''} disabled={liveFeedback==='Ich bin da'} onClick={confirmLiveAttendance}>Ich bin da</button></div>:liveChoices&&<div className="overview-live-ratings"><button onClick={()=>rateLive('understood')}>Gut</button><button onClick={()=>rateLive('partial')}>Teilweise</button><button onClick={()=>rateLive('struggling')}>Gar nicht</button></div>}</div>{attendanceStrip}<div className="overview-live-next">{nextEventCard}</div></section>}<DashboardTimer data={data} onChange={onTimerChange} onSession={onSession}/>{!activeLecture&&<header className={'overview-welcome'+(welcomeScrolled?' is-compact':'')}><h1 key={welcomePrompt.id} className={'overview-welcome-rotator'+(welcomePrompt.id==='hello'?' is-hello':' is-destination')+(welcomeLeaving?' is-leaving':'')}>{welcomePrompt.id==='hello'?(data.profile?`Hallo, ${data.profile}.`:'Hallo.'):<button type="button" className="overview-welcome-action" style={{'--welcome-color':welcomePrompt.color} as CSSProperties} onClick={()=>goToWelcomeTarget(welcomePrompt.id)}><span>Schauen wir uns {welcomePrompt.possessive} <strong><span>{welcomePrompt.label}</span>{WelcomeIcon&&<i aria-hidden="true"><WelcomeIcon size={22}/></i>}</strong> an.</span></button>}</h1><p>{formatDate(day,{weekday:'long',day:'numeric',month:'long'})}</p></header>}
