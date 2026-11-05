@@ -1273,11 +1273,11 @@ html[data-theme='light'] .screen-calendar .course:not(.course-cancelled):not(.co
   top:0;
   height:36px;
   border:0;
-  border-radius:13px;
+  border-radius:999px;
   background:var(--uf-grey)!important;
 }
 .uf-week-strip--two .uf-week-strip-button:is(.uf-week-first,.uf-week-second){
-  border-radius:12px!important;
+  border-radius:999px!important;
   background:transparent!important;
   color:var(--uf-calm-text)!important;
   -webkit-text-fill-color:var(--uf-calm-text)!important;
