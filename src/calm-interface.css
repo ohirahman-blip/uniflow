@@ -1331,8 +1331,7 @@ body:has(.overview-dashboard-clean){
   scroll-snap-type:y proximity;
   scroll-padding-top:16px;
 }
-.overview-dashboard-clean>:is(.overview-welcome,.mlh-running-timer,.overview-attendance,.overview-now-grid,.overview-learning-map),
-.overview-dashboard-clean .overview-live-hero,
+.overview-dashboard-clean>:is(.mlh-running-timer,.overview-attendance,.overview-now-grid,.overview-learning-map),
 .overview-dashboard-clean .overview-live-page>.overview-attendance,
 .overview-dashboard-clean .overview-live-next{
   scroll-snap-align:start;
@@ -1342,8 +1341,7 @@ body:has(.overview-dashboard-clean){
 .overview-dashboard-clean>.overview-tasks-focus{scroll-snap-align:none}
 @media(max-width:720px){
   html:has(.overview-dashboard-clean),body:has(.overview-dashboard-clean){scroll-padding-top:max(12px,env(safe-area-inset-top))}
-  .overview-dashboard-clean>:is(.overview-welcome,.mlh-running-timer,.overview-attendance,.overview-now-grid,.overview-learning-map),
-  .overview-dashboard-clean .overview-live-hero,
+  .overview-dashboard-clean>:is(.mlh-running-timer,.overview-attendance,.overview-now-grid,.overview-learning-map),
   .overview-dashboard-clean .overview-live-page>.overview-attendance,
   .overview-dashboard-clean .overview-live-next{scroll-margin-top:max(12px,env(safe-area-inset-top))}
 }
