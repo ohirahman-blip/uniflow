@@ -1324,25 +1324,3 @@ html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{bac
   .overview-live-hero{min-height:clamp(300px,46dvh,390px);transition-duration:360ms}
   .overview-live-hero.is-greeting{min-height:clamp(132px,19dvh,176px)}
 }
-
-/* Dashboard sections settle gently without trapping the final page edge. */
-html:has(.overview-dashboard-clean),
-body:has(.overview-dashboard-clean){
-  scroll-snap-type:y proximity;
-  scroll-padding-top:16px;
-}
-.overview-dashboard-clean>:is(.mlh-running-timer,.overview-attendance,.overview-now-grid,.overview-learning-map),
-.overview-dashboard-clean .overview-live-page>.overview-attendance,
-.overview-dashboard-clean .overview-live-next{
-  scroll-snap-align:start;
-  scroll-snap-stop:normal;
-  scroll-margin-top:16px;
-}
-.overview-dashboard-clean>.overview-tasks-focus{scroll-snap-align:none}
-@media(max-width:720px){
-  html:has(.overview-dashboard-clean),body:has(.overview-dashboard-clean){scroll-padding-top:max(12px,env(safe-area-inset-top))}
-  .overview-dashboard-clean>:is(.mlh-running-timer,.overview-attendance,.overview-now-grid,.overview-learning-map),
-  .overview-dashboard-clean .overview-live-page>.overview-attendance,
-  .overview-dashboard-clean .overview-live-next{scroll-margin-top:max(12px,env(safe-area-inset-top))}
-}
-@media(prefers-reduced-motion:reduce){html:has(.overview-dashboard-clean),body:has(.overview-dashboard-clean){scroll-snap-type:none}}

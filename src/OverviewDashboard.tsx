@@ -17,6 +17,7 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
   const [livePhase,setLivePhase]=useState<'attendance'|'confirm'|'confirmed'|'rating'|'rated'>('attendance'),[liveChoices,setLiveChoices]=useState(false),[liveFeedback,setLiveFeedback]=useState('')
   const [liveScrolled,setLiveScrolled]=useState(false)
   const liveTimer=useRef(0)
+  const dashboardRef=useRef<HTMLElement|null>(null)
   useEffect(()=>{const timer=window.setInterval(()=>setClock(new Date()),30000);return()=>clearInterval(timer)},[])
   useEffect(()=>{if(!attendanceOpen)return;const previous=document.body.style.overflow;document.body.style.overflow='hidden';const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setAttendanceOpen(false)};window.addEventListener('keydown',close);return()=>{document.body.style.overflow=previous;window.removeEventListener('keydown',close)}},[attendanceOpen])
   useEffect(()=>{if(!adding)return;const previous=document.body.style.overflow;document.body.style.overflow='hidden';const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setAdding(false)};window.addEventListener('keydown',close);return()=>{document.body.style.overflow=previous;window.removeEventListener('keydown',close)}},[adding])
@@ -46,6 +47,47 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
     update();window.addEventListener('scroll',update,{passive:true})
     return()=>window.removeEventListener('scroll',update)
   },[activeLecture?.key])
+  useEffect(()=>{
+    const root=dashboardRef.current
+    if(!root||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return
+    let settleTimer=0,animationFrame=0,animating=false,lastY=window.scrollY,lastAt=performance.now(),velocity=0
+    const stopAnimation=()=>{if(animationFrame)cancelAnimationFrame(animationFrame);animationFrame=0;animating=false}
+    const settle=()=>{
+      settleTimer=0
+      const elapsed=performance.now()-lastAt
+      if(animating||(Math.abs(velocity)>.6&&elapsed<190))return
+      const selector=':scope>.mlh-running-timer,:scope>.overview-attendance,:scope>.overview-now-grid,:scope>.overview-learning-map,.overview-live-page>.overview-attendance,.overview-live-next'
+      const maxY=Math.max(0,(document.scrollingElement?.scrollHeight||document.documentElement.scrollHeight)-window.innerHeight)
+      const currentY=window.scrollY
+      const targets=[...root.querySelectorAll<HTMLElement>(selector)].map(element=>Math.max(0,Math.min(maxY,currentY+element.getBoundingClientRect().top-16)))
+      if(!targets.length)return
+      const targetY=targets.reduce((nearest,target)=>Math.abs(target-currentY)<Math.abs(nearest-currentY)?target:nearest,targets[0])
+      const distance=targetY-currentY,limit=Math.min(110,window.innerHeight*.13)
+      if(Math.abs(distance)<4||Math.abs(distance)>limit)return
+      const startedAt=performance.now(),duration=Math.min(380,Math.max(240,210+Math.abs(distance)))
+      animating=true
+      const animate=(now:number)=>{
+        const progress=Math.min(1,(now-startedAt)/duration),eased=1-(1-progress)**4
+        window.scrollTo(0,currentY+distance*eased)
+        if(progress<1)animationFrame=requestAnimationFrame(animate)
+        else{animationFrame=0;animating=false;lastY=window.scrollY;lastAt=performance.now();velocity=0}
+      }
+      animationFrame=requestAnimationFrame(animate)
+    }
+    const onScroll=()=>{
+      if(animating)return
+      const now=performance.now(),nextY=window.scrollY,deltaTime=Math.max(1,now-lastAt)
+      velocity=(nextY-lastY)/deltaTime;lastY=nextY;lastAt=now
+      window.clearTimeout(settleTimer)
+      settleTimer=window.setTimeout(settle,150)
+    }
+    const cancel=()=>{window.clearTimeout(settleTimer);settleTimer=0;stopAnimation()}
+    window.addEventListener('scroll',onScroll,{passive:true})
+    window.addEventListener('pointerdown',cancel,{passive:true})
+    window.addEventListener('touchstart',cancel,{passive:true})
+    window.addEventListener('wheel',cancel,{passive:true})
+    return()=>{window.clearTimeout(settleTimer);stopAnimation();window.removeEventListener('scroll',onScroll);window.removeEventListener('pointerdown',cancel);window.removeEventListener('touchstart',cancel);window.removeEventListener('wheel',cancel)}
+  },[])
   const attendanceFor=(date:string):{events:number;attended:number;state:AttendanceState}=>{const events=occurrencesOn(teachingOfferings,date).filter(item=>!item.cancelled),attended=events.filter(event=>{const checkin=checkins.get(lessonKeyForOccurrence(event));return !!checkin&&(checkin.attended??checkin.rating!=='absent')}).length;return{events:events.length,attended,state:events.length===0?'free':date>day?'future':attended>0?'complete':'open'}}
   const weekDays=Array.from({length:7},(_,index)=>{const date=addDays(weekStart(day),index);return{date,...attendanceFor(date)}})
   const universityDaysThisWeek=weekDays.filter(item=>item.date<=day&&item.events>0),visitedThisWeek=universityDaysThisWeek.filter(item=>item.attended>0).length
@@ -72,7 +114,7 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
   const attendanceHeading=<>Bist du schon in <button style={{color:activeColor}} onClick={livePhase==='attendance'?requestLiveAttendance:undefined}>{activeTitle}?</button></>
   const liveHeading=livePhase==='attendance'||livePhase==='confirm'||livePhase==='confirmed'||liveFeedback==='Ich bin da'?attendanceHeading:liveFeedback?<span className="overview-live-feedback" style={{color:activeColor}}>{liveFeedback}</span>:<>Wie läuft <button style={{color:activeColor}} onClick={revealLiveRating}>{activeTitle}?</button></>
   const attendanceConfirm=livePhase==='confirm'||liveFeedback==='Ich bin da'
-  return <main className={'screen overview-dashboard overview-dashboard-clean'+(activeLecture?' has-live-lecture':'')}><StudyUtilities days={data.streakDays} onProfile={onProfile} onStreak={onStreak}/>{activeLecture&&<section className="overview-live-page" aria-label="Laufende Veranstaltung"><div className={'overview-live-hero'+(liveScrolled?' is-greeting':'')}><h1>{liveHeading}</h1><p>{liveSubtitle}</p>{attendanceConfirm?<div className="overview-live-ratings overview-live-attendance-confirm"><button className={liveFeedback==='Ich bin da'?'is-confirmed':''} disabled={liveFeedback==='Ich bin da'} onClick={confirmLiveAttendance}>Ich bin da</button></div>:liveChoices&&<div className="overview-live-ratings"><button onClick={()=>rateLive('understood')}>Gut</button><button onClick={()=>rateLive('partial')}>Teilweise</button><button onClick={()=>rateLive('struggling')}>Gar nicht</button></div>}</div>{attendanceStrip}<div className="overview-live-next">{nextEventCard}</div></section>}<DashboardTimer data={data} onChange={onTimerChange} onSession={onSession}/>{!activeLecture&&<header className="overview-welcome"><h1>{data.profile?`Hallo, ${data.profile}.`:'Hallo.'}</h1><p>{formatDate(day,{weekday:'long',day:'numeric',month:'long'})}</p></header>}
+  return <main ref={dashboardRef} className={'screen overview-dashboard overview-dashboard-clean'+(activeLecture?' has-live-lecture':'')}><StudyUtilities days={data.streakDays} onProfile={onProfile} onStreak={onStreak}/>{activeLecture&&<section className="overview-live-page" aria-label="Laufende Veranstaltung"><div className={'overview-live-hero'+(liveScrolled?' is-greeting':'')}><h1>{liveHeading}</h1><p>{liveSubtitle}</p>{attendanceConfirm?<div className="overview-live-ratings overview-live-attendance-confirm"><button className={liveFeedback==='Ich bin da'?'is-confirmed':''} disabled={liveFeedback==='Ich bin da'} onClick={confirmLiveAttendance}>Ich bin da</button></div>:liveChoices&&<div className="overview-live-ratings"><button onClick={()=>rateLive('understood')}>Gut</button><button onClick={()=>rateLive('partial')}>Teilweise</button><button onClick={()=>rateLive('struggling')}>Gar nicht</button></div>}</div>{attendanceStrip}<div className="overview-live-next">{nextEventCard}</div></section>}<DashboardTimer data={data} onChange={onTimerChange} onSession={onSession}/>{!activeLecture&&<header className="overview-welcome"><h1>{data.profile?`Hallo, ${data.profile}.`:'Hallo.'}</h1><p>{formatDate(day,{weekday:'long',day:'numeric',month:'long'})}</p></header>}
     {!activeLecture&&attendanceStrip}
     <section className={'overview-now-grid'+(activeLecture?' is-secondary-only':'')} aria-label="Heute und demnächst">{!activeLecture&&nextEventCard}{upcomingStack}</section>
     <section className="overview-learning-map" aria-label="Dein täglicher Lernplan"><header><div><BookOpenCheck size={18}/><span><small>Deine Route für heute</small><h2>Täglicher Lernplan</h2></span></div>{dailyStudyBundles.length>0&&<strong>{Math.round(openStudyBundles.reduce((sum,bundle)=>sum+bundle.minutes,0))} Min. offen</strong>}</header>{dailyStudyBundles.length>0?<><div className="overview-learning-route">{openStudyBundles.map(renderStudyBundle)}</div>{completedStudyBundles.length>0&&<details className="overview-learning-completed"><summary>{completedStudyBundles.length} abgeschlossen</summary><div className="overview-learning-route">{completedStudyBundles.map((bundle,index)=>renderStudyBundle(bundle,openStudyBundles.length+index))}</div></details>}</>:<div className="overview-learning-empty"><i><Check size={17}/></i><span><strong>{studyPlan.preferences.enabled?'Heute ist deine Lernroute frei.':'Der Lernplan ist pausiert.'}</strong><small>{studyPlan.preferences.enabled?'Kein Tagespaket offen – Zeit zum Durchatmen.':'Du kannst ihn in den Einstellungen wieder einschalten.'}</small></span></div>}</section>
