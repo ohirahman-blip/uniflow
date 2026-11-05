@@ -262,7 +262,7 @@ html[data-theme='light'] .overview-tasks>header>button{border:0!important;backgr
 
 @media(max-width:700px){
   .overview-dashboard-clean>.overview-welcome{padding-top:32px;padding-bottom:32px}
-  .overview-now-grid{grid-template-columns:1fr;gap:12px}
+  .overview-now-grid{grid-template-columns:1fr;gap:20px}
   .overview-current-event{aspect-ratio:auto;min-height:170px;justify-content:flex-start;gap:30px}
   .overview-upcoming-stack{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto;height:auto;gap:12px}
   .overview-upcoming{height:auto;min-height:0}
