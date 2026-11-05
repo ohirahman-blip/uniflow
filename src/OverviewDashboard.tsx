@@ -139,7 +139,7 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
       learningSpotlightUsed.current=true
       setLearningSpotlight(true)
       window.clearTimeout(learningSpotlightTimer.current)
-      learningSpotlightTimer.current=window.setTimeout(()=>setLearningSpotlight(false),1350)
+      learningSpotlightTimer.current=window.setTimeout(()=>setLearningSpotlight(false),2200)
       observer.disconnect()
     },{threshold:.62,rootMargin:'0px 0px -10% 0px'})
     observer.observe(firstStop)
