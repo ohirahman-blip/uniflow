@@ -1145,3 +1145,95 @@ html[data-theme='light'] .uf-month-pill.exam{background:color-mix(in srgb,var(--
   .screen-calendar{padding-top:15px}
   .uf-month-grid{grid-template-rows:repeat(6,minmax(72px,1fr))}
 }
+
+/* Live lecture copy remains stable while only its surrounding space contracts. */
+.overview-live-confirm,.overview-live-confirmed{
+  display:inline-block!important;
+  padding:.14em .42em!important;
+  border-radius:.42em!important;
+  background:color-mix(in srgb,var(--live-color) 28%,var(--uf-grey))!important;
+  color:color-mix(in srgb,var(--live-color) 78%,#fff)!important;
+  animation:overview-live-name-morph 240ms cubic-bezier(.2,.8,.2,1) both;
+}
+.overview-live-confirmed{font-weight:inherit}
+@keyframes overview-live-name-morph{from{opacity:.35;filter:blur(6px);transform:scale(.9)}to{opacity:1;filter:none;transform:none}}
+html[data-theme='light'] .overview-live-ratings>button{background:#e7e7ea;color:#202126}
+html[data-theme='light'] .overview-live-ratings>button:hover{background:#dedee2;color:#202126}
+
+/* Popup fields are flat and legible in both themes. */
+.overview-task-dialog :is(input,.uf-picker-trigger),
+.mlh-sheet .mlh-form :is(input,.uf-picker-trigger),
+.mlh-sheet .mlh-rating>button,
+.mlh-sheet .mlh-lesson-list>button{
+  border:0!important;
+  background:var(--uf-calm-control)!important;
+  color:var(--uf-calm-text)!important;
+  box-shadow:none!important;
+}
+.mlh-sheet .mlh-rating>button.active,
+.mlh-sheet .mlh-lesson-list>button.selected{background:color-mix(in srgb,var(--mlh-accent,var(--module-accent,#a98aa0)) 18%,var(--uf-calm-control))!important}
+html[data-theme='light'] .overview-task-dialog :is(input,.uf-picker-trigger),
+html[data-theme='light'] .mlh-sheet .mlh-form :is(input,.uf-picker-trigger),
+html[data-theme='light'] .mlh-sheet .mlh-rating>button,
+html[data-theme='light'] .mlh-sheet .mlh-lesson-list>button{background:#f1f1f3!important;color:#202126!important;-webkit-text-fill-color:#202126!important}
+.mlh-sheet :is(.session-discard,.session-discard>button,.dismiss-action,.mlh-start-timer,.mlh-lesson-list>button>i){border:0!important;box-shadow:none!important}
+.mlh-sheet .session-discard{background:var(--uf-calm-surface-strong)!important}
+.mlh-sheet .session-discard>button,.mlh-sheet :is(.dismiss-action,.mlh-start-timer){background:var(--uf-calm-control)!important;color:var(--uf-calm-text)!important}
+.mlh-sheet .mlh-lesson-list>button>i{background:var(--uf-calm-surface-strong)}
+.mlh-sheet .mlh-lesson-list>button.selected>i{background:var(--mlh-accent,var(--module-accent,#a98aa0))}
+html[data-theme='light'] .mlh-sheet :is(.session-discard,.session-discard>button,.dismiss-action,.mlh-start-timer){background:#f1f1f3!important;color:#202126!important}
+@media(min-width:721px){.mlh-actions.mlh-compact-actions{justify-content:center}}
+
+/* Module popups get a wider, centred desktop form and unclipped destructive actions. */
+@media(min-width:800px){.module-event-sheet:has(.module-meta-popup){width:min(720px,100%)!important}}
+.module-meta-popup .module-fast-meta-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.module-fast .module-event-add{
+  width:35px!important;
+  height:35px!important;
+  min-height:35px!important;
+  padding:8px 11px!important;
+  border-radius:999px!important;
+  background:color-mix(in srgb,currentColor 4.5%,transparent)!important;
+  color:inherit!important;
+}
+.module-event-sheet .danger-simple{
+  overflow:visible!important;
+  min-height:46px!important;
+  margin-bottom:4px!important;
+  white-space:normal!important;
+  line-height:1.25!important;
+}
+@media(max-width:600px){.module-meta-popup .module-fast-meta-grid{grid-template-columns:1fr}}
+
+/* Adding a friend is a single quiet dialog instead of an inline form. */
+.friends-add-launch{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  width:100%;
+  min-height:56px;
+  margin:0 0 22px;
+  padding:11px 13px;
+  border:0!important;
+  border-radius:15px;
+  background:transparent!important;
+  color:var(--uf-calm-text)!important;
+  text-align:left;
+}
+.friends-add-launch>span{display:grid;gap:3px}.friends-add-launch small{color:var(--uf-calm-muted)}
+.friends-add-launch:hover{background:var(--uf-grey)!important;transform:none!important}
+.friends-add-dialog{width:min(520px,100%)}
+.friends-add-dialog .friends-add{display:grid!important;grid-template-columns:1fr!important;gap:15px!important;margin:0!important;padding:12px 0 2px!important;border:0!important;background:transparent!important}
+.friends-add-dialog .friends-add>div{grid-column:auto}.friends-add-dialog .friends-add>button{width:100%}
+html[data-theme='light'] .friends-add-launch:hover{background:#f1f1f3!important}
+html[data-theme='light'] .friends-add-dialog .friends-add{background:transparent!important}
+
+/* Calendar: more top air, neutral text on coloured events, no live gradient or hover motion. */
+.screen-calendar{padding-top:35px}
+.course-live-ambient{display:none!important;animation:none!important;background:none!important}
+.screen-calendar .course:not(.course-inactive):not(.course-cancelled) :is(.course-title,.course-meta,.course-organizer,.course-place,.course-hours,svg){color:#f4f4f5!important;-webkit-text-fill-color:#f4f4f5!important}
+html[data-theme='light'] .screen-calendar .course:not(.course-inactive):not(.course-cancelled) :is(.course-title,.course-meta,.course-organizer,.course-place,.course-hours,svg){color:#202126!important;-webkit-text-fill-color:#202126!important}
+.screen-calendar :is(.course,.calendar-tools button,.view-switch button,.wallet-card,.uf-week-strip-button){transition:none!important}
+.screen-calendar :is(.course,.calendar-tools button,.view-switch button,.wallet-card,.uf-week-strip-button):hover{transform:none!important;filter:none!important}
+@media(max-width:720px){.screen-calendar{padding-top:24px}}
+@media(prefers-reduced-motion:reduce){.overview-live-confirm,.overview-live-confirmed{animation:none}}

@@ -1662,7 +1662,7 @@ export default function App() {
     setRatingOccurrence(null)
     note('Check-in gespeichert.')
   }
-  const saveLiveCheckin=(occurrence:Occurrence,rating?:'understood'|'partial')=>{
+  const saveLiveCheckin=(occurrence:Occurrence,rating?:'understood'|'partial'|'struggling')=>{
     const lesson=lessonForOccurrence(occurrence,data),now=new Date().toISOString()
     mutate(workspace=>{
       const previous=(workspace.learningCheckins||[]).find(checkin=>checkin.key===lesson.key)
@@ -1671,7 +1671,8 @@ export default function App() {
       events=upsertScoreEvent(events,makeScoreEvent({id:attendanceId,moduleId:lesson.moduleId,type:'attendance',basePoints:attendancePoints(occurrence.offering.category),occurredAt:existingAttendance?.occurredAt||now,sourceId:lesson.key,label:`${occurrence.offering.category} besucht`}))
       if(rating){
         const checkinId=`checkin:${lesson.key}`,existingCheckin=events.find(event=>event.id===checkinId),points=understandingPoints(rating)
-        events=upsertScoreEvent(events,makeScoreEvent({id:checkinId,moduleId:lesson.moduleId,type:'checkin',basePoints:points,occurredAt:existingCheckin?.occurredAt||now,sourceId:lesson.key,label:'Verständnis eingetragen'}))
+        if(points>0)events=upsertScoreEvent(events,makeScoreEvent({id:checkinId,moduleId:lesson.moduleId,type:'checkin',basePoints:points,occurredAt:existingCheckin?.occurredAt||now,sourceId:lesson.key,label:'Verständnis eingetragen'}))
+        else if(existingCheckin)events=upsertScoreEvent(events,{...existingCheckin,reversedAt:now})
       }
       const nextRating=rating||(previous?.understandingSelected?previous.rating:'partial')
       return {...workspace,scoreEvents:events,learningCheckins:[...(workspace.learningCheckins||[]).filter(checkin=>checkin.key!==lesson.key),{key:lesson.key,moduleId:lesson.moduleId,contentId:lesson.contentId,date:lesson.date,rating:nextRating,attended:true,understandingSelected:rating?true:(previous?.understandingSelected??false),updatedAt:now}]}
@@ -1840,7 +1841,7 @@ export default function App() {
       }} data={data} advice={ai.advice} aiEnabled={premium&&ai.consent} aiWorking={ai.working} aiError={ai.errorMessage} aiGeneratedAt={ai.generatedAt} aiStale={ai.isStale} onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))} onSession={saveLearningSession} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onDeleteTask={deleteStudyTask} onGoal={goal=>mutate(d=>({...d,dailyScoreGoal:goal}))} onAssessment={item=>setPreviewAssessmentId(item.id)} onLearning={moduleId=>{if(moduleId)setActiveLearningModuleId(moduleId);navigatePage('dashboard')}}
         onLiveCheckin={saveLiveCheckin}/>}
       {page === 'dashboard' && <ModuleLearningHome requestedStudyBundle={requestedStudyBundle} onStudyBundleOpened={consumeStudyBundle} studyPlan={deterministicPlan} onStudyScheduleChange={studySchedule=>mutate(workspace=>({...workspace,studySchedule}))} data={data} semester={semester} modules={semesterModules}
-        currentModuleId={currentModuleId}
+        currentModuleId={activeLearningModuleId||currentModuleId}
         onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
         onAddAssessment={(type,moduleId)=>{if(!semester)return;const end=type==='exam'?examVisibilityEnd(semester):semester.end;const base=today()<semester.start?semester.start:today()>end?end:today();setAssessmentDraft({date:base,from:'10:00',to:'12:00',type,moduleId})}}
         onToggleHomework={item=>{

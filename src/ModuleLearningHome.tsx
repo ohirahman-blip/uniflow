@@ -95,8 +95,8 @@ function ActivityHistory({ events, tasks, sessions, onEditSession, onToggleTask,
 
 export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onStudyBundleOpened,onStudyScheduleChange,data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onAddAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
   const visible = modules.filter(module => !module.hidden && !['passed','planned','recognized'].includes(module.status))
-  const [selectedModule, setSelectedModule] = useState(()=>{try{return localStorage.getItem(storageKey)||currentModuleId||''}catch{return currentModuleId||''}})
-  const [directoryOpen,setDirectoryOpen]=useState(()=>{try{return !localStorage.getItem(storageKey)&&!currentModuleId}catch{return !currentModuleId}}),[openingModule,setOpeningModule]=useState('')
+  const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
+  const [directoryOpen,setDirectoryOpen]=useState(()=>{if(currentModuleId)return false;try{return !localStorage.getItem(storageKey)}catch{return true}}),[openingModule,setOpeningModule]=useState('')
   const [detailMotion,setDetailMotion]=useState<'out'|'in'|''>('')
   const [switchDirection,setSwitchDirection]=useState<'up'|'down'>('down')
   const moduleScroll=useRef(0)
@@ -115,7 +115,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const safeIndex = Math.max(0, visible.findIndex(module=>module.id===selectedModule))
   const active = visible[safeIndex]
   useEffect(()=>{if(active)onActiveModuleChange(active.id)},[active?.id,onActiveModuleChange])
-  useEffect(()=>{if(!selectedModule&&currentModuleId)setSelectedModule(currentModuleId)},[currentModuleId,selectedModule])
+  useEffect(()=>{if(currentModuleId&&currentModuleId!==selectedModule){setSelectedModule(currentModuleId);setDirectoryOpen(false);try{localStorage.setItem(storageKey,currentModuleId)}catch{/* Keep navigation usable when storage is unavailable. */}}},[currentModuleId,selectedModule,storageKey])
   const allLessons = useMemo(() => {
     if(!active)return []
     const lessons=new Map(numberedLessons(data,semester,active.id).map(lesson=>[lesson.key,lesson]))
