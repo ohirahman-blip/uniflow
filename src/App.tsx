@@ -1273,6 +1273,10 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
   </section>
 }
 export default function App() {
+  const previewTheme=useMemo(()=>{
+    const requested=new URLSearchParams(window.location.search).get('theme')
+    return requested==='light'||requested==='dark'?requested:null
+  },[])
   const [choiceAttendance,setChoiceAttendance] = useState<'replace'|'both'>('replace')
   const [initialLocal]=useState<AppData>(()=>supabase?{...emptyData}:normalizeBigUpdate(loadData()))
   const [data, setData] = useState<AppData>(initialLocal), [onboarding, setOnboarding] = useState(() => supabase ? true : !initialLocal.activeDegreeId), [page, setPage] = useState<Page>(pageFromUrl), [entry, setEntry] = useState<NewEntry | null>(null), [assessmentDraft,setAssessmentDraft]=useState<{date:string;from:string;to:string;type:'exam'|'homework';moduleId?:string}|null>(null), [editingAssessment,setEditingAssessment]=useState<Assessment|null>(null), [previewAssessmentId,setPreviewAssessmentId]=useState<string|null>(null), [deletingAssessment,setDeletingAssessment]=useState<Assessment|null>(null), [detail, setDetail] = useState<Occurrence | null>(null), [ratingOccurrence,setRatingOccurrence]=useState<Occurrence | null>(null), [alternativeDraft, setAlternativeDraft] = useState<{ occ: Occurrence; kind: Alternative['kind'] } | null>(null), [pendingAlternative, setPendingAlternative] = useState<{ occ: Occurrence | null; alt: Occurrence; conflict: boolean; kind: 'slot' | 'group' | 'free' } | null>(null), [deleteProposal, setDeleteProposal] = useState<MoveProposal | null>(null), [pauseProposal,setPauseProposal] = useState<MoveProposal|null>(null), [editingModule, setEditingModule] = useState<StudyModule | null>(null), [selectedModuleId,setSelectedModuleId] = useState<string | null>(null), [editingOffering, setEditingOffering] = useState<Occurrence | null>(null), [focusModuleId, setFocusModuleId] = useState(''), [newModule, setNewModule] = useState(false), [newName, setNewName] = useState(''), [newCredits, setNewCredits] = useState('6'), [toast, setToast] = useState<ToastState | null>(null), [confirmReset, setConfirmReset] = useState(false), [confirmDeleteModule, setConfirmDeleteModule] = useState<StudyModule | null>(null), [pendingBackup, setPendingBackup] = useState<AppData | null>(null)
@@ -1391,7 +1395,11 @@ export default function App() {
     window.addEventListener('touchend',onTouchEnd,{passive:true})
     return()=>{window.removeEventListener('touchstart',onTouchStart);window.removeEventListener('touchend',onTouchEnd)}
   },[user,onboarding])
-  useEffect(() => { document.documentElement.dataset.theme = data.theme||'dark'; document.querySelector('meta[name="theme-color"]')?.setAttribute('content',data.theme==='light'?'#f7f7f8':'#080808') }, [data.theme])
+  useEffect(() => {
+    const activeTheme=previewTheme||data.theme||'dark'
+    document.documentElement.dataset.theme=activeTheme
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content',activeTheme==='light'?'#f7f7f8':'#080808')
+  }, [data.theme,previewTheme])
   useEffect(()=>{
     document.documentElement.dataset.uniflowTier=premium?'plus':'free'
     return ()=>{delete document.documentElement.dataset.uniflowTier}
