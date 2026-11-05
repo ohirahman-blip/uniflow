@@ -1159,6 +1159,8 @@ html[data-theme='light'] .uf-month-pill.exam{background:color-mix(in srgb,var(--
 @keyframes overview-live-name-morph{from{opacity:.35;filter:blur(6px);transform:scale(.9)}to{opacity:1;filter:none;transform:none}}
 html[data-theme='light'] .overview-live-ratings>button{background:#e7e7ea;color:#202126}
 html[data-theme='light'] .overview-live-ratings>button:hover{background:#dedee2;color:#202126}
+.overview-live-attendance-confirm>button{min-width:112px}
+.overview-live-attendance-confirm>button.is-confirmed{opacity:.72;cursor:default}
 
 /* Popup fields are flat and legible in both themes. */
 .overview-task-dialog :is(input,.uf-picker-trigger),
