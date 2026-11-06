@@ -2,7 +2,7 @@ import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ChevronRight, GraduationCap, PenLine, Play, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
-import { dateString, formatDate, selectedAssessment, semesterNumber, today, uid, weekStart, type AppData, type Assessment, type Semester, type StudyModule } from './model'
+import { dateString, formatDate, selectedAssessment, today, uid, weekStart, type AppData, type Assessment, type Semester, type StudyModule } from './model'
 import AnimatedScore from './AnimatedScore'
 import {lessonProgressMap} from './lesson-progress'
 import SemesterOverview from './SemesterOverview'
@@ -94,20 +94,7 @@ function ActivityHistory({ events, tasks, sessions, onEditSession, onToggleTask,
 
 
 export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onStudyBundleOpened,onStudyScheduleChange,data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onAddAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
-  const [moduleStatus,setModuleStatus]=useState<'current'|'passed'|'all'>('current')
-  const [moduleSemester,setModuleSemester]=useState('all')
-  const [moduleSort,setModuleSort]=useState<'semester'|'name'|'credits'>('semester')
-  const degreeId=modules[0]?.degreeId||data.activeDegreeId
-  const studyStart=data.degrees.find(item=>item.id===degreeId)?.studyStartSemester
-  const semesterChoices=useMemo(()=>data.semesters.filter(item=>item.degreeId===degreeId).sort((a,b)=>a.start.localeCompare(b.start)),[data.semesters,degreeId])
-  const visible=useMemo(()=>{
-    const semesterOrder=new Map(semesterChoices.map((item,index)=>[item.id,index]))
-    const order=(module:StudyModule)=>Math.min(...module.semesterIds.map(id=>semesterOrder.get(id)??999),999)
-    return modules.filter(module => !module.hidden)
-      .filter(module=>moduleStatus==='all'||(moduleStatus==='passed'?['passed','recognized'].includes(module.status):!['passed','planned','recognized'].includes(module.status)))
-      .filter(module=>moduleSemester==='all'||module.semesterIds.includes(moduleSemester))
-      .sort((a,b)=>moduleSort==='name'?a.name.localeCompare(b.name,'de-DE'):moduleSort==='credits'?b.credits-a.credits||a.name.localeCompare(b.name,'de-DE'):order(a)-order(b)||a.name.localeCompare(b.name,'de-DE'))
-  },[modules,moduleStatus,moduleSemester,moduleSort,semesterChoices])
+  const visible = modules.filter(module => !module.hidden && !['passed','planned','recognized'].includes(module.status))
   const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
   const [directoryOpen,setDirectoryOpen]=useState(()=>{if(currentModuleId)return false;try{return !localStorage.getItem(storageKey)}catch{return true}}),[openingModule,setOpeningModule]=useState('')
   const [detailMotion,setDetailMotion]=useState<'out'|'in'|''>('')
@@ -193,29 +180,11 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
     setModal(null);setFinishingTimer(null);setEditingSession(null)
   }
 
-  const currentSemester=semesterChoices.find(item=>item.id===data.activeSemesterId)
-  const currentSemesterNumber=currentSemester?semesterNumber(studyStart,currentSemester.start)??semesterChoices.indexOf(currentSemester)+1:0
-  const filterControls=<div className="mlh-module-filters" aria-label="Module sortieren und filtern">
-    <div className="mlh-module-filter-heading"><span>Module sortieren</span><small>Vorschläge</small></div>
-    <div className="mlh-module-suggestions">
-      <button type="button" className={moduleStatus==='current'&&moduleSemester==='all'?'active':''} onClick={()=>{setModuleStatus('current');setModuleSemester('all')}}>Aktuell</button>
-      <button type="button" className={moduleSort==='semester'?'active':''} onClick={()=>setModuleSort('semester')}>Semester aufsteigend</button>
-      {currentSemesterNumber>0&&<button type="button" className={moduleSemester===data.activeSemesterId?'active':''} onClick={()=>setModuleSemester(data.activeSemesterId)}>Semester = {currentSemesterNumber}</button>}
-      <button type="button" className={moduleStatus==='passed'?'active':''} onClick={()=>{setModuleStatus('passed');setModuleSemester('all')}}>Bestanden</button>
-    </div>
-    <div className="mlh-module-query">
-      <UniflowPicker label="Modulstatus filtern" value={moduleStatus} onChange={value=>setModuleStatus(value as 'current'|'passed'|'all')} options={[{value:'current',label:'Aktuell'},{value:'passed',label:'Bestanden'},{value:'all',label:'Alle Status'}]}/>
-      <UniflowPicker label="Semester filtern" value={moduleSemester} onChange={setModuleSemester} options={[{value:'all',label:'Alle Semester'},...semesterChoices.map((item,index)=>({value:item.id,label:`${semesterNumber(studyStart,item.start)??index+1}. Semester`,detail:item.name}))]}/>
-      <UniflowPicker label="Module sortieren" value={moduleSort} onChange={value=>setModuleSort(value as 'semester'|'name'|'credits')} options={[{value:'semester',label:'Semester aufsteigend'},{value:'name',label:'Name A–Z'},{value:'credits',label:'LP absteigend'}]}/>
-    </div>
-  </div>
-  if (!modules.some(module=>!module.hidden)) return <main className="screen mlh-empty"><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
-  if (!active) return <main className="screen mlh-directory mlh-directory-filter-empty">{filterControls}<div className="mlh-filter-empty"><strong>Keine passenden Module</strong><p>Ändere einen Filter oder wähle einen der Vorschläge.</p></div><button className="mlh-directory-add" onClick={onCreateModule}><Plus size={16}/>Modul hinzufügen</button></main>
+  if (!visible.length) return <main className="screen mlh-empty"><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className={'screen mlh-slider-window '+(directoryOpen?'is-directory':'is-module')} style={accent}>
     <div className="mlh-slider-track">
       <section className="mlh-directory mlh-slider-pane" aria-hidden={!directoryOpen}>
-        {filterControls}
         <div ref={node=>setModuleScroller(node,'directory')} onScroll={event=>syncModuleScroll(event.currentTarget,railScroll.current)} className="mlh-directory-list"><span className="mlh-directory-rail-spacer" aria-hidden="true"/>{visible.map(module=><button key={module.id} className={openingModule===module.id?'is-selected':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}><span className="mlh-directory-name">{module.name}</span></button>)}</div>
         <button className="mlh-directory-add" onClick={onCreateModule}><Plus size={16}/>Modul hinzufügen</button>
       </section>

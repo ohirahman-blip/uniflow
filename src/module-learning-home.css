@@ -110,23 +110,6 @@
 .mlh-slider-window .mlh-module-rail>button{position:relative}
 .mlh-slider-window .mlh-module-rail>button.active::after{content:"";position:absolute;right:0;top:50%;width:4px;height:4px;border-radius:50%;background:var(--module-color);transform:translateY(-50%)}
 
-/* Compact Google-Maps-like suggestions with app-owned parameter pickers. */
-.mlh-module-filters{width:min(680px,100%);margin:0 auto 22px;padding:0 2px;box-sizing:border-box}
-.mlh-module-filter-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px}
-.mlh-module-filter-heading span{font-size:12px;font-weight:680;color:#d8d8dc}.mlh-module-filter-heading small{font-size:9px;color:#707078}
-.mlh-module-suggestions{display:flex;gap:7px;overflow-x:auto;padding:1px 1px 9px;scrollbar-width:none}.mlh-module-suggestions::-webkit-scrollbar{display:none}
-.mlh-module-suggestions>button{flex:0 0 auto;min-height:31px;padding:6px 11px;border:1px solid #ffffff13;border-radius:999px;background:#ffffff06;color:#a9a9b0;font:inherit;font-size:9px;white-space:nowrap}
-.mlh-module-suggestions>button.active{border-color:#ffffff2b;background:#ffffff12;color:#f3f3f5}
-.mlh-module-query{display:flex;gap:7px;overflow-x:auto;padding:1px;scrollbar-width:none}.mlh-module-query::-webkit-scrollbar{display:none}
-.mlh-module-query>.uf-picker-trigger{flex:0 0 auto;width:auto;max-width:230px;height:34px;min-height:34px;padding:0 10px;border:1px solid #ffffff13;border-radius:999px;background:#121214;font-size:9px}
-.mlh-module-query>.uf-picker-trigger>span{max-width:180px}.mlh-module-query>.uf-picker-trigger svg{width:13px;height:13px}
-.mlh-directory-filter-empty{justify-content:flex-start;padding-top:52px}.mlh-directory-filter-empty .mlh-module-filters{flex:none}
-.mlh-filter-empty{display:grid;place-items:center;gap:7px;min-height:230px;text-align:center}.mlh-filter-empty strong{font-size:16px}.mlh-filter-empty p{margin:0;color:#777780;font-size:11px}
-html[data-theme='light'] .mlh-module-filter-heading span{color:#28282c}
-html[data-theme='light'] .mlh-module-suggestions>button{border-color:#20212614;background:#20212606;color:#66676f}
-html[data-theme='light'] .mlh-module-suggestions>button.active{border-color:#2021262b;background:#20212610;color:#202126}
-html[data-theme='light'] .mlh-module-query>.uf-picker-trigger{border-color:#20212614;background:#f1f1f3}
-@media(max-width:520px){.mlh-directory{justify-content:flex-start;padding-top:32px}.mlh-module-filters{margin-bottom:13px}.mlh-module-filter-heading{margin-bottom:8px}.mlh-module-suggestions{margin-inline:-2px}.mlh-module-query{margin-inline:-2px}.mlh-directory-list{width:100%}}
 @media(hover:hover) and (pointer:fine){.mlh-slider-window .mlh-directory-list:has(>button:hover)>button:not(:hover),.mlh-slider-window .mlh-module-rail:has(>button:not(.mlh-rail-home):hover)>button:not(:hover):not(.mlh-rail-home){filter:blur(.25px);opacity:.68}.mlh-slider-window .mlh-directory-list>button:hover,.mlh-slider-window .mlh-module-rail>button:not(.mlh-rail-home):hover{transform:scale(1.025)}}
 @media(max-width:720px){.mlh-slider-window .mlh-module-open{padding-top:16px;padding-bottom:120px}.mlh-slider-window .mlh-module-head-simple{margin-bottom:7px}.mlh-slider-window .mlh-module-head-simple .mlh-score.clean-score{min-width:88px;padding-inline:11px}.mlh-slider-window .mlh-module-head-simple .clean-score-value .mlh-score-number strong{font-size:22px}.mlh-focus-card{min-height:142px;padding:22px 20px;border-radius:24px}.mlh-focus-copy h2{font-size:24px}.mlh-focus-card>button{width:42px;height:42px;padding:0;justify-content:center}.mlh-focus-card>button>span{display:none}.mlh-actions.mlh-compact-actions{overflow-x:auto;margin-bottom:30px;padding-bottom:2px;scrollbar-width:none}.mlh-actions.mlh-compact-actions::-webkit-scrollbar{display:none}.mlh-actions.mlh-compact-actions>button{flex:0 0 auto}.mlh-next-row{grid-template-columns:32px minmax(0,1fr) auto;padding:8px 10px}.mlh-next-kind{width:32px;height:32px}.mlh-next-trailing>b{display:none}}
 @media(prefers-reduced-motion:reduce){.mlh-focus-card>button,.mlh-actions.mlh-compact-actions>button,.mlh-next-row,.mlh-next>header>button{transition:none}}

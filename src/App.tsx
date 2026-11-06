@@ -1159,7 +1159,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
         <span>{fromDate(displayCalendarStart).toLocaleDateString('de-DE',{year:'2-digit'})}</span>
       </button>
       <div className="uf-week-strip-labels" aria-hidden="true">
-        {weekNames.slice(0,stripDates.length).map((name,index)=><span className={index>=5?'uf-weekend':''} key={index}>{name}</span>)}
+        {weekNames.slice(0,stripDates.length).map((name,index)=><span className={(index>=5?'uf-weekend ':'')+(stripDates[index]===today()?'uf-week-label-today':'')} key={index}>{name}</span>)}
       </div>
       <div className="uf-week-strip-viewport" onPointerDown={onWeekDown} onPointerUp={onWeekUp}
         onPointerCancel={()=>{weekGesture.current=null}} onWheel={onWeekWheel}
@@ -1175,7 +1175,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
           {mode!=='week'&&<span className="uf-week-liquid" aria-hidden="true" style={{left:(stripIndex/stripDates.length*100)+'%'}}>
             <span className={'uf-week-liquid-core'+(displayCalendarStart===today()?' uf-week-liquid-today':'')}/>
           </span>}
-          {stripDates.map((date,index)=>{
+          {stripDates.map(date=>{
             const selected=mode!=='week'&&date===displayCalendarStart
             const second=mode==='two'&&date===addDays(displayCalendarStart,1)
             const dayItems=data.assessments.filter(a=>a.semesterId===semester.id&&a.date===date&&selectedAssessment(a,data.assessments)&&(!focusModuleId||a.moduleId===focusModuleId))
@@ -1183,7 +1183,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
               <button type="button" className={'uf-week-strip-button'+(selected?' uf-week-first':'')+(second?' uf-week-second':'')+(date===today()?' uf-week-today':'')}
                 aria-label={formatDate(date,{weekday:'long',day:'numeric',month:'long'})+' anzeigen'}
                 aria-current={date===today()?'date':undefined} aria-pressed={selected||second} onClick={e=>{e.currentTarget.blur();chooseStripDate(date)}}>
-                {date===today()?<><span className="uf-week-today-name">{weekNames[index]}</span><span className="uf-week-today-number">{Number(date.slice(-2))}</span></>:Number(date.slice(-2))}
+                {Number(date.slice(-2))}
               </button>
               {dayItems.length>0&&<div className="uf-week-strip-assessments">
                 {dayItems.slice(0,2).map(item=><button type="button" key={item.id}
@@ -1852,7 +1852,7 @@ export default function App() {
       }} data={data} advice={ai.advice} aiEnabled={premium&&ai.consent} aiWorking={ai.working} aiError={ai.errorMessage} aiGeneratedAt={ai.generatedAt} aiStale={ai.isStale} onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))} onSession={saveLearningSession} onProfile={()=>setProfileOpen(true)} onStreak={()=>setStreakCelebration(streakCount(data.streakDays))} onAddTask={addStudyTask} onToggleTask={toggleStudyTask} onDeleteTask={deleteStudyTask} onGoal={goal=>mutate(d=>({...d,dailyScoreGoal:goal}))} onAssessment={item=>setPreviewAssessmentId(item.id)} onLearning={moduleId=>{if(moduleId)setActiveLearningModuleId(moduleId);navigatePage('dashboard')}}
         onNavigate={destination=>navigatePage(destination)}
         onLiveCheckin={saveLiveCheckin}/>}
-      {page === 'dashboard' && <ModuleLearningHome requestedStudyBundle={requestedStudyBundle} onStudyBundleOpened={consumeStudyBundle} studyPlan={deterministicPlan} onStudyScheduleChange={studySchedule=>mutate(workspace=>({...workspace,studySchedule}))} data={data} semester={semester} modules={degreeModules}
+      {page === 'dashboard' && <ModuleLearningHome requestedStudyBundle={requestedStudyBundle} onStudyBundleOpened={consumeStudyBundle} studyPlan={deterministicPlan} onStudyScheduleChange={studySchedule=>mutate(workspace=>({...workspace,studySchedule}))} data={data} semester={semester} modules={semesterModules}
         currentModuleId={activeLearningModuleId||currentModuleId}
         onPreviewAssessment={item=>setPreviewAssessmentId(item.id)}
         onAddAssessment={(type,moduleId)=>{if(!semester)return;const end=type==='exam'?examVisibilityEnd(semester):semester.end;const base=today()<semester.start?semester.start:today()>end?end:today();setAssessmentDraft({date:base,from:'10:00',to:'12:00',type,moduleId})}}
@@ -1862,7 +1862,7 @@ export default function App() {
           const label=item.type==='exam'?'Prüfung':'Hausaufgabe'
           note(completed?label+' erledigt.':label+' wieder geöffnet.',()=>mutate(workspace=>({...workspace,assessments:workspace.assessments.map(old=>old.id===item.id?{...old,completed:!!item.completed}:old)})))
         }}
-        onActiveModuleChange={moduleId=>{setActiveLearningModuleId(moduleId);const subject=data.modules.find(item=>item.id===moduleId);if(subject&&!subject.semesterIds.includes(data.activeSemesterId)){const next=data.semesters.filter(item=>subject.semesterIds.includes(item.id)).sort((a,b)=>b.start.localeCompare(a.start))[0];if(next)mutate(workspace=>({...workspace,activeSemesterId:next.id}))}}}
+        onActiveModuleChange={setActiveLearningModuleId}
         onTimerChange={studyTimer=>mutate(workspace=>({...workspace,studyTimer}))}
         onUpdateSession={updateLearningSession}
         storageKey={'uniflow-last-module:'+user.id} onDeleteTask={deleteStudyTask} onDeleteActivity={deleteActivity}
