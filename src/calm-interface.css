@@ -1537,6 +1537,11 @@ html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{bac
   -webkit-text-fill-color:var(--uf-week-today-text)!important;
 }
 html[data-theme='light'] .screen-calendar .uf-week-strip{--uf-week-today-bg:#62636b}
+html[data-theme='light'] .screen-calendar .uf-week-strip .uf-week-strip-button.uf-week-today,
+html[data-theme='light'] .screen-calendar .uf-week-dates-previous>span.uf-week-previous-today{
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+}
 .screen-calendar .uf-week-dates-previous>span.uf-week-previous-today::before{display:none!important}
 .screen-calendar .uf-week-strip-assessments{top:39px;height:13px}
 @media(max-width:420px){
