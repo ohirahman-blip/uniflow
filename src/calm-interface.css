@@ -1409,27 +1409,32 @@ html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{bac
    rounded range behind both dates as well as the two individual circles. */
 .uf-week-strip--two .uf-week-range{display:block!important}
 .uf-week-strip--two .uf-week-range{
-  top:6px;height:24px;
-  width:calc(100% / var(--uf-days) + 24px)!important;
-  margin-left:calc(100% / var(--uf-days) / 2 - 12px);
+  top:0;height:36px;
+  width:calc(100% / var(--uf-days) + 36px)!important;
+  margin-left:calc(100% / var(--uf-days) / 2 - 18px);
   border-radius:999px;
 }
 .uf-week-strip--two .uf-week-strip-button:is(.uf-week-first,.uf-week-second){border-radius:50%!important;background:var(--uf-calm-text)!important;color:var(--uf-calm-page)!important;-webkit-text-fill-color:var(--uf-calm-page)!important}
 .uf-week-strip-labels{position:relative;z-index:8;margin-bottom:0!important}
 .uf-week-strip-labels .uf-week-label-today{
-  position:relative;z-index:9;display:grid;place-items:center;justify-self:center;box-sizing:border-box;
-  width:50px;height:20px;border-radius:15px 15px 0 0;background:var(--uniflow-accent,#f94f72);
+  position:relative;z-index:9;isolation:isolate;display:grid;place-items:center;justify-self:center;box-sizing:border-box;
+  width:46px;height:20px;border-radius:0;background:transparent!important;
   color:#fff!important;-webkit-text-fill-color:#fff!important;box-shadow:none!important
 }
-.uf-week-strip-day.is-today{z-index:7}
+.uf-week-strip-labels .uf-week-label-today::before{
+  content:"";position:absolute;z-index:-1;top:0;left:50%;transform:translateX(-50%);
+  width:46px;height:56px;border-radius:23px;background:var(--uniflow-accent,#f94f72)
+}
+.uf-week-strip-day.is-today{z-index:10}
 .uf-week-strip .uf-week-strip-day.is-today .uf-week-strip-button.uf-week-today,
 .uf-week-strip--two .uf-week-strip-day.is-today .uf-week-strip-button.uf-week-today{
-  position:relative;z-index:8;width:50px!important;height:38px!important;min-width:50px;border-radius:0 0 15px 15px!important;
-  background:var(--uniflow-accent,#f94f72)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
+  position:relative;z-index:10;width:46px!important;height:36px!important;min-width:46px;border-radius:0!important;
+  background:transparent!important;color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:15px;
   opacity:1!important;box-shadow:none!important;
 }
 .uf-week-dates-previous>span.uf-week-previous-today{background:var(--uniflow-accent,#f94f72)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;box-shadow:none!important}
-html[data-theme='light'] .uf-week-strip-labels .uf-week-label-today,html[data-theme='light'] .uf-week-strip .uf-week-strip-day.is-today .uf-week-strip-button.uf-week-today,html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{background:var(--uniflow-accent,#f94f72)!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
+html[data-theme='light'] .uf-week-strip-labels .uf-week-label-today,html[data-theme='light'] .uf-week-strip .uf-week-strip-day.is-today .uf-week-strip-button.uf-week-today{background:transparent!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
+html[data-theme='light'] .uf-week-strip-labels .uf-week-label-today::before,html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{background:var(--uniflow-accent,#f94f72)!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
 
 /* Study start is a first-class degree setting. */
 .setting-study-start{display:grid;grid-template-columns:minmax(110px,1fr) minmax(0,1.25fr);align-items:center;gap:8px 18px;margin-top:15px;padding-top:15px;border-top:1px solid var(--uf-calm-line)}
