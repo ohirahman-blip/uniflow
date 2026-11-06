@@ -1546,6 +1546,14 @@ html[data-theme='light'] .screen-calendar .uf-week-dates-previous>span.uf-week-p
   color:#fff!important;
   -webkit-text-fill-color:#fff!important;
 }
+html[data-theme='light'] .screen-calendar .uf-week-strip .uf-week-strip-button.uf-week-today:not(.uf-week-first):not(.uf-week-second),
+html[data-theme='light'] .screen-calendar .uf-week-dates-previous>span.uf-week-previous-today{
+  background:#53545c!important;
+}
+html[data-theme='light'] .screen-calendar .uf-week-strip--day .uf-week-strip-button.uf-week-today.uf-week-first,
+html[data-theme='light'] .screen-calendar .uf-week-strip--two .uf-week-strip-button.uf-week-today:is(.uf-week-first,.uf-week-second){
+  background:#62636b!important;
+}
 .screen-calendar .uf-week-dates-previous>span.uf-week-previous-today::before{display:none!important}
 .screen-calendar .uf-week-strip-assessments{top:39px;height:13px}
 @media(max-width:420px){
