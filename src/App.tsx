@@ -1170,7 +1170,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
           )}
         </div>}
         <div key={stripMonday} className={'uf-week-strip-days'+(weekSlide?' uf-week-slide-in-'+weekSlide.direction:'')}>
-          {mode!=='week'&&<span className="uf-week-range" aria-hidden="true" style={{left:(stripRangeIndex/stripDates.length*100)+'%',width:(stripRangeDays/stripDates.length*100)+'%'}}/>}
+          {mode!=='week'&&<span className="uf-week-range" aria-hidden="true" style={{left:`calc(${(stripRangeIndex+.5)/stripDates.length*100}% - var(--uf-week-dot-radius,18px))`,width:`calc(${Math.max(0,stripRangeDays-1)/stripDates.length*100}% + var(--uf-week-dot-size,36px))`}}/>}
           {todayIndex!==-1&&(mode==='week'||displayCalendarStart!==today())&&<span className="uf-week-today-marker" aria-hidden="true" style={{left:(todayIndex/stripDates.length*100)+'%'}}/>}
           {mode!=='week'&&<span className="uf-week-liquid" aria-hidden="true" style={{left:(stripIndex/stripDates.length*100)+'%'}}>
             <span className={'uf-week-liquid-core'+(displayCalendarStart===today()?' uf-week-liquid-today':'')}/>

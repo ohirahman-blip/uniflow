@@ -485,7 +485,7 @@ export default function ModuleScheduleEditor({
         <span className="module-fast-quick-lock-label">Premium</span>
       </div>}
 
-    <div className="module-fast-section-head"><div><h2>Veranstaltungen <small>{groups.length}</small></h2></div><button type="button" className="module-event-add" aria-label="Veranstaltung hinzufügen" onClick={openEventCreator}><Plus size={19}/></button></div>
+    <div className="module-fast-section-head"><div><h2>Veranstaltungen <small>{groups.length}</small></h2></div><button type="button" className="module-event-add mlh-next-add" aria-label="Veranstaltung hinzufügen" onClick={openEventCreator}><Plus size={19}/></button></div>
     <div className="module-event-list">{groups.map(group=>{
       const first=group.offerings[0],planned=group.offerings.find(item=>item.selected)||first
       const active=!!occurrenceAtOrigin(planned,planned.date,false)

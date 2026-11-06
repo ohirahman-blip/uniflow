@@ -1125,7 +1125,7 @@ html[data-theme='light'] .mlh-actions.mlh-compact-actions>button:hover{backgroun
 }
 .module-fast .module-event-add:hover{background:var(--uf-calm-hover)!important;transform:scale(1.035)}
 html[data-theme='light'] .module-meta-open:hover,
-html[data-theme='light'] .module-fast .module-event-add{background:#f1f1f3!important}
+html[data-theme='light'] .module-fast .module-event-add{background:var(--uf-calm-control)!important}
 html[data-theme='light'] .module-fast .module-event-row{background:#f4f4f6!important;color:#202126!important}
 html[data-theme='light'] .module-fast .module-event-row:hover{background:#ececef!important}
 
@@ -1292,19 +1292,25 @@ html[data-theme='light'] .mlh-sheet :is(.session-discard,.session-discard>button
 /* Module popups get a wider, centred desktop form and unclipped destructive actions. */
 @media(min-width:800px){.module-event-sheet:has(.module-meta-popup){width:min(720px,100%)!important}}
 .module-meta-popup .module-fast-meta-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.module-fast .module-event-add{
+.mlh-next>header>button.mlh-next-add,
+button.module-event-add.mlh-next-add{
+  appearance:none!important;
   display:grid!important;
   place-items:center!important;
   flex:0 0 38px!important;
   width:38px!important;
+  min-width:38px!important;
+  max-width:38px!important;
   height:38px!important;
   min-height:38px!important;
+  max-height:38px!important;
   padding:0!important;
   border:0!important;
-  border-radius:50%!important;
+  border-radius:999px!important;
   background:var(--uf-calm-control)!important;
   color:var(--uf-calm-text)!important;
   box-sizing:border-box!important;
+  line-height:0!important;
 }
 .module-event-sheet .danger-simple{
   overflow:visible!important;
@@ -1405,37 +1411,6 @@ html[data-theme='light'] .uf-week-strip--two .uf-week-range{background:#e8e8eb!i
 html[data-theme='light'] .uf-week-strip-button.uf-week-today,
 html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{background:#e8e8eb!important;color:#202126!important;-webkit-text-fill-color:#202126!important}
 
-/* Today includes the existing weekday above the date. Two-day mode keeps the
-   rounded range behind both dates as well as the two individual circles. */
-.uf-week-strip--two .uf-week-range{display:block!important}
-.uf-week-strip--two .uf-week-range{
-  top:0;height:36px;
-  width:calc(100% / var(--uf-days) + 36px)!important;
-  margin-left:calc(100% / var(--uf-days) / 2 - 18px);
-  border-radius:999px;
-}
-.uf-week-strip--two .uf-week-strip-button:is(.uf-week-first,.uf-week-second){border-radius:50%!important;background:var(--uf-calm-text)!important;color:var(--uf-calm-page)!important;-webkit-text-fill-color:var(--uf-calm-page)!important}
-.uf-week-strip-labels{position:relative;z-index:8;margin-bottom:0!important}
-.uf-week-strip-labels .uf-week-label-today{
-  position:relative;z-index:9;isolation:isolate;display:grid;place-items:center;justify-self:center;box-sizing:border-box;
-  width:46px;height:20px;border-radius:0;background:transparent!important;
-  color:#fff!important;-webkit-text-fill-color:#fff!important;box-shadow:none!important
-}
-.uf-week-strip-labels .uf-week-label-today::before{
-  content:"";position:absolute;z-index:-1;top:0;left:50%;transform:translateX(-50%);
-  width:46px;height:56px;border-radius:23px;background:var(--uniflow-accent,#f94f72)
-}
-.uf-week-strip-day.is-today{z-index:10}
-.uf-week-strip .uf-week-strip-day.is-today .uf-week-strip-button.uf-week-today,
-.uf-week-strip--two .uf-week-strip-day.is-today .uf-week-strip-button.uf-week-today{
-  position:relative;z-index:10;width:46px!important;height:36px!important;min-width:46px;border-radius:0!important;
-  background:transparent!important;color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:15px;
-  opacity:1!important;box-shadow:none!important;
-}
-.uf-week-dates-previous>span.uf-week-previous-today{background:var(--uniflow-accent,#f94f72)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;box-shadow:none!important}
-html[data-theme='light'] .uf-week-strip-labels .uf-week-label-today,html[data-theme='light'] .uf-week-strip .uf-week-strip-day.is-today .uf-week-strip-button.uf-week-today{background:transparent!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
-html[data-theme='light'] .uf-week-strip-labels .uf-week-label-today::before,html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{background:var(--uniflow-accent,#f94f72)!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
-
 /* Study start is a first-class degree setting. */
 .setting-study-start{display:grid;grid-template-columns:minmax(110px,1fr) minmax(0,1.25fr);align-items:center;gap:8px 18px;margin-top:15px;padding-top:15px;border-top:1px solid var(--uf-calm-line)}
 .setting-study-start>span{font-size:12px}.setting-study-start>small{grid-column:1/-1;color:var(--uf-calm-muted);font-size:10px;line-height:1.5}
@@ -1484,4 +1459,82 @@ html[data-theme='light'] .uf-week-strip-labels .uf-week-label-today::before,html
 @media(max-width:720px){
   .overview-live-hero{min-height:clamp(300px,46dvh,390px);transition-duration:360ms}
   .overview-live-hero.is-greeting{min-height:clamp(132px,19dvh,176px)}
+}
+
+/* One definitive calendar week strip: calm dots, a neutral today tile and a precise two-day bridge. */
+.screen-calendar .uf-week-strip{
+  --uf-week-dot-size:36px;
+  --uf-week-dot-radius:18px;
+  padding-top:9px;
+  padding-bottom:11px;
+  border:0!important;
+  background:var(--uf-calm-page)!important;
+  box-shadow:none!important;
+}
+.screen-calendar .uf-week-strip-labels{margin-bottom:7px}
+.screen-calendar .uf-week-strip-labels span{color:var(--uf-calm-muted)!important;font-size:10px;font-weight:600}
+.screen-calendar .uf-week-strip-labels .uf-weekend{opacity:.62}
+.screen-calendar .uf-week-strip-days,
+.screen-calendar .uf-week-dates-previous{min-height:54px}
+.screen-calendar .uf-week-strip-day{align-items:center;gap:3px}
+.screen-calendar .uf-week-liquid,
+.screen-calendar .uf-week-today-marker{display:none!important}
+.screen-calendar .uf-week-strip-button,
+.screen-calendar .uf-week-dates-previous>span{
+  display:grid!important;
+  place-items:center!important;
+  justify-self:center;
+  width:36px!important;
+  min-width:36px!important;
+  max-width:36px!important;
+  height:36px!important;
+  min-height:36px!important;
+  max-height:36px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:var(--uf-calm-surface-strong)!important;
+  color:var(--uf-calm-muted)!important;
+  -webkit-text-fill-color:var(--uf-calm-muted)!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  font-size:14px;
+  font-weight:650;
+  line-height:1;
+}
+.screen-calendar .uf-week-strip--day .uf-week-strip-button.uf-week-first{
+  background:var(--uf-calm-text)!important;
+  color:var(--uf-calm-page)!important;
+  -webkit-text-fill-color:var(--uf-calm-page)!important;
+}
+.screen-calendar .uf-week-strip--two .uf-week-range{
+  display:block!important;
+  top:0;
+  height:36px;
+  border:0!important;
+  border-radius:999px!important;
+  background:var(--uf-calm-control)!important;
+  box-shadow:none!important;
+}
+.screen-calendar .uf-week-strip--two .uf-week-strip-button:is(.uf-week-first,.uf-week-second){
+  background:transparent!important;
+  color:var(--uf-calm-text)!important;
+  -webkit-text-fill-color:var(--uf-calm-text)!important;
+}
+.screen-calendar .uf-week-strip-button.uf-week-today,
+.screen-calendar .uf-week-dates-previous>span.uf-week-previous-today{
+  border-radius:11px!important;
+  background:var(--uf-calm-control)!important;
+  color:var(--uf-calm-text)!important;
+  -webkit-text-fill-color:var(--uf-calm-text)!important;
+}
+.screen-calendar .uf-week-strip--two .uf-week-strip-button.uf-week-today{background:transparent!important}
+.screen-calendar .uf-week-dates-previous>span.uf-week-previous-today::before{display:none!important}
+.screen-calendar .uf-week-strip-assessments{top:39px;height:13px}
+@media(max-width:420px){
+  .screen-calendar .uf-week-strip{--uf-week-dot-size:34px;--uf-week-dot-radius:17px;padding-top:8px;padding-bottom:9px}
+  .screen-calendar .uf-week-strip-button,
+  .screen-calendar .uf-week-dates-previous>span{width:34px!important;min-width:34px!important;max-width:34px!important;height:34px!important;min-height:34px!important;max-height:34px!important;font-size:13px}
+  .screen-calendar .uf-week-strip--two .uf-week-range{height:34px}
+  .screen-calendar .uf-week-strip-assessments{top:37px}
 }
