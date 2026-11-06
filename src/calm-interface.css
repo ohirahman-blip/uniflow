@@ -1536,7 +1536,7 @@ html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{bac
   color:var(--uf-week-today-text)!important;
   -webkit-text-fill-color:var(--uf-week-today-text)!important;
 }
-html[data-theme='light'] .screen-calendar .uf-week-strip{--uf-week-today-bg:#62636b}
+html[data-theme='light'] .screen-calendar .uf-week-strip{--uf-week-today-bg:#53545c}
 html[data-theme='light'] .screen-calendar .uf-week-strip .uf-week-strip-button.uf-week-today,
 html[data-theme='light'] .screen-calendar .uf-week-dates-previous>span.uf-week-previous-today{
   color:#fff!important;
