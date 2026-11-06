@@ -1461,7 +1461,7 @@ html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{bac
   .overview-live-hero.is-greeting{min-height:clamp(132px,19dvh,176px)}
 }
 
-/* One definitive calendar week strip: calm dots, a neutral today tile and a precise two-day bridge. */
+/* One definitive calendar week strip: calm dots, a neutral today circle and a precise two-day bridge. */
 .screen-calendar .uf-week-strip{
   --uf-week-dot-size:36px;
   --uf-week-dot-radius:18px;
@@ -1523,12 +1523,12 @@ html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{bac
 }
 .screen-calendar .uf-week-strip-button.uf-week-today,
 .screen-calendar .uf-week-dates-previous>span.uf-week-previous-today{
-  border-radius:11px!important;
-  background:var(--uf-calm-control)!important;
+  border-radius:50%!important;
+  background:var(--uf-grey)!important;
   color:var(--uf-calm-text)!important;
   -webkit-text-fill-color:var(--uf-calm-text)!important;
 }
-.screen-calendar .uf-week-strip--two .uf-week-strip-button.uf-week-today{background:transparent!important}
+.screen-calendar .uf-week-strip--two .uf-week-strip-button.uf-week-today{background:var(--uf-grey)!important}
 .screen-calendar .uf-week-dates-previous>span.uf-week-previous-today::before{display:none!important}
 .screen-calendar .uf-week-strip-assessments{top:39px;height:13px}
 @media(max-width:420px){
