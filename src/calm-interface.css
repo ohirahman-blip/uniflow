@@ -1465,6 +1465,8 @@ html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{bac
 .screen-calendar .uf-week-strip{
   --uf-week-dot-size:36px;
   --uf-week-dot-radius:18px;
+  --uf-week-today-bg:#44444b;
+  --uf-week-today-text:#fff;
   padding-top:9px;
   padding-bottom:11px;
   border:0!important;
@@ -1524,11 +1526,17 @@ html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{bac
 .screen-calendar .uf-week-strip-button.uf-week-today,
 .screen-calendar .uf-week-dates-previous>span.uf-week-previous-today{
   border-radius:50%!important;
-  background:var(--uf-grey)!important;
-  color:var(--uf-calm-text)!important;
-  -webkit-text-fill-color:var(--uf-calm-text)!important;
+  background:var(--uf-week-today-bg)!important;
+  color:var(--uf-week-today-text)!important;
+  -webkit-text-fill-color:var(--uf-week-today-text)!important;
 }
-.screen-calendar .uf-week-strip--two .uf-week-strip-button.uf-week-today{background:var(--uf-grey)!important}
+.screen-calendar .uf-week-strip--day .uf-week-strip-button.uf-week-today.uf-week-first,
+.screen-calendar .uf-week-strip--two .uf-week-strip-button.uf-week-today:is(.uf-week-first,.uf-week-second){
+  background:var(--uf-week-today-bg)!important;
+  color:var(--uf-week-today-text)!important;
+  -webkit-text-fill-color:var(--uf-week-today-text)!important;
+}
+html[data-theme='light'] .screen-calendar .uf-week-strip{--uf-week-today-bg:#62636b}
 .screen-calendar .uf-week-dates-previous>span.uf-week-previous-today::before{display:none!important}
 .screen-calendar .uf-week-strip-assessments{top:39px;height:13px}
 @media(max-width:420px){
