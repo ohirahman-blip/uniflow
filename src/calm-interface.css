@@ -1408,22 +1408,27 @@ html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{bac
 /* Today includes the existing weekday above the date. Two-day mode keeps the
    rounded range behind both dates as well as the two individual circles. */
 .uf-week-strip--two .uf-week-range{display:block!important}
+.uf-week-strip--two .uf-week-range{
+  top:12px;height:12px;
+  width:calc(100% / var(--uf-days) + 12px)!important;
+  margin-left:calc(100% / var(--uf-days) / 2 - 6px);
+  border-radius:999px;
+}
 .uf-week-strip--two .uf-week-strip-button:is(.uf-week-first,.uf-week-second){border-radius:50%!important;background:var(--uf-calm-text)!important;color:var(--uf-calm-page)!important;-webkit-text-fill-color:var(--uf-calm-page)!important}
 .uf-week-strip-labels{position:relative;z-index:8;margin-bottom:0!important}
 .uf-week-strip-labels .uf-week-label-today{
   position:relative;z-index:9;display:grid;place-items:center;justify-self:center;box-sizing:border-box;
   width:50px;height:20px;border-radius:15px 15px 0 0;background:var(--uniflow-accent,#f94f72);
-  color:#fff!important;-webkit-text-fill-color:#fff!important;
-  box-shadow:0 -5px 18px color-mix(in srgb,var(--uniflow-accent,#f94f72) 34%,transparent)!important
+  color:#fff!important;-webkit-text-fill-color:#fff!important;box-shadow:none!important
 }
 .uf-week-strip-day.is-today{z-index:7}
 .uf-week-strip .uf-week-strip-day.is-today .uf-week-strip-button.uf-week-today,
 .uf-week-strip--two .uf-week-strip-day.is-today .uf-week-strip-button.uf-week-today{
   position:relative;z-index:8;width:50px!important;height:38px!important;min-width:50px;border-radius:0 0 15px 15px!important;
   background:var(--uniflow-accent,#f94f72)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
-  opacity:1!important;box-shadow:0 7px 22px color-mix(in srgb,var(--uniflow-accent,#f94f72) 42%,transparent)!important;
+  opacity:1!important;box-shadow:none!important;
 }
-.uf-week-dates-previous>span.uf-week-previous-today{background:var(--uniflow-accent,#f94f72)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;box-shadow:0 5px 20px color-mix(in srgb,var(--uniflow-accent,#f94f72) 38%,transparent)!important}
+.uf-week-dates-previous>span.uf-week-previous-today{background:var(--uniflow-accent,#f94f72)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;box-shadow:none!important}
 html[data-theme='light'] .uf-week-strip-labels .uf-week-label-today,html[data-theme='light'] .uf-week-strip .uf-week-strip-day.is-today .uf-week-strip-button.uf-week-today,html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{background:var(--uniflow-accent,#f94f72)!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
 
 /* Study start is a first-class degree setting. */
