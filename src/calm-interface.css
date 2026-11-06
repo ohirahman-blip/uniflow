@@ -1409,9 +1409,9 @@ html[data-theme='light'] .uf-week-dates-previous>span.uf-week-previous-today{bac
    rounded range behind both dates as well as the two individual circles. */
 .uf-week-strip--two .uf-week-range{display:block!important}
 .uf-week-strip--two .uf-week-range{
-  top:12px;height:12px;
-  width:calc(100% / var(--uf-days) + 12px)!important;
-  margin-left:calc(100% / var(--uf-days) / 2 - 6px);
+  top:6px;height:24px;
+  width:calc(100% / var(--uf-days) + 24px)!important;
+  margin-left:calc(100% / var(--uf-days) / 2 - 12px);
   border-radius:999px;
 }
 .uf-week-strip--two .uf-week-strip-button:is(.uf-week-first,.uf-week-second){border-radius:50%!important;background:var(--uf-calm-text)!important;color:var(--uf-calm-page)!important;-webkit-text-fill-color:var(--uf-calm-page)!important}
