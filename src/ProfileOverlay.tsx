@@ -7,7 +7,7 @@ import UniflowPicker from './UniflowPicker'
 import {semesterNumber,type AppData,type StudyModule} from './model'
 import {scoreTotal} from './score'
 type Section='home'|'modules'|'goals'|'settings'
-type ModuleSort='semester'|'name'|'credits'
+type ModuleSort='semester'|'semester-desc'|'name'
 export default function ProfileOverlay({initialSection='home',data,settings,onClose,onModule,onProfileChange,onMutate,onCreateModule}:{initialSection?:'home'|'modules';data:AppData;onMutate:WorkspaceChange;onCreateModule:()=>void;settings:ReactNode;onClose:()=>void;onModule:(module:StudyModule)=>void;onProfileChange:(name:string)=>void}){
   const [section,setSection]=useState<Section>(initialSection)
   const [moduleStatus,setModuleStatus]=useState<'all'|StudyModule['status']>('all')
@@ -16,14 +16,13 @@ export default function ProfileOverlay({initialSection='home',data,settings,onCl
   const panel=useRef<HTMLElement>(null)
   const activeDegree=data.degrees.find(item=>item.id===data.activeDegreeId)
   const degreeSemesters=useMemo(()=>data.semesters.filter(item=>item.degreeId===data.activeDegreeId).sort((a,b)=>a.start.localeCompare(b.start)),[data.activeDegreeId,data.semesters])
-  const activeSemester=degreeSemesters.find(item=>item.id===data.activeSemesterId)
-  const activeSemesterNumber=activeSemester?semesterNumber(activeDegree?.studyStartSemester,activeSemester.start):undefined
   const modulesByDegree=useMemo(()=>data.degrees.map(degree=>{
-    const semesterStart=(module:StudyModule)=>module.semesterIds.map(id=>data.semesters.find(item=>item.id===id)?.start).filter((value):value is string=>!!value).sort()[0]||'9999-99-99'
+    const semesterStart=(module:StudyModule)=>module.semesterIds.map(id=>data.semesters.find(item=>item.id===id)?.start).filter((value):value is string=>!!value).sort()[0]||''
+    const compareSemester=(a:StudyModule,b:StudyModule)=>{const left=semesterStart(a),right=semesterStart(b);if(!left)return right?1:a.name.localeCompare(b.name,'de');if(!right)return -1;const order=left.localeCompare(right);return (moduleSort==='semester-desc'?-order:order)||a.name.localeCompare(b.name,'de')}
     const modules=data.modules.filter(module=>module.degreeId===degree.id)
       .filter(module=>moduleStatus==='all'||module.status===moduleStatus)
       .filter(module=>moduleSemester==='all'||module.semesterIds.includes(moduleSemester))
-      .sort((a,b)=>moduleSort==='name'?a.name.localeCompare(b.name,'de'):moduleSort==='credits'?b.credits-a.credits||a.name.localeCompare(b.name,'de'):semesterStart(a).localeCompare(semesterStart(b))||a.name.localeCompare(b.name,'de'))
+      .sort((a,b)=>moduleSort==='name'?a.name.localeCompare(b.name,'de'):compareSemester(a,b))
     return {degree,modules}
   }).filter(group=>group.modules.length),[data.degrees,data.modules,data.semesters,moduleSemester,moduleSort,moduleStatus])
   useSwipeToDismiss(panel,onClose)
@@ -50,17 +49,13 @@ export default function ProfileOverlay({initialSection='home',data,settings,onCl
     {section==='modules'&&<div className="profile-modules">
       <div className="profile-module-toolbar">
         <div className="profile-module-filter-row" aria-label="Module sortieren und filtern">
-          <button type="button" className={moduleStatus==='current'?'is-active':''} onClick={()=>setModuleStatus(value=>value==='current'?'all':'current')}>Aktuell</button>
-          <button type="button" className={moduleSort==='semester'?'is-active':''} onClick={()=>setModuleSort('semester')}>Semester aufsteigend</button>
-          {activeSemester&&<button type="button" className={moduleSemester===activeSemester.id?'is-active':''} onClick={()=>setModuleSemester(value=>value===activeSemester.id?'all':activeSemester.id)}>{activeSemesterNumber?`${activeSemesterNumber}. Fachsemester`:activeSemester.name}</button>}
-          <button type="button" className={moduleStatus==='passed'?'is-active':''} onClick={()=>setModuleStatus(value=>value==='passed'?'all':'passed')}>Bestanden</button>
           <UniflowPicker label="Status filtern" value={moduleStatus} onChange={value=>setModuleStatus(value as typeof moduleStatus)} options={[{value:'all',label:'Alle Status'},{value:'current',label:'Aktuell'},{value:'planned',label:'Geplant'},{value:'open',label:'Offen'},{value:'passed',label:'Bestanden'},{value:'failed',label:'Nicht bestanden'},{value:'recognized',label:'Anerkannt'}]}/>
           <UniflowPicker label="Semester filtern" value={moduleSemester} onChange={setModuleSemester} options={[{value:'all',label:'Alle Semester'},...degreeSemesters.map(item=>{const number=semesterNumber(activeDegree?.studyStartSemester,item.start);return {value:item.id,label:number?`${number}. Fachsemester · ${item.name}`:item.name}})]}/>
-          <UniflowPicker label="Module sortieren" value={moduleSort} onChange={value=>setModuleSort(value as ModuleSort)} options={[{value:'semester',label:'Semester aufsteigend'},{value:'name',label:'Name A–Z'},{value:'credits',label:'LP absteigend'}]}/>
+          <UniflowPicker label="Module sortieren" value={moduleSort} onChange={value=>setModuleSort(value as ModuleSort)} options={[{value:'semester',label:'Semester aufsteigend'},{value:'semester-desc',label:'Semester absteigend'},{value:'name',label:'Name A–Z'}]}/>
         </div>
         <button type="button" className="profile-module-add" aria-label="Modul hinzufügen" title="Modul hinzufügen" onClick={onCreateModule}><Plus size={18}/></button>
       </div>
-      {modulesByDegree.map(({degree,modules})=><section key={degree.id}><h2><GraduationCap size={16}/>{degree.name}</h2>{modules.map(module=><button key={module.id} onClick={()=>onModule(module)}><i style={{background:module.color}}/><span><strong>{module.name}</strong><small>{module.semesterIds.map(id=>data.semesters.find(semester=>semester.id===id)?.name).filter(Boolean).join(' · ')||'Ohne Semester'} · {module.credits} LP</small><small>{module.status==='passed'?'Bestanden':module.status==='recognized'?'Anerkannt':module.status==='failed'?'Nicht bestanden':module.status==='planned'?'Geplant':'Aktuell'}{module.grade?` · Note ${module.grade}`:''}</small></span><b>{scoreTotal(data.scoreEvents,module.id)}</b></button>)}</section>)}
+      {modulesByDegree.map(({degree,modules})=><section key={degree.id}><h2><GraduationCap size={16}/>{degree.name}</h2>{modules.map(module=>{const semesters=module.semesterIds.map(id=>{const semester=data.semesters.find(item=>item.id===id);if(!semester)return null;const number=semesterNumber(degree.studyStartSemester,semester.start);return number?`${number}. Semester · ${semester.name}`:semester.name}).filter((value):value is string=>!!value).join(' · ');return <button key={module.id} onClick={()=>onModule(module)}><span><strong>{module.name}</strong><small>{semesters||'Ohne Semester'} · {module.credits} LP</small><small>{module.status==='passed'?'Bestanden':module.status==='recognized'?'Anerkannt':module.status==='failed'?'Nicht bestanden':module.status==='planned'?'Geplant':'Aktuell'}{module.grade?` · Note ${module.grade}`:''}</small></span><b>{scoreTotal(data.scoreEvents,module.id)}</b></button>})}</section>)}
       {modulesByDegree.length===0&&<p className="profile-modules-empty">Keine Module für diese Auswahl.</p>}
     </div>}
     {section==='goals'&&<GoalManager data={data} onMutate={onMutate}/>}

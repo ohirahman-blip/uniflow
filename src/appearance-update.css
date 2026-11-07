@@ -165,9 +165,10 @@ html[data-theme='light'] body .profile-panel input::placeholder{color:#20212666!
 /* Keep the Today action in its outer toolbar, without another pill inside. */
 .app-root .calendar-page .calendar-tools>.calendar-today{background:transparent!important;border:0!important;border-radius:0;box-shadow:none!important}
 
-/* Keep native elastic edge feedback while matching the browser/PWA underlay
-   to the active app canvas. */
-html,body{overscroll-behavior-y:auto;background-color:var(--uf-page-background,#0b0b0c)}
+/* Keep native elastic edge feedback. The top follows the app canvas while the
+   lower browser/PWA underlay stays true black instead of flashing grey. */
+html{overscroll-behavior-y:auto;background:linear-gradient(to bottom,var(--uf-page-background,#0b0b0c) 0 50%,#080808 50% 100%) fixed}
+body{overscroll-behavior-y:auto;background-color:var(--uf-page-background,#0b0b0c)}
 :is(.sheet-body,.mlh-sheet,.profile-body,.uf-picker-choices,.uf-picker-scroll,.wallet-cards){overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
 
 /* The light palette's earlier :is(.calendar-focus.chosen) rule had higher
