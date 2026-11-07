@@ -264,8 +264,15 @@ html[data-theme='light'] .overview-tasks>header>button{border:0!important;backgr
   .overview-dashboard-clean>.overview-welcome{padding-top:32px;padding-bottom:32px}
   .overview-now-grid{grid-template-columns:1fr;gap:20px}
   .overview-current-event{aspect-ratio:auto;min-height:170px;justify-content:flex-start;gap:30px}
-  .overview-upcoming-stack{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto;height:auto;gap:12px}
-  .overview-upcoming{height:auto;min-height:0}
+  .overview-current-event small,.overview-upcoming small{font-size:10px}
+  .overview-current-event strong{font-size:22px}
+  .overview-current-event b{font-size:13px}
+  .overview-current-event time{font-size:11px}
+  .overview-upcoming-stack{grid-template-columns:1fr;grid-template-rows:repeat(2,auto);height:auto;gap:12px}
+  .overview-upcoming{height:auto;min-height:112px;padding:16px 18px}
+  .overview-upcoming>svg{width:20px;height:20px;padding:7px}
+  .overview-upcoming strong{font-size:16px;line-height:1.3}
+  .overview-upcoming b{font-size:10px}
 }
 @media(max-width:480px){
   .overview-attendance>div i{width:31px;height:31px}
