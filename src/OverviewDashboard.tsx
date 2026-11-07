@@ -29,9 +29,10 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
   const [learningSpotlight,setLearningSpotlight]=useState(false)
   const liveTimer=useRef(0)
   const learningSpotlightTimer=useRef(0),learningSpotlightUsed=useRef(false)
+  const welcomeJumpTimer=useRef(0),welcomeJumping=useRef(false)
   const dashboardRef=useRef<HTMLElement|null>(null)
   useEffect(()=>{const timer=window.setInterval(()=>setClock(new Date()),30000);return()=>clearInterval(timer)},[])
-  useEffect(()=>()=>window.clearTimeout(learningSpotlightTimer.current),[])
+  useEffect(()=>()=>{window.clearTimeout(learningSpotlightTimer.current);window.clearTimeout(welcomeJumpTimer.current)},[])
   useEffect(()=>{if(!attendanceOpen)return;const previous=document.body.style.overflow;document.body.style.overflow='hidden';const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setAttendanceOpen(false)};window.addEventListener('keydown',close);return()=>{document.body.style.overflow=previous;window.removeEventListener('keydown',close)}},[attendanceOpen])
   useEffect(()=>{if(!adding)return;const previous=document.body.style.overflow;document.body.style.overflow='hidden';const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setAdding(false)};window.addEventListener('keydown',close);return()=>{document.body.style.overflow=previous;window.removeEventListener('keydown',close)}},[adding])
   const day=dateString(clock)
@@ -63,7 +64,7 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
   },[activeLecture?.key])
   useEffect(()=>{
     if(activeLecture){setWelcomeScrolled(false);return}
-    const update=()=>setWelcomeScrolled(current=>current?window.scrollY>4:window.scrollY>18)
+    const update=()=>{if(welcomeJumping.current){setWelcomeScrolled(false);return}setWelcomeScrolled(current=>current?window.scrollY>4:window.scrollY>18)}
     update();window.addEventListener('scroll',update,{passive:true})
     return()=>window.removeEventListener('scroll',update)
   },[hasActiveLecture])
@@ -124,15 +125,11 @@ export default function OverviewDashboard({studyPlan,onStudyPlan,data,onProfile,
     if(target==='calendar'||target==='friends'){onNavigate(target);return}
     const element=dashboardRef.current?.querySelector<HTMLElement>(target==='learning'?'.overview-learning-map':'.overview-tasks-focus')
     if(element){
-      const welcome=dashboardRef.current?.querySelector<HTMLElement>('.overview-welcome')
-      let collapseDelta=0
-      if(welcome&&!welcome.classList.contains('is-compact')){
-        const expandedHeight=welcome.getBoundingClientRect().height,inlineTransition=welcome.style.transition
-        welcome.style.transition='none';welcome.classList.add('is-compact')
-        collapseDelta=Math.max(0,expandedHeight-welcome.getBoundingClientRect().height)
-        welcome.classList.remove('is-compact');welcome.style.transition=inlineTransition
-      }
-      window.scrollTo({top:Math.max(0,window.scrollY+element.getBoundingClientRect().top-collapseDelta-16),behavior:'smooth'})
+      welcomeJumping.current=true
+      setWelcomeScrolled(false)
+      window.clearTimeout(welcomeJumpTimer.current)
+      welcomeJumpTimer.current=window.setTimeout(()=>{welcomeJumping.current=false},1200)
+      window.scrollTo({top:Math.max(0,window.scrollY+element.getBoundingClientRect().top-16),behavior:'smooth'})
     }
   }
   const welcomePrompt=welcomePrompts[welcomeIndex],WelcomeIcon=welcomePrompt.id==='hello'?null:welcomePrompt.icon
