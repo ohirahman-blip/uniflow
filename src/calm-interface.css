@@ -1075,10 +1075,23 @@ html[data-theme='light'] .assessment-complete-action{background:transparent!impo
   border:0!important;
   background:var(--uf-grey)!important;
   box-shadow:none!important;
+  align-items:center;
+  justify-content:center;
+  gap:0!important;
 }
+.mlh-actions.mlh-compact-actions>button>svg{display:block;flex:0 0 17px;margin:0}
 .mlh-actions.mlh-compact-actions>button:hover{background:var(--uf-calm-hover)!important}
 html[data-theme='light'] .mlh-actions.mlh-compact-actions>button{background:#f1f1f3!important;color:#66676f!important}
 html[data-theme='light'] .mlh-actions.mlh-compact-actions>button:hover{background:#e8e8eb!important;color:#202126!important}
+@media(hover:hover) and (pointer:fine){
+  .mlh-actions.mlh-compact-actions>button:hover strong,
+  .mlh-actions.mlh-compact-actions>button:focus-visible strong{max-width:140px;opacity:1;margin-left:8px}
+}
+@media(max-width:720px){
+  .mlh-actions.mlh-compact-actions>button:not(.mlh-action-secondary) strong{max-width:140px;opacity:1;margin-left:8px;overflow:visible}
+  .mlh-actions.mlh-compact-actions>.mlh-action-secondary{width:40px;min-width:40px;height:40px;padding:0!important}
+  .mlh-actions.mlh-compact-actions>.mlh-action-secondary strong{display:none!important}
+}
 
 /* Module editing: one popup entry and calm event banners. */
 .module-meta-open{
