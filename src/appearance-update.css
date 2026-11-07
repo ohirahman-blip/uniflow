@@ -167,7 +167,7 @@ html[data-theme='light'] body .profile-panel input::placeholder{color:#20212666!
 
 /* Keep native elastic edge feedback. The top follows the app canvas while the
    lower browser/PWA underlay stays true black instead of flashing grey. */
-html{overscroll-behavior-y:auto;background:linear-gradient(to bottom,var(--uf-page-background,#0b0b0c) 0 50%,#080808 50% 100%) fixed}
+html{overscroll-behavior-y:auto;background:#000}
 body{overscroll-behavior-y:auto;background-color:var(--uf-page-background,#0b0b0c)}
 :is(.sheet-body,.mlh-sheet,.profile-body,.uf-picker-choices,.uf-picker-scroll,.wallet-cards){overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
 

@@ -3,7 +3,7 @@ import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Download, Grip, Info, Plus, LayoutGrid, RotateCcw, Search, Settings2, Trash2, PauseCircle, Upload, X, LogOut, RefreshCw, Layers2, CalendarCheck2, ClipboardList, GraduationCap, PenLine, Sparkles, Star, Focus, ChevronLeft, ChevronRight, House, Users } from 'lucide-react'
-import { acronym, assessmentBaseTitle, assessmentComponentKey, candidateOccurrencesOn, occurrenceAtOrigin, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, examVisibilityEnd, formatDate, fromDate, inferOfferingCategory, loadData, migrateLegacy, minutes, moveOccurrence, occurrencesOn, overlaps, semesterFromStart, semesterStartsBetween, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
+import { acronym, assessmentBaseTitle, assessmentComponentKey, candidateOccurrencesOn, occurrenceAtOrigin, selectedAssessment, setOfferingAttendance, suspendOffering, undoSingleChoice, removeOfferingGroup, findMainForInactive, sameContent, linkedCandidates, chooseOffering, intersects, isAssessment, separateAssessments, addDays, colors, currentSemesterDates, emptyData, examVisibilityEnd, formatDate, fromDate, inferOfferingCategory, loadData, migrateLegacy, minutes, moveOccurrence, occurrencesOn, overlaps, semesterFromStart, semesterNumber, semesterStartsBetween, STORE, timeString, today, uid, upsertAssessment, weekStart, weekday, type Alternative, type Assessment, type AppData, type CalendarView, type CreditGoal, type Degree, type Occurrence, type Offering, type Repeat, type Semester, type StudyModule } from './model'
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, publishFriendStatus, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
@@ -1693,6 +1693,10 @@ export default function App() {
   const semester = data.semesters.find(s => s.id === data.activeSemesterId)
   const selectedModule=data.modules.find(module=>module.id===selectedModuleId)
   const moduleEditorSemester=selectedModule?.status==='current'?semester:data.semesters.find(item=>selectedModule?.semesterIds.includes(item.id))||semester
+  const moduleEditorDegree=data.degrees.find(item=>item.id===selectedModule?.degreeId)
+  const moduleEditorStudyStart=moduleEditorDegree?.studyStartSemester||data.semesters.filter(item=>item.degreeId===moduleEditorDegree?.id).map(item=>item.start).sort()[0]
+  const moduleEditorSemesterNumber=moduleEditorSemester?semesterNumber(moduleEditorStudyStart,moduleEditorSemester.start):undefined
+  const moduleEditorSemesterLabel=moduleEditorSemester?`${moduleEditorSemesterNumber?`${moduleEditorSemesterNumber}. Semester · `:''}${moduleEditorSemester.name}`:undefined
   const degreeModules = data.modules.filter(m => m.degreeId === degree?.id)
   const semesterModules = degreeModules.filter(m => m.semesterIds.includes(semester?.id || ''))
   const [adviceClock,setAdviceClock]=useState(0)
@@ -1873,6 +1877,7 @@ export default function App() {
         key={selectedModuleId}
         module={data.modules.find(m=>m.id===selectedModuleId)!}
         semester={moduleEditorSemester}
+        semesterLabel={moduleEditorSemesterLabel}
         offerings={data.offerings}
         assessments={data.assessments}
         journey={journeysByModule[selectedModuleId]}

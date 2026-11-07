@@ -105,7 +105,7 @@ export function parseModuleQuickInput(raw:string, expectedModule:string):QuickPr
   return {topics,assessments:[],exceptions:[],errors}
 }
 type Props = {
-  module:StudyModule;moduleSemesterControl?:import('react').ReactNode;semester?:Semester;offerings:Offering[];assessments:Assessment[];journey?:Journey;premium:boolean;
+  module:StudyModule;moduleSemesterControl?:import('react').ReactNode;semester?:Semester;semesterLabel?:string;offerings:Offering[];assessments:Assessment[];journey?:Journey;premium:boolean;
   onBack:()=>void;onUpdateModule:(next:StudyModule)=>void;onDeleteModule:()=>void;
   onChangeOfferings:(next:Offering[])=>void;
   onChangeAssessments:(next:Assessment[])=>void;
@@ -116,7 +116,7 @@ type Props = {
   onChangeLearningCheckins:(next:LearningCheckin[])=>void;
 }
 export default function ModuleScheduleEditor({
-  module,moduleSemesterControl,semester,offerings,assessments,premium,onBack,onUpdateModule,onDeleteModule,
+  module,moduleSemesterControl,semester,semesterLabel,offerings,assessments,premium,onBack,onUpdateModule,onDeleteModule,
   onChangeOfferings,onChangeAssessments,onOpenOccurrence,onClearException
 }:Props) {
   const [quickText,setQuickText]=useState('')
@@ -129,6 +129,7 @@ export default function ModuleScheduleEditor({
   }
   useLayoutEffect(()=>{resizeQuickInput()},[quickText])
   const [preview,setPreview]=useState<QuickPreview|null>(null)
+  const [quickOpen,setQuickOpen]=useState(false)
   const [advanced,setAdvanced]=useState(false)
   const [exceptionsOpen,setExceptionsOpen]=useState(false)
   const [exceptionEditor,setExceptionEditor]=useState(false)
@@ -146,7 +147,7 @@ export default function ModuleScheduleEditor({
   const [thinking,setThinking]=useState(false)
   const [quickError,setQuickError]=useState('')
   useEffect(()=>{
-    if(!advanced&&!editingSlotId&&!groupEditorId&&!exceptionsOpen&&!exceptionEditor&&!preview&&!eventDraft)return
+    if(!advanced&&!quickOpen&&!editingSlotId&&!groupEditorId&&!exceptionsOpen&&!exceptionEditor&&!preview&&!eventDraft)return
     const onBack=(event:Event)=>{
       const detail=(event as CustomEvent<{handled:boolean}>).detail
       if(detail?.handled)return
@@ -158,10 +159,11 @@ export default function ModuleScheduleEditor({
       else if(exceptionsOpen)setExceptionsOpen(false)
       else if(preview)setPreview(null)
       else if(advanced)setAdvanced(false)
+      else if(quickOpen)setQuickOpen(false)
     }
     window.addEventListener('uniflow-back',onBack)
     return()=>window.removeEventListener('uniflow-back',onBack)
-  },[advanced,editingSlotId,groupEditorId,exceptionsOpen,exceptionEditor,preview,eventDraft])
+  },[advanced,quickOpen,editingSlotId,groupEditorId,exceptionsOpen,exceptionEditor,preview,eventDraft])
   const previewRequest=useRef<AbortController|null>(null)
   useEffect(()=>()=>{previewRequest.current?.abort()},[])
   const imported=useRef(false)
@@ -387,7 +389,7 @@ export default function ModuleScheduleEditor({
   return <div className="screen secondary-screen module-detail-screen module-fast" style={{'--module-accent':module.color,'--mlh-accent':module.color} as CSSProperties}>
     <button className="text-back module-editor-back" onClick={onBack} aria-label="Zurück"><ArrowLeft size={20}/></button>
     <div className="module-detail-heading">
-      <div><h1>{module.name}</h1></div>
+      <div><h1>{module.name}</h1>{semesterLabel&&<p className="module-semester-label">{semesterLabel}</p>}</div>
     </div>
     <button type="button" className="module-meta-open" onClick={()=>setAdvanced(true)}><PenLine size={17}/><span><strong>Modulangaben bearbeiten</strong><small>Name, Status, Leistungspunkte und Farbe</small></span><ChevronDown size={17}/></button>
     {advanced&&<ModuleOverlay title="Modulangaben bearbeiten" accent={module.color} onClose={()=>setAdvanced(false)}><div className="module-meta-popup"><div className="module-fast-meta-grid">
@@ -403,10 +405,9 @@ export default function ModuleScheduleEditor({
     </div></ModuleOverlay>}
 
     {premium?
-      <details className="module-fast-quick module-fast-quick-premium"
-        onToggle={e=>{if(e.currentTarget.open)requestAnimationFrame(resizeQuickInput)}}>
-        <summary><Sparkles size={17}/> Schnelleingabe <span className="module-quick-premium-label">uniflow+</span><ChevronDown size={16}/></summary>
-        <div className="module-fast-quick-body">
+      <section className={'module-fast-quick module-fast-quick-premium'+(quickOpen?' is-open':'')}>
+        <button type="button" className="module-fast-quick-trigger" aria-expanded={quickOpen} onClick={()=>{const next=!quickOpen;setQuickOpen(next);if(next)requestAnimationFrame(resizeQuickInput)}}><span className="module-fast-quick-icon"><Sparkles size={18}/></span><span className="module-fast-quick-copy"><strong>Schnelleingabe <em className="module-quick-premium-label">uniflow+</em></strong><small>Termine schnell aus Text übernehmen</small></span><ChevronDown size={17}/></button>
+        <div className="module-fast-quick-reveal" aria-hidden={!quickOpen}><div className="module-fast-quick-clip"><div className="module-fast-quick-body">
           <textarea ref={quickInputRef} rows={1} aria-label="Moduldaten per Schnelleingabe erfassen" value={quickText}
             placeholder="Was möchtest du für dieses Modul eintragen?"
             maxLength={3500}
@@ -476,8 +477,8 @@ export default function ModuleScheduleEditor({
                 onClick={applyPreview}><Check size={16}/> Übernehmen</button>
             </div>
           </div>}
-        </div>
-      </details>
+        </div></div></div>
+      </section>
       :<div className="module-fast-quick-locked">
         <span className="module-fast-quick-locked-icon"><Lock size={17}/></span>
         <div><strong>Schnelleingabe <span>uniflow+</span></strong>

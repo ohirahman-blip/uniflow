@@ -999,7 +999,7 @@ html[data-theme='light'] .profile-goals .study-goal-form :is(input:not([type='ch
 
 /* Profile and streak remain fixed above the live dashboard on phones. */
 @media(max-width:720px){
-  .overview-dashboard-clean.has-live-lecture>.mlh-utility{
+  .overview-dashboard-clean>.mlh-utility{
     position:fixed;
     z-index:35;
     top:max(12px,env(safe-area-inset-top));
@@ -1009,6 +1009,7 @@ html[data-theme='light'] .profile-goals .study-goal-form :is(input:not([type='ch
     max-width:none;
     margin:0;
   }
+  .overview-dashboard-clean:not(.has-live-lecture){padding-top:max(66px,calc(env(safe-area-inset-top) + 54px))}
   .overview-live-page{padding-top:max(58px,calc(env(safe-area-inset-top) + 52px));padding-bottom:28px}
   .overview-live-hero{min-height:clamp(250px,38dvh,330px)}
   .overview-live-hero.is-greeting{min-height:clamp(130px,18dvh,170px)}
@@ -1580,4 +1581,61 @@ html[data-theme='light'] .screen-calendar .uf-week-strip--two .uf-week-strip-but
   .screen-calendar .uf-week-dates-previous>span{width:34px!important;min-width:34px!important;max-width:34px!important;height:34px!important;min-height:34px!important;max-height:34px!important;font-size:13px}
   .screen-calendar .uf-week-strip--two .uf-week-range{height:34px}
   .screen-calendar .uf-week-strip-assessments{top:37px}
+}
+
+/* Module context stays visible and quick entry opens like the rest of uniflow. */
+.module-semester-label{
+  margin:0!important;
+  color:var(--uf-calm-muted)!important;
+  font-size:12px!important;
+  line-height:1.45;
+  text-align:center;
+}
+.module-fast .module-fast-quick-trigger{
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  min-height:72px;
+  padding:12px 16px!important;
+  border:0!important;
+  background:transparent!important;
+  color:var(--uf-calm-text)!important;
+  text-align:left;
+  cursor:pointer;
+}
+.module-fast-quick-icon{
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border-radius:13px;
+  background:color-mix(in srgb,#d895b8 14%,var(--uf-calm-control));
+  color:#e4b1cb;
+}
+.module-fast-quick-copy{display:grid;gap:5px;min-width:0}
+.module-fast-quick-copy>strong{display:flex;align-items:center;gap:8px;min-width:0;font-size:14px;font-weight:650}
+.module-fast-quick-copy>small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--uf-calm-muted);font-size:10px}
+.module-fast-quick-copy .module-quick-premium-label{font-style:normal;white-space:nowrap}
+.module-fast-quick-trigger>svg{color:var(--uf-calm-muted);transition:transform 320ms cubic-bezier(.2,.8,.2,1)}
+.module-fast-quick.is-open .module-fast-quick-trigger>svg{transform:rotate(180deg)}
+.module-fast-quick-reveal{
+  display:grid;
+  grid-template-rows:0fr;
+  opacity:0;
+  transition:grid-template-rows 360ms cubic-bezier(.2,.8,.2,1),opacity 220ms ease;
+}
+.module-fast-quick-clip{min-height:0;overflow:hidden}
+.module-fast-quick.is-open .module-fast-quick-reveal{grid-template-rows:1fr;opacity:1}
+.module-fast-quick.is-open{background:color-mix(in srgb,#d895b8 5%,var(--uf-calm-surface))!important}
+.module-detail-screen.module-fast>.module-topic-empty{margin:0 0 14px!important}
+.module-detail-screen.module-fast>.module-topic-empty+.module-exception-row{margin-top:0!important}
+html[data-theme='light'] .module-fast-quick-icon{background:#f1e7ed;color:#805489}
+@media(max-width:520px){
+  .module-fast .module-fast-quick-trigger{padding:11px 14px!important}
+  .module-semester-label{font-size:11px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .module-fast-quick-reveal,.module-fast-quick-trigger>svg{transition:none!important}
 }
