@@ -10,7 +10,7 @@ export type Semester = { id: string; degreeId: string; name: string; start: stri
 export type StudyModule = { completedOn?: string; emoji?: string; id: string; degreeId: string; name: string; shortName: string; credits: number; color: string; status: ModuleStatus; grade: string; counted: boolean; hidden: boolean; semesterIds: string[] }
 export type CreditGoal = { id: string; degreeId: string; name: string; targetCredits: number; moduleIds: string[] }
 export type Override = { date?: string; from?: string; to?: string; cancelled?: boolean; selected?: boolean; scope?: 'single' | 'future'; reason?: 'selection' | 'move' | 'removal' | 'pause'; changeId?: string; previous?: Override | null }
-export type Offering = { importance?: OfferingImportance; scheduleChanges?: { fromOrigin: string; shiftDays: number; from: string; to: string }[]; familyId?: string; id: string; semesterId: string; moduleId: string; name: string; category: string; date: string; endDate: string; from: string; to: string; recurrence: Repeat; overrides: Record<string, Override>; room: string; onlineLink?: string; organizer?: string; contentId?: string; contentLabel?: string; selected: boolean }
+export type Offering = { importance?: OfferingImportance; scheduleChanges?: { fromOrigin: string; shiftDays: number; from: string; to: string }[]; familyId?: string; id: string; semesterId: string; moduleId: string; name: string; category: string; date: string; endDate: string; from: string; to: string; recurrence: Repeat; overrides: Record<string, Override>; room: string; onlineLink?: string; organizer?: string; contentId?: string; contentLabel?: string; /** Multiple appointments with the same alternativeId form one selectable A-Z series. */ alternativeId?: string; selected: boolean }
 export type Assessment = {
   id: string
   semesterId: string
@@ -183,6 +183,8 @@ export function upsertAssessment(items:Assessment[],next:Assessment):Assessment[
 /** A content group is unique *within* one module, semester and teaching topic. */
 export const sameContent = (a: Offering,b:Offering) => a.semesterId === b.semesterId && a.moduleId === b.moduleId &&
   (a.contentId || a.familyId || a.id) === (b.contentId || b.familyId || b.id)
+export const offeringAlternativeId = (offering:Offering) => offering.alternativeId || offering.id
+export const sameAlternative = (a:Offering,b:Offering) => sameContent(a,b) && offeringAlternativeId(a) === offeringAlternativeId(b)
 export const intersects = (a: {from:string;to:string},b:{from:string;to:string}) => minutes(a.from)<minutes(b.to) && minutes(a.to)>minutes(b.from)
 /** Same-content groups are reciprocal, regardless of chosen lecturer or day.
  * Independent modules at the same time are separate slot alternatives. */
@@ -190,7 +192,7 @@ export function linkedCandidates(offers: Offering[], occ: Occurrence): {occ: Occ
   const matches:{occ:Occurrence;kind:'group'|'slot'}[]=[]
   const seen=new Set<string>()
   for(const o of offers){
-    if(o.id===occ.offering.id || !sameContent(o,occ.offering))continue
+    if(sameAlternative(o,occ.offering) || !sameContent(o,occ.offering))continue
     const alternate=occurrenceInWeek(o,occ.origin,true)
     if(alternate && alternate.key!==occ.key && !seen.has(alternate.key)){
       matches.push({occ:alternate,kind:'group'});seen.add(alternate.key)
@@ -214,27 +216,28 @@ export function chooseOffering(offers: Offering[], main: Occurrence, alternative
     if(!updates.has(occ.offering.id))updates.set(occ.offering.id,new Map())
     updates.get(occ.offering.id)!.set(occ.origin,selected)
   }
-  const applyWeek=(a:Occurrence,b:Occurrence)=>{
-    mark(a,keepBoth)
-    mark(b,true)
+  const alternativeOfferings=(seed:Offering)=>offers.filter(item=>sameAlternative(item,seed))
+  const weekOccurrences=(seed:Offering,week:string)=>alternativeOfferings(seed)
+    .map(item=>occurrenceInWeek(item,week,true)).filter((item):item is Occurrence=>!!item)
+  const applyWeek=(source:Occurrence[],target:Occurrence[])=>{
+    source.forEach(item=>mark(item,keepBoth))
+    target.forEach(item=>mark(item,true))
     if(!keepBoth){
-      for(const conflict of occurrencesOn(offers,b.date)){
-        if(conflict.key!==a.key && conflict.key!==b.key &&
-          conflict.offering.semesterId===b.offering.semesterId && intersects(conflict,b))mark(conflict,false)
+      for(const selected of target)for(const conflict of occurrencesOn(offers,selected.date)){
+        if(!source.some(item=>item.key===conflict.key) && !target.some(item=>item.key===conflict.key) &&
+          conflict.offering.semesterId===selected.offering.semesterId && intersects(conflict,selected))mark(conflict,false)
       }
     }
   }
-  if(scope==='single')applyWeek(main,alternative)
+  if(scope==='single')applyWeek(weekOccurrences(main.offering,main.origin),weekOccurrences(alternative.offering,alternative.origin))
   else {
-    const source=offers.find(o=>o.id===main.offering.id)
-    const target=offers.find(o=>o.id===alternative.offering.id)
-    if(!source||!target)return offers
+    const source=alternativeOfferings(main.offering),target=alternativeOfferings(alternative.offering)
+    if(!source.length||!target.length)return offers
+    const ending=[...source,...target].reduce((latest,item)=>item.endDate>latest?item.endDate:latest,main.origin)
     // A semester is normally <= 26 weeks; cap safeguards malformed imports.
-    for(let week=weekStart(main.origin),i=0;i<210 && week<=source.endDate;i++,week=addDays(week,7)){
-      const a=occurrenceInWeek(source,week,true)
-      const b=occurrenceInWeek(target,week,true)
-      // An every-other-week group only replaces the weeks when it exists.
-      if(a&&b)applyWeek(a,b)
+    for(let week=weekStart(main.origin),i=0;i<210 && week<=ending;i++,week=addDays(week,7)){
+      const a=weekOccurrences(main.offering,week),b=weekOccurrences(alternative.offering,week)
+      if(a.length&&b.length)applyWeek(a,b)
     }
   }
   if(!updates.size)return offers
@@ -473,7 +476,7 @@ export function linkOfferingToContent(offers: Offering[], offeringId: string,
  * Otherwise an overlapping different module is the replaceable current event.
  * If neither exists, the user is simply adding a visit. */
 export function findMainForInactive(offers: Offering[], alternative: Occurrence): Occurrence | null {
-  const equivalent = offers.filter(o => o.id !== alternative.offering.id && sameContent(o,alternative.offering))
+  const equivalent = offers.filter(o => !sameAlternative(o,alternative.offering) && sameContent(o,alternative.offering))
     .map(o => occurrenceInWeek(o,weekStart(alternative.origin),false))
     .find((occ): occ is Occurrence => !!occ)
   if(equivalent) return equivalent

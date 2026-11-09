@@ -12,6 +12,7 @@ const messages:Record<string,string>={
   PREMIUM_CHECK_UNAVAILABLE:'Supabase konnte deinen Premium-Status nicht prüfen. Prüfe die Tabelle account_directory und ihre RLS-Regeln.',
   SUPABASE_NOT_CONFIGURED:'In der Edge Function fehlen die Supabase-Projektvariablen.',
   DEEPSEEK_NOT_CONFIGURED:'Der API-Schlüssel DEEPSEEK_API_KEY fehlt in den Supabase Edge Function Secrets.',
+  VISION_NOT_CONFIGURED:'Die Bilderkennung ist noch nicht verbunden. Hinterlege den Bild-KI-Anbieter in den Supabase-Secrets.',
   CACHE_NOT_CONFIGURED:'Die neue KI-Speicherung ist noch nicht bereit. Bitte die Cache-Migration und beide Supabase-Funktionen aktualisieren.',
   CACHE_WRITE_FAILED:'Die neue Empfehlung konnte nicht gespeichert werden. Der letzte Stand bleibt erhalten.',
   SCHEDULE_RATE_LIMIT:'Bitte warte 15 Sekunden vor der nächsten KI-Schnelleingabe. Es gibt kein Tageslimit.',

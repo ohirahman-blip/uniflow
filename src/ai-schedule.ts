@@ -1,6 +1,8 @@
 /** Validate AI-generated timetables before they can modify a user's workspace. */
 export type AiScheduleSlot = {
   day:number;from:string;duration:number;room:string
+  /** A-Z identifies appointments which belong to the same selectable series. */
+  alternative?:string
   /** Optional fields of a module appointment. */
   recurrence?:'weekly'|'biweekly'|'once'
   date?:string
@@ -45,7 +47,7 @@ export function parseAiSchedulePreview(value:unknown):AiSchedulePreview {
     const category=typeof topic?.category==='string'?topic.category.trim():''
     if(!label||!aiScheduleCategories.some(x=>x===category))
       throw new Error('Die KI hat bei Veranstaltung '+(index+1)+' eine ungültige Bezeichnung oder Art geliefert.')
-    if(!Array.isArray(topic?.slots)||!topic.slots.length||topic.slots.length>12)
+    if(!Array.isArray(topic?.slots)||!topic.slots.length||topic.slots.length>52)
       throw new Error('Die KI hat für '+label+' keine gültigen Termine erkannt.')
     const slots:AiScheduleSlot[]=topic.slots.map((value,slotIndex)=>{
       const item=record(value)
@@ -61,6 +63,7 @@ export function parseAiSchedulePreview(value:unknown):AiSchedulePreview {
       const endDate=item?.endDate===undefined?'':item.endDate
       const organizer=item?.organizer===undefined?'':item.organizer
       const onlineLink=item?.onlineLink===undefined?'':item.onlineLink
+      const alternative=item?.alternative===undefined?'A':item.alternative
       if(!['once','weekly','biweekly'].includes(recurrence as string)||
         typeof date!=='string'||(date!==''&&!validDate(date))||
         typeof endDate!=='string'||(endDate!==''&&!validDate(endDate))||
@@ -69,10 +72,11 @@ export function parseAiSchedulePreview(value:unknown):AiSchedulePreview {
         (recurrence==='once'&&!date)||
         (date&&weekdayOf(date)!==day)||
         (endDate&&date&&endDate<date)||
-        (recurrence==='once'&&endDate&&endDate!==date))
+        (recurrence==='once'&&endDate&&endDate!==date)||
+        typeof alternative!=='string'||!/^[A-Z]$/.test(alternative.toUpperCase()))
         throw new Error('Ungültige Wiederholung, Datum, Lehrperson oder Link in '+label+
           ' (Termin '+(slotIndex+1)+'). Einmalige Termine benötigen ein konkretes Datum.')
-      return {day,from,duration,room:room.trim().slice(0,100),
+      return {day,from,duration,room:room.trim().slice(0,100),alternative:alternative.toUpperCase(),
         recurrence:recurrence as AiScheduleSlot['recurrence'],date,endDate,organizer:organizer.trim().slice(0,120),
         onlineLink:onlineLink.trim()}
     })
