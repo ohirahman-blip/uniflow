@@ -53,7 +53,7 @@ const compactDetectedSeries=(items:Offering[],alternativeId:string)=>{
     const step=gaps.every(gap=>gap===7)?7:gaps.every(gap=>gap===14)?14:0
     if(!step)continue
     const ids=new Set(sorted.map(item=>item.id)),first=sorted[0]
-    result=result.filter(item=>!ids.has(item.id)||item.id===first.id).map(item=>item.id===first.id?{...item,recurrence:step===7?'weekly':'biweekly',endDate:sorted.at(-1)!.date}:item)
+    result=result.filter(item=>!ids.has(item.id)||item.id===first.id).map(item=>item.id===first.id?{...item,recurrence:step===7?'weekly':'biweekly',endDate:sorted[sorted.length-1].date}:item)
   }
   return result
 }
