@@ -9,6 +9,7 @@ import {
 } from './model'
 import type { Journey, LearningCheckin, LearningSession, LessonTopic } from './learning'
 import UniflowPicker from './UniflowPicker'
+import ModuleCoverInput from './ModuleCoverInput'
 import { supabase } from './supabase'
 import { describeAiRequestError } from './ai-errors'
 import { parseAiSchedulePreview, type AiScheduleSlot, type AiScheduleTopic, type AiSchedulePreview } from './ai-schedule'
@@ -453,7 +454,7 @@ export default function ModuleScheduleEditor({
     <div className="module-detail-heading">
       <div><h1>{module.name}</h1>{semesterLabel&&<p className="module-semester-label">{semesterLabel}</p>}</div>
     </div>
-    <button type="button" className="module-meta-open" onClick={()=>setAdvanced(true)}><PenLine size={17}/><span><strong>Modulangaben bearbeiten</strong><small>Name, Status, Leistungspunkte und Farbe</small></span><ChevronDown size={17}/></button>
+    <button type="button" className="module-meta-open" onClick={()=>setAdvanced(true)}><PenLine size={17}/><span><strong>Modulangaben bearbeiten</strong><small>Name, Status, Leistungspunkte, Farbe und Kursbild</small></span><ChevronDown size={17}/></button>
     {advanced&&<ModuleOverlay title="Modulangaben bearbeiten" accent={module.color} onClose={()=>setAdvanced(false)}><div className="module-meta-popup"><div className="module-fast-meta-grid">
         <label>Name<input value={module.name} onChange={e=>onUpdateModule({...module,name:e.target.value})}/></label>
         <label>Kurzname<input value={module.shortName} maxLength={10} onChange={e=>onUpdateModule({...module,shortName:e.target.value})}/></label>
@@ -462,6 +463,7 @@ export default function ModuleScheduleEditor({
         <label>Status<UniflowPicker label="Modulstatus" value={module.status} onChange={value=>onUpdateModule({...module,status:value as StudyModule['status']})} options={([['current','Aktuell'],['planned','Geplant'],['open','Offen'],['passed','Bestanden'],['failed','Nicht bestanden'],['recognized','Anerkannt']] as const).map(([value,label])=>({value,label}))}/></label>
         {moduleSemesterControl}<label>Note<input value={module.grade} onChange={e=>onUpdateModule({...module,grade:e.target.value})}/></label>
       </div>
+      <ModuleCoverInput key={module.id} value={module.coverImage} onChange={coverImage=>onUpdateModule({...module,coverImage})}/>
       <div className="module-fast-colors">{colors.map(c=><button key={c} title={c} aria-label={'Modulfarbe '+c} className={module.color===c?'picked':''} style={{background:c}} onClick={()=>onUpdateModule({...module,color:c})}>{module.color===c&&<Check size={15}/>}</button>)}</div>
       <button className="module-fast-remove" onClick={onDeleteModule}><Trash2 size={16}/> Modul löschen</button>
     </div></ModuleOverlay>}

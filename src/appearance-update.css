@@ -187,8 +187,6 @@ html[data-theme='light'] button{box-shadow:none!important}
     .mlh-score-banner .mlh-actions>button,
     .mlh-actions>button,
     .mlh-module-head>button,
-    .mlh-slider-window .mlh-directory-list>button,
-    .mlh-slider-window .mlh-module-rail>button:not(.mlh-rail-home),
     .overview-next>button,
     .overview-attendance,
     .overview-now-grid button:not(:disabled),

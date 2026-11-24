@@ -185,7 +185,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   return <main className={'screen mlh-slider-window '+(directoryOpen?'is-directory':'is-module')} style={accent}>
     <div className="mlh-slider-track">
       <section className="mlh-directory mlh-slider-pane" aria-hidden={!directoryOpen}>
-        <div ref={node=>setModuleScroller(node,'directory')} onScroll={event=>syncModuleScroll(event.currentTarget,railScroll.current)} className="mlh-directory-list"><span className="mlh-directory-rail-spacer" aria-hidden="true"/>{visible.map(module=><button key={module.id} className={openingModule===module.id?'is-selected':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}><span className="mlh-directory-name">{module.name}</span></button>)}</div>
+        <div ref={node=>setModuleScroller(node,'directory')} onScroll={event=>syncModuleScroll(event.currentTarget,railScroll.current)} className="mlh-directory-list"><span className="mlh-directory-rail-spacer" aria-hidden="true"/>{visible.map(module=><button key={module.id} className={openingModule===module.id?'is-selected':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}>{module.coverImage&&<img className="mlh-course-image" src={module.coverImage} alt="" loading="lazy"/>}<span className="mlh-directory-name">{module.name}</span></button>)}</div>
         <button className="mlh-directory-add" onClick={onCreateModule}><Plus size={16}/>Modul hinzufügen</button>
       </section>
       <section className="mlh-module-pane mlh-slider-pane" aria-hidden={directoryOpen}>
@@ -198,7 +198,8 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
     </button>
     </header>
 
-    <section className="mlh-focus-card" aria-label="Weiterlernen">
+    <section className={"mlh-focus-card"+(active.coverImage?" has-cover":"")} aria-label="Weiterlernen">
+      {active.coverImage&&<img className="mlh-focus-image" src={active.coverImage} alt=""/>}
       <div className="mlh-focus-copy"><span>Weiterlernen</span><h2>{focusTitle}</h2><p>{nextStudyBundle?`${focusMinutes} Min. · ${formatDate(nextStudyBundle.date,{weekday:'short',day:'numeric',month:'short'})}`:`${focusMinutes} Min. · direkt einsteigen`}</p></div>
       <button onClick={openStudyFocus}><Play size={17} fill="currentColor"/><span>Starten</span></button>
     </section>

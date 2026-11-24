@@ -5,7 +5,6 @@ import {createPortal} from 'react-dom'
 import {ArrowLeft,ChevronRight,GraduationCap,Layers2,Plus,Settings2,Target,UserRound,X} from 'lucide-react'
 import UniflowPicker from './UniflowPicker'
 import {semesterNumber,type AppData,type StudyModule} from './model'
-import {scoreTotal} from './score'
 type Section='home'|'modules'|'goals'|'settings'
 type ModuleSort='semester'|'semester-desc'|'name'
 export default function ProfileOverlay({initialSection='home',data,settings,onClose,onModule,onProfileChange,onMutate,onCreateModule}:{initialSection?:'home'|'modules';data:AppData;onMutate:WorkspaceChange;onCreateModule:()=>void;settings:ReactNode;onClose:()=>void;onModule:(module:StudyModule)=>void;onProfileChange:(name:string)=>void}){
@@ -56,7 +55,7 @@ export default function ProfileOverlay({initialSection='home',data,settings,onCl
         </div>
         <button type="button" className="profile-module-add" aria-label="Modul hinzufügen" title="Modul hinzufügen" onClick={onCreateModule}><Plus size={18}/></button>
       </div>
-      {modulesByDegree.map(({degree,modules})=>{const studyStart=degree.studyStartSemester||data.semesters.filter(item=>item.degreeId===degree.id).map(item=>item.start).sort()[0];return <section key={degree.id}><h2><GraduationCap size={16}/>{degree.name}</h2>{modules.map(module=>{const semesters=module.semesterIds.map(id=>{const semester=data.semesters.find(item=>item.id===id);if(!semester)return null;const number=semesterNumber(studyStart,semester.start);return number?`${number}. Semester · ${semester.name}`:semester.name}).filter((value):value is string=>!!value).join(' · ');return <button key={module.id} onClick={()=>onModule(module)}><span><strong>{module.name}</strong><small>{semesters||'Ohne Semester'} · {module.credits} LP</small><small>{module.status==='passed'?'Bestanden':module.status==='recognized'?'Anerkannt':module.status==='failed'?'Nicht bestanden':module.status==='planned'?'Geplant':'Aktuell'}{module.grade?` · Note ${module.grade}`:''}</small></span><b>{scoreTotal(data.scoreEvents,module.id)}</b></button>})}</section>})}
+      {modulesByDegree.map(({degree,modules})=>{const studyStart=degree.studyStartSemester||data.semesters.filter(item=>item.degreeId===degree.id).map(item=>item.start).sort()[0];return <section key={degree.id}><h2><GraduationCap size={16}/>{degree.name}</h2>{modules.map(module=>{const semesters=module.semesterIds.map(id=>{const semester=data.semesters.find(item=>item.id===id);if(!semester)return null;const number=semesterNumber(studyStart,semester.start);return number?`${number}. Semester · ${semester.name}`:semester.name}).filter((value):value is string=>!!value).join(' · ');return <button key={module.id} onClick={()=>onModule(module)}><span><strong>{module.name}</strong><small>{semesters||'Ohne Semester'} · {module.credits} LP</small><small>{module.status==='passed'?'Bestanden':module.status==='recognized'?'Anerkannt':module.status==='failed'?'Nicht bestanden':module.status==='planned'?'Geplant':'Aktuell'}{module.grade?` · Note ${module.grade}`:''}</small></span></button>})}</section>})}
       {modulesByDegree.length===0&&<p className="profile-modules-empty">Keine Module für diese Auswahl.</p>}
     </div>}
     {section==='goals'&&<GoalManager data={data} onMutate={onMutate}/>}

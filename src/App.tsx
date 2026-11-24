@@ -7,6 +7,7 @@ import { acronym, assessmentBaseTitle, assessmentComponentKey, candidateOccurren
 import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, fetchAdminAccounts, isAdmin, cloudSave, cloudLoad, updatePremium, fetchOwnPremium, publishFriendStatus, type UniversityRow, type DegreeCatalogRow, type ModuleCatalogRow, type AccountRow } from './supabase'
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
+import ModuleCoverInput from './ModuleCoverInput'
 import { configurePushPreferences } from './push-notifications'
 import CalendarMonthOverview from './CalendarMonthOverview'
 import { shiftCalendarMonth } from './calendar-month'
@@ -590,7 +591,7 @@ function DeleteSheet({proposal,onConfirm,onClose}:{proposal:MoveProposal;onConfi
   </BottomSheet>
 }
 
-function ModuleEditor({ module, onClose, onSave, onDelete }: { module: StudyModule; onClose: () => void; onSave: (m: StudyModule) => void; onDelete: () => void }) { const [name, setName] = useState(module.name), [emoji,setEmoji] = useState(module.emoji || ''), [short, setShort] = useState(module.shortName), [credits, setCredits] = useState(String(module.credits)), [color, setColor] = useState(module.color), [grade, setGrade] = useState(module.grade), [status, setStatus] = useState(module.status); return <BottomSheet title="Modul bearbeiten" onClose={onClose} footer={<button className="primary-action" onClick={() => { if (name.trim()) onSave({ ...module, name: name.trim(), shortName: short.trim() || acronym(name), credits: ensureCredits(credits), color, emoji, grade, status }) }}>Änderungen speichern <Check size={19} /></button>}><div className="editor-field"><span className="field-label">Name</span><input className="line-input" value={name} onChange={e => setName(e.target.value)} /></div><div className="editor-time-row"><div className="editor-field"><span className="field-label">Kurzname</span><input className="line-input" maxLength={10} value={short} onChange={e => setShort(e.target.value)} /></div><div className="editor-field"><span className="field-label">LP</span><input className="line-input" type="number" min="0" step="0.5" value={credits} onChange={e => setCredits(e.target.value)} /></div></div><div className="editor-field"><span className="field-label">Emoji</span><input className="line-input" placeholder="Optional – z. B. 📐" value={emoji} maxLength={8} onChange={e=>setEmoji(e.target.value)}/></div><div className="editor-field"><span className="field-label">Modulfarbe</span><div className="swatches">{colors.map(c => <button key={c} style={{ background: c }} className={c === color ? 'selected' : ''} onClick={() => setColor(c)} aria-label={`Farbe ${c}`}>{c === color && <Check size={17} />}</button>)}</div></div><div className="editor-field"><span className="field-label">Status</span><div className="category-list">{([{ v: 'current', l: 'Aktuell' }, { v: 'passed', l: 'Bestanden' }, { v: 'planned', l: 'Geplant' }, { v: 'failed', l: 'Nicht bestanden' }, { v: 'recognized', l: 'Anerkannt' }] as const).map(item => <button key={item.v} onClick={() => setStatus(item.v)} className={status === item.v ? 'chosen' : ''}>{item.l}</button>)}</div></div><div className="editor-field"><span className="field-label">Note <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. 1,7" value={grade} onChange={e => setGrade(e.target.value)} /></div><button className="danger-simple" onClick={onDelete}><Trash2 size={18} /> Modul löschen</button></BottomSheet> }
+function ModuleEditor({ module, onClose, onSave, onDelete }: { module: StudyModule; onClose: () => void; onSave: (m: StudyModule) => void; onDelete: () => void }) { const [name, setName] = useState(module.name), [emoji,setEmoji] = useState(module.emoji || ''), [short, setShort] = useState(module.shortName), [credits, setCredits] = useState(String(module.credits)), [color, setColor] = useState(module.color), [grade, setGrade] = useState(module.grade), [status, setStatus] = useState(module.status), [coverImage,setCoverImage] = useState(module.coverImage); return <BottomSheet title="Modul bearbeiten" onClose={onClose} footer={<button className="primary-action" onClick={() => { if (name.trim()) onSave({ ...module, name: name.trim(), shortName: short.trim() || acronym(name), credits: ensureCredits(credits), color, emoji, grade, status, coverImage }) }}>Änderungen speichern <Check size={19} /></button>}><div className="editor-field"><span className="field-label">Name</span><input className="line-input" value={name} onChange={e => setName(e.target.value)} /></div><div className="editor-time-row"><div className="editor-field"><span className="field-label">Kurzname</span><input className="line-input" maxLength={10} value={short} onChange={e => setShort(e.target.value)} /></div><div className="editor-field"><span className="field-label">LP</span><input className="line-input" type="number" min="0" step="0.5" value={credits} onChange={e => setCredits(e.target.value)} /></div></div><div className="editor-field"><span className="field-label">Emoji</span><input className="line-input" placeholder="Optional – z. B. 📐" value={emoji} maxLength={8} onChange={e=>setEmoji(e.target.value)}/></div><ModuleCoverInput value={coverImage} onChange={setCoverImage}/><div className="editor-field"><span className="field-label">Modulfarbe</span><div className="swatches">{colors.map(c => <button key={c} style={{ background: c }} className={c === color ? 'selected' : ''} onClick={() => setColor(c)} aria-label={`Farbe ${c}`}>{c === color && <Check size={17} />}</button>)}</div></div><div className="editor-field"><span className="field-label">Status</span><div className="category-list">{([{ v: 'current', l: 'Aktuell' }, { v: 'passed', l: 'Bestanden' }, { v: 'planned', l: 'Geplant' }, { v: 'failed', l: 'Nicht bestanden' }, { v: 'recognized', l: 'Anerkannt' }] as const).map(item => <button key={item.v} onClick={() => setStatus(item.v)} className={status === item.v ? 'chosen' : ''}>{item.l}</button>)}</div></div><div className="editor-field"><span className="field-label">Note <span className="optional">optional</span></span><input className="line-input" placeholder="z. B. 1,7" value={grade} onChange={e => setGrade(e.target.value)} /></div><button className="danger-simple" onClick={onDelete}><Trash2 size={18} /> Modul löschen</button></BottomSheet> }
 
 function ModuleGoalSheet({goal,modules,onSave,onDelete,onClose}:{goal:CreditGoal|null;modules:StudyModule[];onSave:(goal:CreditGoal)=>void;onDelete?:(id:string)=>void;onClose:()=>void}){
   const [name,setName]=useState(goal?.name||'')
@@ -712,6 +713,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
   useEffect(() => {
     try { localStorage.setItem(`uniflow-calendar-view-${userId}`, mode) } catch { /* Storage may be disabled. */ }
   }, [mode, userId])
+  const calendarWeekEndDay=Math.max(data.weekEndDay??4,weekday(today()))
   const [anchor,setAnchor]=useState(()=>initialCalendarDay(data,semester,userId))
   useEffect(()=>rememberCalendarDay(userId,semester.id,anchor),[userId,semester.id,anchor])
   const [monthOpen,setMonthOpen]=useState(false)
@@ -823,19 +825,19 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
       !active.some(a=>intersects(a,o))
     )
   }
-  const visibleDays=(start:string)=>datesForCalendarPage(start,mode,data.weekEndDay)
+  const visibleDays=(start:string)=>datesForCalendarPage(start,mode,calendarWeekEndDay)
   // The same configured Friday/Saturday/Sunday cutoff applies to all views.
   // Keep two-day windows complete and within the selected workweek.
-  const calendarPageStart=alignCalendarStart(anchor,mode,data.weekEndDay)
+  const calendarPageStart=alignCalendarStart(anchor,mode,calendarWeekEndDay)
   // One pinned header for all modes. In week view the range is unnecessary:
   // all seven dates are equally visible, and only the real "today" is marked.
   const displayCalendarStart=stripPreview||calendarPageStart
   const stripMonday=weekStart(displayCalendarStart)
-  const stripDates=weekHeaderDates(displayCalendarStart,data.weekEndDay)
+  const stripDates=weekHeaderDates(displayCalendarStart,calendarWeekEndDay)
   const stripIndex=Math.max(0,stripDates.indexOf(displayCalendarStart))
   const stripRangeIndex=stripIndex
   const stripRangeDays=Math.min(mode==='two'?2:1,stripDates.length-stripRangeIndex)
-  useLayoutEffect(()=>{setStripPreview(null)},[calendarPageStart,mode,data.weekEndDay])
+  useLayoutEffect(()=>{setStripPreview(null)},[calendarPageStart,mode,calendarWeekEndDay])
   const todayIndex=stripDates.indexOf(today())
   // Keep the outer strip mounted and slide previous/new date rows in opposite
   // directions whenever a horizontal swipe or arrow changes the displayed week.
@@ -853,12 +855,12 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
     return()=>clearTimeout(timeout)
   },[weekSlide])
   const pages=useMemo(()=>[
-    adjacentCalendarPage(calendarPageStart,mode,-1,data.weekEndDay),
+    adjacentCalendarPage(calendarPageStart,mode,-1,calendarWeekEndDay),
     calendarPageStart,
-    adjacentCalendarPage(calendarPageStart,mode,1,data.weekEndDay)
-  ],[calendarPageStart,mode,data.weekEndDay])
+    adjacentCalendarPage(calendarPageStart,mode,1,calendarWeekEndDay)
+  ],[calendarPageStart,mode,calendarWeekEndDay])
   // The 2-day timeline is ONE continuous rail: shared dates are drawn once.
-  const dayRail=useMemo(()=>twoDayRail(calendarPageStart,data.weekEndDay),[calendarPageStart,data.weekEndDay])
+  const dayRail=useMemo(()=>twoDayRail(calendarPageStart,calendarWeekEndDay),[calendarPageStart,calendarWeekEndDay])
   const snapTarget=(slot:0|1|2,width:number)=>mode==='two'
     ?dayRail.offsets[slot]*width/2
     :slot*width
@@ -884,7 +886,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
       scrollReset.current=false
     })
     return()=>cancelAnimationFrame(frame)
-  },[calendarPageStart,mode,data.weekEndDay])
+  },[calendarPageStart,mode,calendarWeekEndDay])
   useEffect(()=>()=>{
     if(scrollTimeout.current)clearTimeout(scrollTimeout.current)
     if(monthTimer.current)clearTimeout(monthTimer.current)
@@ -999,14 +1001,14 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
       setMode('day')
       return
     }
-    const selected=alignCalendarStart(date,mode,data.weekEndDay)
+    const selected=alignCalendarStart(date,mode,calendarWeekEndDay)
     if(selected===calendarPageStart)return
     if(selected===pages[0]){jump(-1);return}
     if(selected===pages[2]){jump(1);return}
     setAnchor(selected)
   }
   const changeMode=(next:CalendarView)=>{setFan(null);setMonthOpen(false);if(next!==mode)animateCalendar(()=>{
-    setAnchor(alignCalendarStart(anchor,next,data.weekEndDay))
+    setAnchor(alignCalendarStart(anchor,next,calendarWeekEndDay))
     setMode(next)
   },'switch')}
   const onDown=(e:ReactPointerEvent,occ?:Occurrence,source?:NewEntry)=>{
@@ -1173,7 +1175,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
         onPointerCancel={()=>{weekGesture.current=null}} onWheel={onWeekWheel}
         onClickCapture={e=>{if(Date.now()<suppressWeekTap.current){e.preventDefault();e.stopPropagation()}}}>
         {weekSlide&&<div className={'uf-week-dates-previous uf-week-slide-out-'+weekSlide.direction} aria-hidden="true" style={{'--uf-days':stripDates.length} as CSSProperties}>
-          {weekHeaderDates(weekSlide.from,data.weekEndDay).map(date=>
+          {weekHeaderDates(weekSlide.from,calendarWeekEndDay).map(date=>
             <span key={date} className={date===today()?'uf-week-previous-today':''}>{Number(date.slice(-2))}</span>
           )}
         </div>}

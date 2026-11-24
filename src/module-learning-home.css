@@ -40,7 +40,7 @@
 .mlh-slider-window.is-module .mlh-slider-track{transform:translate3d(-50%,0,0)}
 .mlh-slider-pane{position:relative;flex:0 0 50%;width:50%;height:100%;min-width:0;box-sizing:border-box;background:var(--page,#101113)}
 .mlh-slider-window .mlh-directory{min-height:0;height:100%;padding:0;background:var(--page,#101113);overflow:hidden}
-.mlh-slider-window .mlh-directory-list{position:absolute;top:24px;bottom:90px;left:50%;transform:translateX(-50%);width:min(520px,calc(100% - 40px));transition:none}
+.mlh-slider-window .mlh-directory-list{position:absolute;top:24px;bottom:90px;left:50%;transform:translateX(-50%);width:min(920px,calc(100% - 40px));transition:none}
 .mlh-slider-window .mlh-directory-add{position:absolute;left:50%;bottom:35px;transform:translateX(-50%);transition:none}
 .mlh-slider-window .mlh-module-pane{overflow:hidden}
 .mlh-slider-window .mlh-module-open{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box;padding-left:max(70px,calc(clamp(18px,5vw,56px) + 42px));background:var(--page,#101113)}
@@ -52,8 +52,6 @@
 @media(max-width:720px){.mlh-slider-window .mlh-directory-list{top:max(18px,env(safe-area-inset-top,0px));bottom:92px}.mlh-slider-window .mlh-directory-add{bottom:92px}.mlh-slider-window .mlh-module-open{padding-left:62px;padding-right:14px}.mlh-slider-window .mlh-module-rail-fixed{left:8px!important;top:max(18px,env(safe-area-inset-top,0px))!important;bottom:24px!important}}
 @media(max-width:720px){.mlh-slider-track{transition:transform 240ms cubic-bezier(.2,.8,.2,1)}.mlh-slider-pane{contain:layout paint;backface-visibility:hidden;transform:translateZ(0)}.mlh-directory-list>button.is-selected .mlh-directory-name{animation:none}.mlh-slider-window .mlh-module-open.is-switching-in{animation-duration:220ms}}
 @media(prefers-reduced-motion:reduce){.mlh-slider-track{transition:none}}
-@media(hover:hover) and (pointer:fine){.mlh-slider-window .mlh-directory-list:has(>button:hover)>button:not(:hover){color:#777780;filter:blur(.65px);opacity:.62}.mlh-slider-window .mlh-directory-list>button:hover{z-index:2;transform:translateY(-2px)}.mlh-slider-window .mlh-directory-list>button:hover .mlh-directory-name{color:transparent;background:linear-gradient(105deg,var(--module-color) 8%,#fff 45%,var(--module-color) 72%);background-size:250% 100%;background-clip:text;-webkit-background-clip:text;animation:mlh-text-sweep 420ms ease both}}
-@media(hover:hover) and (pointer:fine){.mlh-slider-window .mlh-module-rail>button{transition:filter 220ms ease,opacity 220ms ease,transform 220ms cubic-bezier(.2,.8,.2,1),color 220ms ease}.mlh-slider-window .mlh-module-rail:has(>button:not(.mlh-rail-home):hover)>button:not(:hover):not(.mlh-rail-home){color:#777780;filter:blur(.65px);opacity:.62}.mlh-slider-window .mlh-module-rail>button:not(.mlh-rail-home):hover{z-index:2;transform:translateY(-2px);color:transparent;background:linear-gradient(105deg,var(--module-color) 8%,#fff 45%,var(--module-color) 72%);background-size:250% 100%;background-clip:text;-webkit-background-clip:text;animation:mlh-text-sweep 420ms ease both}}
 .mlh-slider-window .mlh-module-open.is-switching-in>*{animation:none!important;transition:none!important;filter:none!important;opacity:1!important;transform:none!important}
 .mlh-slider-window .mlh-module-open.motion-up.is-switching-in{animation:mlh-simple-scroll-up 380ms cubic-bezier(.22,.8,.2,1) both}
 .mlh-slider-window .mlh-module-open.motion-down.is-switching-in{animation:mlh-simple-scroll-down 380ms cubic-bezier(.22,.8,.2,1) both}
@@ -111,6 +109,29 @@
 .mlh-slider-window .mlh-module-rail>button{position:relative}
 .mlh-slider-window .mlh-module-rail>button.active::after{content:"";position:absolute;right:0;top:50%;width:4px;height:4px;border-radius:50%;background:var(--module-color);transform:translateY(-50%)}
 
-@media(hover:hover) and (pointer:fine){.mlh-slider-window .mlh-directory-list:has(>button:hover)>button:not(:hover),.mlh-slider-window .mlh-module-rail:has(>button:not(.mlh-rail-home):hover)>button:not(:hover):not(.mlh-rail-home){filter:blur(.25px);opacity:.68}.mlh-slider-window .mlh-directory-list>button:hover,.mlh-slider-window .mlh-module-rail>button:not(.mlh-rail-home):hover{transform:scale(1.025)}}
 @media(max-width:720px){.mlh-slider-window .mlh-module-open{padding-top:16px;padding-bottom:120px}.mlh-slider-window .mlh-module-head-simple{margin-bottom:7px}.mlh-slider-window .mlh-module-head-simple .mlh-score.clean-score{min-width:88px;padding-inline:11px}.mlh-slider-window .mlh-module-head-simple .clean-score-value .mlh-score-number strong{font-size:22px}.mlh-focus-card{min-height:142px;padding:22px 20px;border-radius:24px}.mlh-focus-copy h2{font-size:24px}.mlh-focus-card>button{width:42px;height:42px;padding:0;justify-content:center}.mlh-focus-card>button>span{display:none}.mlh-actions.mlh-compact-actions{overflow-x:auto;margin-bottom:30px;padding-bottom:2px;scrollbar-width:none}.mlh-actions.mlh-compact-actions::-webkit-scrollbar{display:none}.mlh-actions.mlh-compact-actions>button{flex:0 0 auto}.mlh-next-row{grid-template-columns:32px minmax(0,1fr) auto;padding:8px 10px}.mlh-next-kind{width:32px;height:32px}.mlh-next-trailing>b{display:none}}
 @media(prefers-reduced-motion:reduce){.mlh-focus-card>button,.mlh-actions.mlh-compact-actions>button,.mlh-next-row,.mlh-next>header>button{transition:none}}
+
+/* Compact image cards share their cover with the module's learning banner. */
+.mlh-slider-window .mlh-directory-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:14px;padding:10px 4px;box-sizing:border-box}
+.mlh-slider-window .mlh-directory-rail-spacer{display:none}
+.mlh-slider-window .mlh-directory-list>button,
+.mlh-slider-window .mlh-directory-list>button:first-child{display:flex;align-items:flex-end;position:relative;isolation:isolate;overflow:hidden;min-width:0;height:112px;min-height:112px;padding:18px 20px;border:0;border-radius:22px;background:color-mix(in srgb,var(--module-color) 18%,#17171b);text-align:left;color:var(--module-color);transform:none;filter:none;opacity:1;transition:none}
+.mlh-course-image{position:absolute;z-index:-2;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.mlh-slider-window .mlh-directory-list>button::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.08),rgba(0,0,0,.82));pointer-events:none}
+.mlh-slider-window .mlh-directory-list>button .mlh-directory-name,
+.mlh-slider-window .mlh-directory-list>button.is-selected .mlh-directory-name{display:-webkit-box;position:relative;inset:auto;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;color:var(--module-color);background:none;animation:none;font-size:clamp(16px,2vw,21px);line-height:1.15;text-shadow:0 1px 8px #0009}
+.mlh-slider-window .mlh-directory-list>button:focus-visible,
+.mlh-slider-window .mlh-module-rail>button:focus-visible{outline:2px solid var(--module-color);outline-offset:-3px}
+.mlh-slider-window .mlh-directory-list>button:hover,
+.mlh-slider-window .mlh-module-rail>button:not(.mlh-rail-home):hover{transform:none!important;filter:none;opacity:1}
+.mlh-slider-window .mlh-module-rail>button:not(.mlh-rail-home):hover{background:none;animation:none}
+.mlh-focus-card.has-cover{overflow:hidden;background:#131316;color:var(--mlh-accent);min-height:190px}
+.mlh-focus-image{position:absolute;z-index:-2;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.mlh-focus-card.has-cover::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.1) 0%,rgba(0,0,0,.58) 45%,rgba(0,0,0,.94) 100%);pointer-events:none}
+.mlh-focus-card.has-cover .mlh-focus-copy{color:var(--mlh-accent);text-shadow:0 1px 8px #0009}
+.mlh-focus-card.has-cover .mlh-focus-copy>span,
+.mlh-focus-card.has-cover .mlh-focus-copy p{opacity:1}
+.mlh-focus-card.has-cover>button{color:var(--mlh-accent);background:rgba(0,0,0,.8)}
+@media(max-width:1000px){.mlh-slider-window .mlh-directory-list{grid-template-columns:1fr;max-width:620px}}
+@media(max-width:720px){.mlh-slider-window .mlh-directory-list{bottom:120px;gap:12px}.mlh-slider-window .mlh-directory-list>button,.mlh-slider-window .mlh-directory-list>button:first-child{height:100px;min-height:100px;padding:16px 18px;border-radius:20px}.mlh-focus-card.has-cover{min-height:170px}}
