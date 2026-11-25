@@ -144,7 +144,7 @@ export function pastLessons(data:AppData, semester:Semester|undefined, now=new D
     for(const occ of occurrencesOn(data.offerings,date)){
       const o=occ.offering
       if(o.semesterId!==semester.id||!o.moduleId||isAssessment(o.category)||o.category==='Freies Lernen')continue
-      if(date===stop && minutes(occ.to)>now.getHours()*60+now.getMinutes())continue
+      if(date===stop && (occ.endTimeUnknown||minutes(occ.to)>now.getHours()*60+now.getMinutes()))continue
       const lesson=lessonForOccurrence(occ,data)
       if(!result.has(lesson.key)) result.set(lesson.key,lesson)
     }
@@ -162,7 +162,7 @@ export function pastFreeStudy(data:AppData,semester:Semester|undefined,now=new D
     for(const occ of occurrencesOn(data.offerings,date)){
       const o=occ.offering
       if(o.semesterId!==semester.id||!o.moduleId||o.category!=='Freies Lernen')continue
-      if(date===stop&&minutes(occ.to)>now.getHours()*60+now.getMinutes())continue
+      if(date===stop&&(occ.endTimeUnknown||minutes(occ.to)>now.getHours()*60+now.getMinutes()))continue
       const contentId=o.contentId||o.familyId||o.id
       const key='free:'+o.moduleId+':'+contentId+':'+weekStart(occ.origin)
       if(!result.has(key))result.set(key,{

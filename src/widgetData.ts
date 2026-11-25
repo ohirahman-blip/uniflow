@@ -16,7 +16,7 @@ export type WidgetAppointment = {
   onlineLink: string
   place: string
   startsAt: string
-  endsAt: string
+  endsAt: string | null
   ongoing: boolean
 }
 
@@ -40,12 +40,12 @@ export function nextWidgetAppointment(data: AppData, now: Date = new Date(), day
       organizer: next.offering.organizer || '',
       date: next.date,
       from: next.from,
-      to: next.to,
+      to: next.endTimeUnknown?'':next.to,
       room,
       onlineLink,
       place: [room, onlineLink ? 'Online' : ''].filter(Boolean).join(' + '),
       startsAt: `${next.date}T${next.from}`,
-      endsAt: `${next.date}T${next.to}`,
+      endsAt: next.endTimeUnknown?null:`${next.date}T${next.to}`,
       ongoing: dayOffset === 0 && minutes(next.from) <= currentMinutes
     }
   }

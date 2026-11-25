@@ -2,13 +2,14 @@ import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Minus, Plus, X } from 'lucide-react'
+import {parseClock} from './time-range'
 import './UniflowPicker.css'
 
 export type PickerOption = { value: string; label: string; detail?: string }
 type Shared = { value: string; onChange: (value: string) => void; label: string; placeholder?: string; disabled?: boolean }
 type Props =
   | (Shared & { kind?: 'select'; options: PickerOption[]; allowCustom?: boolean })
-  | (Shared & { kind: 'time'; maxMinutes?: number })
+  | (Shared & { kind: 'time'; maxMinutes?: number; allowEmpty?: boolean })
   | (Shared & { kind: 'date'; min?: string; max?: string })
   | (Shared & { kind: 'duration'; maxMinutes?: number })
 
@@ -93,6 +94,7 @@ function PickerWheel({label,items,selected,onSelect}:{
 export default function UniflowPicker(props: Props) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(props.value)
+  const [timeWheels,setTimeWheels]=useState(false)
   const [creatingCustom, setCreatingCustom] = useState(false)
   const [customLabel, setCustomLabel] = useState('')
   const [month, setMonth] = useState(() => {
@@ -106,12 +108,13 @@ export default function UniflowPicker(props: Props) {
   const chosen = options.find(o => o.value === props.value)
   const display = kind === 'select'
     ? chosen?.label || props.placeholder || 'Auswählen'
-    : kind === 'time' ? props.value
+    : kind === 'time' ? props.value || props.placeholder || 'Ohne Endzeit'
     : kind === 'date' ? dateLabel(props.value)
     : minutesLabel(Number(props.value) || 0)
   const openPicker = () => {
     if (props.disabled) return
     setDraft(props.value)
+    setTimeWheels(false)
     setCreatingCustom(false)
     setCustomLabel('')
     if (kind === 'date') {
@@ -131,7 +134,8 @@ export default function UniflowPicker(props: Props) {
     if (!open) return
     const initialOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    dialog.current?.focus()
+    if(kind==='time')dialog.current?.querySelector<HTMLInputElement>('input')?.focus()
+    else dialog.current?.focus()
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { event.preventDefault(); closePicker(); return }
       if (event.key !== 'Tab' || !dialog.current) return
@@ -143,10 +147,12 @@ export default function UniflowPicker(props: Props) {
     document.addEventListener('keydown', keydown)
     return () => { document.body.style.overflow = initialOverflow; document.removeEventListener('keydown', keydown) }
   }, [open, kind])
-  const hour = Math.min(23, Math.max(0, Math.floor(toMinutes(draft) / 60)))
+  const hour = Math.min(24, Math.max(0, Math.floor(toMinutes(draft) / 60)))
   const minute = Math.min(59, Math.max(0, toMinutes(draft) % 60))
-  const maxMinutes = 'maxMinutes' in props ? props.maxMinutes ?? (kind === 'time' ? 1439 : 1440) : 1440
-  const validTime = toMinutes(draft) <= maxMinutes
+  const maxMinutes = 'maxMinutes' in props ? props.maxMinutes ?? (kind === 'time' ? 1439 : 1440) : (kind === 'time' ? 1439 : 1440)
+  const parsedTime=parseClock(draft,maxMinutes>=1440)
+  const emptyTime=props.kind==='time'&&props.allowEmpty&&!draft.trim()
+  const validTime = emptyTime || !!parsedTime&&toMinutes(parsedTime)<=maxMinutes
   const duration = Number(draft)
   const validDuration = Number.isInteger(duration) && duration >= 5 && duration <= maxMinutes
   const y = month.getFullYear(), m = month.getMonth()
@@ -186,16 +192,19 @@ export default function UniflowPicker(props: Props) {
             </>}
           </div>}
           {kind === 'time' && <>
-            <p className="uf-picker-helper">Stunden und Minuten scrollen</p>
-            <div className="uf-picker-columns uf-picker-wheel-columns">
+            <label className="uf-picker-time-entry"><span>Uhrzeit eingeben</span><input type="text" inputMode="numeric" autoComplete="off" aria-label={props.label+' eingeben'} placeholder="09:30" maxLength={5} value={draft} onFocus={event=>event.currentTarget.select()} onChange={event=>setDraft(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'&&validTime){event.preventDefault();commit(parsedTime||'')}}}/></label>
+            <p className="uf-picker-helper">Zum Beispiel 9:30, 930 oder 9. Alternativ am Rad auswählen.</p>
+            <button type="button" className="uf-picker-wheel-toggle" aria-expanded={timeWheels} onClick={()=>{setDraft(parsedTime||'09:00');setTimeWheels(value=>!value)}}>{timeWheels?'Scrollauswahl ausblenden':'Scrollauswahl öffnen'}</button>
+            {!validTime&&<p className="uf-picker-error" role="alert">Bitte eine gültige Uhrzeit bis {pad(Math.floor(maxMinutes/60))}:{pad(maxMinutes%60)} eingeben.</p>}
+            {props.kind==='time'&&props.allowEmpty&&<button type="button" className="uf-picker-clear" onClick={()=>commit('')}>Ohne Endzeit</button>}
+            {timeWheels&&<div className="uf-picker-columns uf-picker-wheel-columns">
               <PickerWheel label="Stunde" selected={hour}
-                items={Array.from({length:24},(_,h)=>({value:h,disabled:h*60>maxMinutes}))}
+                items={Array.from({length:maxMinutes>=1440?25:24},(_,h)=>({value:h,disabled:h*60>maxMinutes}))}
                 onSelect={h=>setDraft(`${pad(h)}:${pad(Math.min(minute,Math.max(0,maxMinutes-h*60)))}`)}/>
               <PickerWheel label="Minute" selected={minute}
                 items={Array.from({length:60},(_,n)=>({value:n,disabled:hour*60+n>maxMinutes}))}
                 onSelect={n=>setDraft(`${pad(hour)}:${pad(n)}`)}/>
-            </div>
-            <p className="uf-picker-preview">{draft} Uhr</p>
+            </div>}
           </>}
           {kind === 'duration' && <>
             <p className="uf-picker-helper">Schnellauswahl</p>
@@ -220,7 +229,7 @@ export default function UniflowPicker(props: Props) {
           </>}
           {kind !== 'select' && <div className="uf-picker-actions">
             <button type="button" className="uf-picker-cancel" onClick={closePicker}>Abbrechen</button>
-            <button type="button" className="uf-picker-confirm" disabled={(kind === 'time' && !validTime) || (kind === 'duration' && !validDuration) || (kind === 'date' && !draft)} onClick={() => commit(draft)}>Übernehmen <Check size={17}/></button>
+            <button type="button" className="uf-picker-confirm" disabled={(kind === 'time' && !validTime) || (kind === 'duration' && !validDuration) || (kind === 'date' && !draft)} onClick={() => commit(kind==='time'?(parsedTime||''):draft)}>Übernehmen <Check size={17}/></button>
           </div>}
         </section>
       </div>,

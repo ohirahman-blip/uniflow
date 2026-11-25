@@ -2,7 +2,7 @@ import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, BookOpenCheck, Check, ChevronRight, GraduationCap, PenLine, Play, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
-import { dateString, formatDate, selectedAssessment, today, uid, weekStart, type AppData, type Assessment, type Semester, type StudyModule } from './model'
+import { dateString, formatDate, selectedAssessment, today, uid, type AppData, type Assessment, type Semester, type StudyModule } from './model'
 import AnimatedScore from './AnimatedScore'
 import {lessonProgressMap} from './lesson-progress'
 import SemesterOverview from './SemesterOverview'
@@ -13,6 +13,7 @@ import StudyTimerCard from './StudyTimerCard'
 import {timerElapsed,type StudyTimerState} from './study-timer'
 import { numberedLessons, scoreTotal, type NumberedLesson } from './score'
 import type { LearningRating, LearningSession, ScoreEvent, StudyTask } from './learning'
+import { moduleDirectory } from './module-directory'
 import './module-learning-home.css'
 
 type Props = {
@@ -94,15 +95,13 @@ function ActivityHistory({ events, tasks, sessions, onEditSession, onToggleTask,
 
 
 export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onStudyBundleOpened,onStudyScheduleChange,data, semester: selectedSemester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onAddAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
-  const currentModules = modules.filter(module => !module.hidden && !['passed','planned','recognized'].includes(module.status))
+  const {all:available,current:currentModules,past:pastModules,planned:plannedModules,groups,isPlanned}=moduleDirectory(data,modules,selectedSemester)
   const currentIds = new Set(currentModules.map(module=>module.id))
-  const pastModules = data.modules.filter(module=>module.degreeId===data.activeDegreeId&&!module.hidden&&module.status!=='planned'&&!currentIds.has(module.id)&&(
-    ['passed','recognized'].includes(module.status)||module.semesterIds.some(id=>data.semesters.some(item=>item.id===id&&item.start<(selectedSemester?.start||today())))
-  ))
-  const available = [...currentModules,...pastModules]
+  const scopeFor=(id:string):'current'|'past'|'planned'|'all'=>currentIds.has(id)?'current':plannedModules.some(module=>module.id===id)?'planned':pastModules.some(module=>module.id===id)?'past':'all'
   const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
-  const [moduleScope,setModuleScope]=useState<'current'|'past'>(()=>pastModules.some(module=>module.id===selectedModule)?'past':'current')
-  const visible=moduleScope==='current'?currentModules:pastModules
+  const [moduleScope,setModuleScope]=useState<'current'|'past'|'planned'|'all'>(()=>selectedModule?scopeFor(selectedModule):'current')
+  const scopes={current:{label:'Aktuelle Module',modules:currentModules},past:{label:'Vergangene Module',modules:pastModules},planned:{label:'Geplante Module',modules:plannedModules},all:{label:'Alle Module',modules:available}}
+  const visible=scopes[moduleScope].modules
   const [directoryOpen,setDirectoryOpen]=useState(()=>{if(currentModuleId)return false;try{return !localStorage.getItem(storageKey)}catch{return true}}),[openingModule,setOpeningModule]=useState('')
   const [detailMotion,setDetailMotion]=useState<'out'|'in'|''>('')
   const [switchDirection,setSwitchDirection]=useState<'up'|'down'>('down')
@@ -127,7 +126,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   useEffect(()=>{
     if(!currentModuleId||currentModuleId===externalModuleId.current)return
     externalModuleId.current=currentModuleId
-    setModuleScope(currentIds.has(currentModuleId)?'current':'past')
+    setModuleScope(scopeFor(currentModuleId))
     setSelectedModule(current=>current===currentModuleId?current:currentModuleId)
     setDirectoryOpen(false)
     try{localStorage.setItem(storageKey,currentModuleId)}catch{/* Keep navigation usable when storage is unavailable. */}
@@ -140,7 +139,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   }, [data.offerings,semester,active?.id,studyPlan.lessons])
   useEffect(()=>{
     if(!requestedStudyBundle)return
-    setModuleScope(currentIds.has(requestedStudyBundle.moduleId)?'current':'past')
+    setModuleScope(scopeFor(requestedStudyBundle.moduleId))
     setSelectedModule(requestedStudyBundle.moduleId)
     try{localStorage.setItem(storageKey,requestedStudyBundle.moduleId)}catch{/* Keep navigation usable when storage is unavailable. */}
     setDirectoryOpen(false)
@@ -158,7 +157,6 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const exams=data.assessments.filter(item=>item.moduleId===active?.id&&item.semesterId===semester?.id&&item.type==='exam'&&selectedAssessment(item,data.assessments))
   const completedAssessments=[...homework,...exams].filter(item=>item.completed).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||a.title.localeCompare(b.title,'de'))
   const completedCount=completed.length+completedAssessments.length
-  const pointsThisWeek=events.filter(event=>!event.reversedAt&&event.occurredAt.slice(0,10)>=weekStart(today())).reduce((sum,event)=>sum+event.points,0)
   const nextStudyBundle=studyPlan.bundles.filter(bundle=>bundle.moduleId===active?.id&&!bundle.completed&&bundle.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))[0]
   const nextLesson=allLessons.find(lesson=>{const progress=progressByLesson.get(lesson.key);return !progress||progress.green+progress.yellow<4})||allLessons[0]
   const focusKeys=nextStudyBundle?.items.map(item=>item.key).filter(key=>allLessons.some(lesson=>lesson.key===key))||(nextLesson?[nextLesson.key]:[])
@@ -197,10 +195,13 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
       <section className="mlh-directory mlh-slider-pane" aria-hidden={!directoryOpen}>
         <div ref={node=>setModuleScroller(node,'directory')} onScroll={event=>syncModuleScroll(event.currentTarget,railScroll.current)} className="mlh-directory-scroll">
           <div className="mlh-directory-filter" role="group" aria-label="Module anzeigen">
-            {(['current','past'] as const).map(scope=><button key={scope} type="button" aria-pressed={moduleScope===scope} onClick={()=>{setModuleScope(scope);moduleScroll.current=0;directoryScroll.current?.scrollTo({top:0})}}>{scope==='current'?'Aktuelle Module':'Vergangene Module'}<span>{scope==='current'?currentModules.length:pastModules.length}</span></button>)}
+            {(['current','past','planned','all'] as const).map(scope=><button key={scope} type="button" aria-pressed={moduleScope===scope} onClick={()=>{setModuleScope(scope);moduleScroll.current=0;directoryScroll.current?.scrollTo({top:0})}}>{scopes[scope].label}<span>{scopes[scope].modules.length}</span></button>)}
           </div>
-          <div className="mlh-directory-list">{visible.map(module=><button key={module.id} className={openingModule===module.id?'is-selected':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}>{module.coverImage&&<img className="mlh-course-image" src={module.coverImage} alt="" loading="lazy"/>}<span className="mlh-directory-name">{module.name}</span></button>)}</div>
-          {!visible.length&&<p className="mlh-directory-empty">{moduleScope==='current'?'Hier sind noch keine aktuellen Module.':'Hier erscheinen deine abgeschlossenen Module und Module aus früheren Semestern.'}</p>}
+          {(moduleScope==='all'?groups:[{key:moduleScope,label:'',modules:visible}]).map(group=><section className="mlh-directory-group" key={group.key}>
+            {group.label&&<h2>{group.label}</h2>}
+            <div className="mlh-directory-list">{group.modules.map(module=><button key={module.id} className={(openingModule===module.id?'is-selected ':'')+(moduleScope==='all'&&isPlanned(module)?'is-planned':'')} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}>{module.coverImage&&<img className="mlh-course-image" src={module.coverImage} alt="" loading="lazy"/>}<span className="mlh-directory-name">{module.name}</span>{moduleScope==='all'&&isPlanned(module)&&<small className="mlh-course-planned">Geplant</small>}</button>)}</div>
+          </section>)}
+          {!visible.length&&<p className="mlh-directory-empty">{moduleScope==='planned'?'Hier erscheinen deine für später geplanten Module.':moduleScope==='past'?'Hier erscheinen deine abgeschlossenen Module und Module aus früheren Semestern.':'Für diese Ansicht sind noch keine Module vorhanden.'}</p>}
           <button className="mlh-directory-add" onClick={onCreateModule}><Plus size={16}/>Modul hinzufügen</button>
         </div>
       </section>
@@ -208,9 +209,8 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
         <aside ref={node=>setModuleScroller(node,'rail')} onScroll={event=>syncModuleScroll(event.currentTarget,directoryScroll.current)} className="mlh-module-rail mlh-module-rail-fixed" aria-label="Module"><button className="mlh-rail-home" onClick={()=>{setModal(null);setDirectoryOpen(true)}} aria-label="Zurück zur Modulübersicht"><ArrowLeft size={17}/></button>{visible.map(module=><button key={module.id} className={module.id===active.id?'active':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>switchRail(module.id)} aria-label={module.name} title={module.name}>{module.shortName||module.name.slice(0,3).toUpperCase()}</button>)}</aside>
         <div className={'mlh-home mlh-module-open motion-'+switchDirection+(detailMotion?` is-switching-${detailMotion}`:'')} style={accent}>
     <header className="mlh-module-head mlh-module-head-simple">
-      <h1 id="learning-module-title" key={active.id}>{active.name}</h1><button id="learning-module-score" className="mlh-score clean-score" onClick={() => open('history')} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, davon ${pointsThisWeek} diese Woche, Aktivitäten öffnen`}>
+      <h1 id="learning-module-title" key={active.id}>{active.name}</h1><button id="learning-module-score" className="mlh-score clean-score" onClick={() => open('history')} aria-label={`${scoreTotal(data.scoreEvents, active.id)} Punkte, Aktivitäten öffnen`}>
       <span className="clean-score-value" style={{'--score-digits':scoreTotal(data.scoreEvents,active.id).toLocaleString('de-DE').length} as CSSProperties}><AnimatedScore key={active.id} value={scoreTotal(data.scoreEvents,active.id)} storageKey={`${storageKey}:score:${active.id}`}/></span>
-      <small>+{pointsThisWeek} diese Woche</small>
     </button>
     </header>
 

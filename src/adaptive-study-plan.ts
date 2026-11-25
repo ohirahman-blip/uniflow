@@ -5,7 +5,7 @@ import {lessonProgressMap} from './lesson-progress'
 export type LessonDifficulty='easy'|'medium'|'hard'
 export const difficultyMinutes:Record<LessonDifficulty,number>={easy:30,medium:60,hard:120}
 export type StudySchedulePreferences={
-  enabled:boolean;weekdays:number[];minutesPerDay:number;windowStart:number;windowEnd:number // minutesPerDay is legacy-only; never limits planning
+  enabled:boolean;weekdays:number[];minutesPerDay:number;windowStart:number;windowEnd:number;windowEndOpen?:boolean // minutesPerDay is legacy-only; never limits planning
   excludedDates:string[];excludedByExam:Record<string,string[]>;lessonMinutes:Record<string,number>;lessonDifficulty:Record<string,LessonDifficulty>;reviewAfter:Record<string,string>
 }
 export const defaultStudySchedule:StudySchedulePreferences={enabled:true,weekdays:[0,1,2,3,4,5,6],minutesPerDay:60,windowStart:9*60,windowEnd:20*60,excludedDates:[],excludedByExam:{},lessonMinutes:{},lessonDifficulty:{},reviewAfter:{}}
@@ -18,7 +18,7 @@ export function studyPreferences(data:Pick<AppData,'studySchedule'>):StudySchedu
   const lessonMinutes=raw?.lessonMinutes&&typeof raw.lessonMinutes==='object'?Object.fromEntries(Object.entries(raw.lessonMinutes).filter(([,value])=>typeof value==='number'&&Number.isFinite(value)&&value>0)):{}
   const lessonDifficulty=raw?.lessonDifficulty&&typeof raw.lessonDifficulty==='object'?Object.fromEntries(Object.entries(raw.lessonDifficulty).filter(([,value])=>['easy','medium','hard'].includes(value))) as Record<string,LessonDifficulty>:{}
   const reviewAfter=raw?.reviewAfter&&typeof raw.reviewAfter==='object'?Object.fromEntries(Object.entries(raw.reviewAfter).filter(([,value])=>typeof value==='string'&&Number.isFinite(Date.parse(value)))):{}
-  return {enabled:raw?.enabled!==false,weekdays,minutesPerDay:Math.round(bound(raw?.minutesPerDay,60,15,480)/15)*15,windowStart,windowEnd:bound(raw?.windowEnd,1200,windowStart+30,1440),
+  return {enabled:raw?.enabled!==false,weekdays,minutesPerDay:Math.round(bound(raw?.minutesPerDay,60,15,480)/15)*15,windowStart,windowEnd:raw?.windowEndOpen?1440:bound(raw?.windowEnd,1200,windowStart+30,1440),windowEndOpen:raw?.windowEndOpen===true,
     excludedDates:Array.isArray(raw?.excludedDates)?raw.excludedDates.filter(day=>/^\d{4}-\d{2}-\d{2}$/.test(day)):[],
     excludedByExam,lessonMinutes,lessonDifficulty,reviewAfter}
 }
@@ -50,9 +50,9 @@ const weekdaysOpen=(date:string,prefs:StudySchedulePreferences)=>prefs.weekdays.
 /** Real calendar obligations, independent of a currently selected display filter. */
 export function studyFreeWindows(data:AppData,date:string,prefs=studyPreferences(data)):Window[]{
   if(!weekdaysOpen(date,prefs))return []
-  const busy=occurrencesOn(data.offerings,date).filter(item=>!item.cancelled).map(item=>({from:minutes(item.from)-10,to:minutes(item.to)+10}))
+  const busy=occurrencesOn(data.offerings,date).filter(item=>!item.cancelled).map(item=>({from:minutes(item.from)-10,to:item.endTimeUnknown?prefs.windowEnd:minutes(item.to)+10}))
   for(const exam of data.assessments.filter(item=>item.type==='exam'&&!item.completed&&item.date===date&&selectedAssessment(item,data.assessments))){
-    busy.push({from:exam.from?minutes(exam.from)-15:prefs.windowStart,to:exam.to?minutes(exam.to)+15:exam.from?minutes(exam.from)+135:prefs.windowEnd})
+    busy.push({from:exam.from?minutes(exam.from)-15:prefs.windowStart,to:exam.to?minutes(exam.to)+15:prefs.windowEnd})
   }
   busy.sort((a,b)=>a.from-b.from)
   const free:Window[]=[]

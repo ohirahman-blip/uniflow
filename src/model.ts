@@ -1,3 +1,4 @@
+import {calendarEnd} from './time-range'
 import type { LearningCheckin, LearningSession, LearningPlanTask, LessonTopic, ScoreEvent, StudyTask } from './learning'
 import type { StudyTimerState } from './study-timer'
 import type {StudySchedulePreferences} from './adaptive-study-plan'
@@ -31,7 +32,7 @@ export type Assessment = {
 }
 export type Alternative = { recurrence?: Repeat; endDate?: string; id: string; parentOfferingId: string; parentOrigin?: string; kind: 'slot' | 'group'; moduleId: string; category: string; name: string; date: string; from: string; to: string; room: string }
 export type AppData = { calendarPreferences?: { showAlternatives?: boolean }; studySchedule?: Partial<StudySchedulePreferences>; soundEffects?: boolean; dailyScoreGoal?: number; streakDays?: string[]; studyTimer?: StudyTimerState; alternatives?: Alternative[]; creditGoals?: CreditGoal[]; weekEndDay?: 4 | 5 | 6; theme?: 'dark' | 'light'; themePreferenceVersion?: 1; notificationPreferences?: { mail?: boolean; lessonFeedback: boolean }; version: 2; profile: string; degrees: Degree[]; activeDegreeId: string; semesters: Semester[]; activeSemesterId: string; modules: StudyModule[]; offerings: Offering[]; assessments: Assessment[]; learningCheckins?: LearningCheckin[]; lessonTopics?: LessonTopic[]; learningSessions?: LearningSession[]; learningPlans?: LearningPlanTask[]; studyTasks?: StudyTask[]; scoreEvents?: ScoreEvent[]; firstHour: number; lastHour: number; lastUpdate: number }
-export type Occurrence = { key: string; offering: Offering; origin: string; date: string; from: string; to: string; isOverride: boolean; cancelled?: boolean }
+export type Occurrence = { endTimeUnknown?: boolean; key: string; offering: Offering; origin: string; date: string; from: string; to: string; isOverride: boolean; cancelled?: boolean }
 export const STORE = 'uniflow-v2-local'
 export const LEGACY_STORE = 'uniflow-v1-local'
 export const moduleEmojis: string[] = []
@@ -99,11 +100,14 @@ export function occurrenceAtOrigin(o: Offering, origin: string, includeUnselecte
   if (override?.cancelled && !includeCancelled) return null
   const schedule = scheduleAt(o,origin)
   if (!includeUnselected && !override?.cancelled && !(override?.selected ?? o.selected)) return null
+  const from=override?.from || schedule?.from || o.from
+  const end=override?.to ?? schedule?.to ?? o.to
   return {
     key: `${o.id}:${origin}`, offering:o, origin,
     date:override?.date || addDays(origin,schedule?.shiftDays || 0),
-    from:override?.from || schedule?.from || o.from,
-    to:override?.to || schedule?.to || o.to,
+    from,
+    to:calendarEnd(from,end),
+    endTimeUnknown:!end,
     isOverride:!!override || !!schedule,
     cancelled:!!override?.cancelled
   }
@@ -185,7 +189,7 @@ export const sameContent = (a: Offering,b:Offering) => a.semesterId === b.semest
   (a.contentId || a.familyId || a.id) === (b.contentId || b.familyId || b.id)
 export const offeringAlternativeId = (offering:Offering) => offering.alternativeId || offering.id
 export const sameAlternative = (a:Offering,b:Offering) => sameContent(a,b) && offeringAlternativeId(a) === offeringAlternativeId(b)
-export const intersects = (a: {from:string;to:string},b:{from:string;to:string}) => minutes(a.from)<minutes(b.to) && minutes(a.to)>minutes(b.from)
+export const intersects = (a: {from:string;to:string},b:{from:string;to:string}) => minutes(a.from)<minutes(calendarEnd(b.from,b.to)) && minutes(calendarEnd(a.from,a.to))>minutes(b.from)
 /** Same-content groups are reciprocal, regardless of chosen lecturer or day.
  * Independent modules at the same time are separate slot alternatives. */
 export function linkedCandidates(offers: Offering[], occ: Occurrence): {occ: Occurrence;kind:'group'|'slot'}[] {
@@ -284,7 +288,7 @@ export function separateAssessments(data: AppData): AppData {
           title: offering.contentLabel || (offering.name !== offering.category ? offering.name : offering.category),
           date: visit.date,
           from: /klausur|prüfung|exam/i.test(offering.category) ? visit.from : undefined,
-          to: /klausur|prüfung|exam/i.test(offering.category) ? visit.to : undefined,
+          to: /klausur|prüfung|exam/i.test(offering.category) ? (visit.endTimeUnknown?undefined:visit.to) : undefined,
           completed: false
         })
       }

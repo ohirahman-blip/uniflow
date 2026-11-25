@@ -8,6 +8,8 @@ import { supabase, signOutApple, sendEmailCode, verifyEmailCode, fetchCatalog, f
 import type { User } from '@supabase/supabase-js'
 import ModuleScheduleEditor from './ModuleScheduleEditor'
 import ModuleCoverInput from './ModuleCoverInput'
+import TimeRangeFields from './TimeRangeFields'
+import {timeRangeLabel} from './time-range'
 import { configurePushPreferences } from './push-notifications'
 import CalendarMonthOverview from './CalendarMonthOverview'
 import { shiftCalendarMonth } from './calendar-month'
@@ -45,6 +47,7 @@ import './study-game.css'
 import './module-progress-polish.css'
 import './study-plan.css'
 import './calm-interface.css'
+import './workspace-refinements.css'
 
 type Page = 'overview' | 'dashboard' | 'calendar' | 'friends' | 'modules' | 'settings' | 'admin'
 const pageFromUrl = (userId?: string): Page => {
@@ -326,7 +329,7 @@ function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModu
     if(!moduleId&&!freeLearning)return setErr('Bitte wähle zuerst ein Modul oder Freies Lernen.')
     const kind=moduleId?inferOfferingCategory(label):'Freies Lernen'
     if(entryDate<semester.start||entryDate>semester.end)return setErr('Das Datum liegt außerhalb des Semesters.')
-    if(minutes(to)<=minutes(from))return setErr('Das Ende muss nach dem Beginn liegen.')
+    if(to&&minutes(to)<=minutes(from))return setErr('Das Ende muss nach dem Beginn liegen.')
     if(repeat!=='once'&&end<entryDate)return setErr('Das Wiederholungsende liegt vor dem ersten Termin.')
     onSave({
       id:uid(),semesterId:semester.id,moduleId:moduleId||'',
@@ -356,8 +359,7 @@ function EntryEditor({ initial, modules, semester, onSave, onClose, onCreateModu
       </div>
       <div className="editor-field"><span className="field-label">Name</span><input className="line-input" placeholder="z. B. Vorlesung 1" value={content} onChange={e=>setContent(e.target.value)}/></div>
       <div className="uf-entry-grid">
-        <div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div>
-        <div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div>
+        <TimeRangeFields from={from} to={to} onChange={(nextFrom,nextTo)=>{setFrom(nextFrom);setTo(nextTo)}}/>
       </div>
       <div className="uf-entry-grid">
         <div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={repeat} onChange={value=>setRepeat(value as Repeat)} options={[{value:'once',label:'Einmalig'},{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'}]}/></div>
@@ -389,7 +391,7 @@ function AssessmentEditor({initial,existing,modules,semester,assessments,onSave,
   const [picker,setPicker]=useState(false)
   const [hasTime,setHasTime]=useState(!!(existing ? existing.from : initial.type==='exam'))
   const [from,setFrom]=useState(existing?.from||initial.from)
-  const [to,setTo]=useState(existing?.to||initial.to)
+  const [to,setTo]=useState(existing ? existing.to||'' : initial.to)
   const [alternativeSourceId,setAlternativeSourceId]=useState(()=>{
     if(existing?.type!=='exam')return ''
     const key=assessmentComponentKey(existing)
@@ -420,9 +422,9 @@ function AssessmentEditor({initial,existing,modules,semester,assessments,onSave,
   const save=()=>{
     if (!title.trim()) return setErr('Gib bitte einen Titel ein.')
     if ((type==='exam'||hasDeadline)&&!date) return setErr('Wähle bitte ein Datum aus.')
-    if (type==='exam'&&hasTime && minutes(to)<=minutes(from)) return setErr('Das Ende muss nach dem Beginn liegen.')
+    if (type==='exam'&&hasTime && to && minutes(to)<=minutes(from)) return setErr('Das Ende muss nach dem Beginn liegen.')
     onSave({id:existing?.id||uid(),semesterId:existing?.semesterId||semester.id,moduleId,type,title:title.trim(),date:type==='exam'||hasDeadline?date:'',notes:notes.trim()||undefined,
-      from:(type==='exam'||hasDeadline)&&hasTime?from:undefined,to:type==='exam'&&hasTime?to:undefined,completed:existing?.completed||false,
+      from:(type==='exam'||hasDeadline)&&hasTime?from:undefined,to:type==='exam'&&hasTime&&to?to:undefined,completed:existing?.completed||false,
       componentId:type==='exam'?(alternativeSource?.componentId||alternativeSource?.id||existing?.componentId):undefined,selected:existing?.selected,weight:existing?.weight})
   }
   return <BottomSheet title={existing?'Eintrag bearbeiten':type==='exam'?'Neue Prüfung':'Neue Hausaufgabe'} onClose={onClose}
@@ -440,7 +442,7 @@ function AssessmentEditor({initial,existing,modules,semester,assessments,onSave,
     {type==='homework'&&<div className="editor-field"><button className={'assessment-time-switch '+(hasDeadline?'enabled':'')} onClick={()=>setHasDeadline(value=>!value)}><CalendarDays size={17}/>{hasDeadline?'Abgabetermin angegeben':'Abgabetermin hinzufügen'}<span>{hasDeadline?'Entfernen':'Optional'}</span></button></div>}
     {(type==='exam'||hasDeadline)&&<div className="editor-field"><span className="field-label">{type==='exam'?'Prüfungstag':'Abgabedatum'}</span><UniflowPicker kind="date" label={type==='exam'?'Prüfungstag':'Abgabedatum'} value={date} min={semester.start} max={type==='exam'?examVisibilityEnd(semester):semester.end} onChange={setDate}/>{type==='exam'&&<small className="setting-hint">Prüfungen können noch bis einen Monat nach Semesterende stattfinden.</small>}</div>}
     {(type==='exam'||hasDeadline)&&<div className="editor-field"><button className={'assessment-time-switch '+(hasTime?'enabled':'')} onClick={()=>setHasTime(v=>!v)}><Clock3 size={17}/> {hasTime?'Uhrzeit angegeben':'Uhrzeit hinzufügen'}<span>{hasTime?'Entfernen':'Optional'}</span></button></div>}
-    {(type==='exam'||hasDeadline)&&hasTime&&(type==='exam'?<div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>:<div className="editor-field"><span className="field-label">Abgabezeit</span><UniflowPicker kind="time" label="Abgabezeit" value={from} onChange={setFrom}/></div>)}
+    {(type==='exam'||hasDeadline)&&hasTime&&(type==='exam'?<div className="uf-entry-grid"><TimeRangeFields from={from} to={to} onChange={(nextFrom,nextTo)=>{setFrom(nextFrom);setTo(nextTo)}}/></div>:<div className="editor-field"><span className="field-label">Abgabezeit</span><UniflowPicker kind="time" label="Abgabezeit" value={from} onChange={setFrom}/></div>)}
     <label className="editor-field"><span className="field-label">Notizen · optional</span><textarea className="assessment-notes-input" rows={3} value={notes} onChange={event=>setNotes(event.target.value)} placeholder="Was möchtest du dir dazu merken?"/></label>
     {existing&&onDelete&&<button className="danger-simple" onClick={onDelete}><Trash2 size={18}/> {type==='exam'?'Prüfung':'Hausaufgabe'} löschen</button>}
     {err&&<p className="inline-error" role="alert">{err}</p>}
@@ -487,7 +489,7 @@ function EventDetails({occ,module,modules,offerings,data,onClose,onDelete,onSusp
           const m=modules.find(m=>m.id===alt.offering.moduleId)
           return <div className="alternative-option" key={alt.key}>
             <div className="alternative-option-top"><span className="color-mark" style={{background:m?.color||'#888'}}/><strong>{m?.name||alt.offering.name}</strong>{alt.offering.organizer&&<span className="group-lecturer">{alt.offering.organizer}</span>}</div>
-            <small>{formatDate(alt.date,{weekday:'short',day:'numeric',month:'short'})} · {alt.from}–{alt.to} · {alt.offering.recurrence==='biweekly'?'14-täglich':alt.offering.recurrence==='weekly'?'Wöchentlich':'Einmalig'}</small>
+            <small>{formatDate(alt.date,{weekday:'short',day:'numeric',month:'short'})} · {timeRangeLabel(alt)} · {alt.offering.recurrence==='biweekly'?'14-täglich':alt.offering.recurrence==='weekly'?'Wöchentlich':'Einmalig'}</small>
             {(placeLabel(alt.offering)||alt.offering.organizer)&&<small className="alternative-location">{placeLabel(alt.offering)&&<>Ort: {placeLabel(alt.offering)}</>}{placeLabel(alt.offering)&&alt.offering.organizer?' · ':''}{alt.offering.organizer&&<>Veranstalter: {alt.offering.organizer}</>}</small>}
             <div className="alternative-option-actions"><button onClick={()=>onSelectAlternative(alt)}>Als Haupttermin wählen <ArrowRight size={15}/></button><button className="alternative-secondary" onClick={()=>onInspectAlternative(alt)}>Details / Bearbeiten</button></div>
           </div>
@@ -499,7 +501,7 @@ function EventDetails({occ,module,modules,offerings,data,onClose,onDelete,onSusp
   return <BottomSheet title={occ.offering.name} onClose={onClose} compactHeader>
     <div className="detail-heading" style={{color:module?.color||'#EDEDED'}}>{module?.name||occ.offering.name}</div>
     <div className="detail-row"><CalendarDays size={18}/>{formatDate(occ.date)}</div>
-    <div className="detail-row"><Clock3 size={18}/>{occ.from} – {occ.to}</div>
+    <div className="detail-row"><Clock3 size={18}/>{timeRangeLabel(occ)}</div>
     {placeLabel(occ.offering)&&<div className="detail-row"><Info size={18}/>{occ.offering.room?.trim()}{occ.offering.room?.trim()&&occ.offering.onlineLink?.trim()?' + ':''}{occ.offering.onlineLink?.trim()&&<a href={onlineHref(occ.offering.onlineLink)} target="_blank" rel="noopener noreferrer">Online</a>}</div>}
     {occ.offering.organizer&&<div className="detail-row"><GraduationCap size={18}/>{occ.offering.organizer}</div>}
     <div className="detail-row"><RotateCcw size={18}/>{occ.offering.recurrence==='weekly'?'Jede Woche':occ.offering.recurrence==='biweekly'?'Alle zwei Wochen':'Einmalig'}</div>
@@ -517,7 +519,7 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
   const [moduleId,setModuleId]=useState(editing?.moduleId ?? (kind==='group'?occ.offering.moduleId:''))
   const [picker,setPicker]=useState(false),[search,setSearch]=useState('')
   const [category,setCategory]=useState(editing?.category || occ.offering.category)
-  const [date,setDate]=useState(editing?.date || occ.date),[from,setFrom]=useState(editing?.from || occ.from),[to,setTo]=useState(editing?.to || occ.to)
+  const [date,setDate]=useState(editing?.date || occ.date),[from,setFrom]=useState(editing?.from || occ.from),[to,setTo]=useState(editing?.to ?? (occ.endTimeUnknown?'':occ.to))
   const [room,setRoom]=useState(editing?.room || ''),[onlineLink,setOnlineLink]=useState(editing?.onlineLink || ''),[organizer,setOrganizer]=useState(editing?.organizer || '')
   const [recurrence,setRecurrence]=useState<Repeat>(editing?.recurrence || (kind==='group'?'weekly':'once'))
   const [endDate,setEndDate]=useState(editing?.endDate || occ.offering.endDate),[error,setError]=useState('')
@@ -526,7 +528,7 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
   const save=()=>{
     if (kind==='group' && moduleId!==occ.offering.moduleId) return setError('Gleicher Inhalt muss zum selben Modul gehören. Für andere Module nutze die Zeit-Alternative.')
     if (!moduleId && category.trim()!=='Freies Lernen') return setError('Wähle ein Modul oder Freies Lernen.')
-    if (minutes(to)<=minutes(from)) return setError('Das Ende muss nach dem Beginn liegen.')
+    if (to&&minutes(to)<=minutes(from)) return setError('Das Ende muss nach dem Beginn liegen.')
     if (recurrence!=='once'&&endDate<date) return setError('Das Enddatum liegt vor dem Start.')
     const resolvedCategory=category.trim()||(moduleId?inferOfferingCategory(occ.offering.contentLabel||occ.offering.name):'Freies Lernen')
     onSave({
@@ -545,7 +547,7 @@ function AlternativeEditor({occ,kind,modules,onSave,onClose,editing,onDelete}:{
       {picker&&<div className="module-dropdown"><label className="search-field"><Search size={18}/><input placeholder="Module suchen" value={search} onChange={e=>setSearch(e.target.value)}/></label><div className="module-pick-list">{modules.filter(m=>m.name.toLowerCase().includes(search.toLowerCase())).map(m=><button key={m.id} onClick={()=>{setModuleId(m.id);if(category==='Freies Lernen')setCategory(inferOfferingCategory(occ.offering.contentLabel||occ.offering.category));setPicker(false)}}><span className="color-mark" style={{background:m.color}}/>{m.name}</button>)}<button onClick={()=>{setModuleId('');setCategory('Freies Lernen');setPicker(false)}}><BookOpen size={17}/>Freies Lernen · ohne Modul</button></div></div>}
     </div>
     <div className="editor-field"><span className="field-label">{recurrence==='once'?'Datum':'Wochentag'}</span>{recurrence==='once'?<UniflowPicker kind="date" label="Datum" value={date} onChange={setDate}/>:<UniflowPicker label="Wochentag" value={String(weekday(date))} options={['Montags','Dienstags','Mittwochs','Donnerstags','Freitags','Samstags','Sonntags'].map((label,index)=>({value:String(index),label}))} onChange={value=>setEditDay(Number(value))}/>}</div>
-    <div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>
+    <div className="uf-entry-grid"><TimeRangeFields from={from} to={to} onChange={(nextFrom,nextTo)=>{setFrom(nextFrom);setTo(nextTo)}}/></div>
     <div className="uf-entry-grid">
       <div className="uf-entry-field"><span className="field-label">Wiederholung</span><UniflowPicker label="Wiederholung" value={recurrence} onChange={value=>setRecurrence(value as Repeat)} options={[{value:'once',label:'Einmalig'},{value:'weekly',label:'Wöchentlich'},{value:'biweekly',label:'Alle 2 Wochen'}]}/></div>
       {recurrence!=='once'&&<div className="uf-entry-field"><span className="field-label">Ab</span><UniflowPicker kind="date" label="Ab" value={date} max={endDate} onChange={setDate}/></div>}
@@ -576,12 +578,12 @@ function Notice({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void
   </div>
 }
 
-function MoveScope({ proposal, onClose, onConfirm, mode }: { proposal: MoveProposal; onClose: () => void; onConfirm: (scope: 'single' | 'future') => void; mode: 'move' | 'delete' }) { const isOnce = proposal.occ.offering.recurrence === 'once'; return <BottomSheet title={mode === 'delete' ? 'Besuch aussetzen' : 'Termin verschieben'} onClose={onClose}><div className="move-summary"><strong>{proposal.occ.offering.name}</strong><span>{mode === 'move' ? `${formatDate(proposal.date)} · ${proposal.from}–${proposal.to}` : `${formatDate(proposal.occ.date)} · ${proposal.occ.from}–${proposal.occ.to}`}</span></div><p className="scope-intro">{isOnce ? 'Diese Veranstaltung findet nur einmal statt.' : 'Welche Termine sollen geändert werden?'}</p><div className="scope-choices"><button onClick={() => onConfirm('single')}><span><strong>{isOnce ? 'Bestätigen' : 'Nur dieses Mal'}</strong><small>{mode === 'move' ? 'Nur diesen einen Termin ändern' : 'Nur diesen Besuch aussetzen'}</small></span><ArrowRight size={20} /></button>{!isOnce && <button onClick={() => onConfirm('future')}><span><strong>Alle zukünftigen Termine</strong><small>Vergangene Termine bleiben unverändert</small></span><ArrowRight size={20} /></button>}</div><button className="dismiss-action" onClick={onClose}>Abbrechen</button></BottomSheet> }
+function MoveScope({ proposal, onClose, onConfirm, mode }: { proposal: MoveProposal; onClose: () => void; onConfirm: (scope: 'single' | 'future') => void; mode: 'move' | 'delete' }) { const isOnce = proposal.occ.offering.recurrence === 'once'; return <BottomSheet title={mode === 'delete' ? 'Besuch aussetzen' : 'Termin verschieben'} onClose={onClose}><div className="move-summary"><strong>{proposal.occ.offering.name}</strong><span>{mode === 'move' ? `${formatDate(proposal.date)} · ${timeRangeLabel(proposal)}` : `${formatDate(proposal.occ.date)} · ${timeRangeLabel(proposal.occ)}`}</span></div><p className="scope-intro">{isOnce ? 'Diese Veranstaltung findet nur einmal statt.' : 'Welche Termine sollen geändert werden?'}</p><div className="scope-choices"><button onClick={() => onConfirm('single')}><span><strong>{isOnce ? 'Bestätigen' : 'Nur dieses Mal'}</strong><small>{mode === 'move' ? 'Nur diesen einen Termin ändern' : 'Nur diesen Besuch aussetzen'}</small></span><ArrowRight size={20} /></button>{!isOnce && <button onClick={() => onConfirm('future')}><span><strong>Alle zukünftigen Termine</strong><small>Vergangene Termine bleiben unverändert</small></span><ArrowRight size={20} /></button>}</div><button className="dismiss-action" onClick={onClose}>Abbrechen</button></BottomSheet> }
 
 function MoveVisitEditor({occ,onClose,onConfirm}:{occ:Occurrence;onClose:()=>void;onConfirm:(proposal:MoveProposal)=>void}){
-  const [date,setDate]=useState(occ.date),[from,setFrom]=useState(occ.from),[to,setTo]=useState(occ.to),[error,setError]=useState('')
-  const submit=()=>{if(minutes(to)<=minutes(from)){setError('Das Ende muss nach dem Beginn liegen.');return}onConfirm({occ,date,from,to})}
-  return <BottomSheet title="Termin verschieben" onClose={onClose} footer={<button className="primary-action" onClick={submit}>Weiter <ArrowRight size={18}/></button>}><div className="uf-entry-form"><div className="editor-field"><span className="field-label">Neues Datum</span><UniflowPicker kind="date" label="Neues Datum" value={date} onChange={setDate}/></div><div className="uf-entry-grid"><div className="uf-entry-field"><span className="field-label">Beginn</span><UniflowPicker kind="time" label="Beginn" value={from} onChange={setFrom}/></div><div className="uf-entry-field"><span className="field-label">Ende</span><UniflowPicker kind="time" label="Ende" value={to} onChange={setTo}/></div></div>{error&&<p className="inline-error">{error}</p>}</div></BottomSheet>
+  const [date,setDate]=useState(occ.date),[from,setFrom]=useState(occ.from),[to,setTo]=useState(occ.endTimeUnknown?'':occ.to),[error,setError]=useState('')
+  const submit=()=>{if(to&&minutes(to)<=minutes(from)){setError('Das Ende muss nach dem Beginn liegen.');return}onConfirm({occ,date,from,to})}
+  return <BottomSheet title="Termin verschieben" onClose={onClose} footer={<button className="primary-action" onClick={submit}>Weiter <ArrowRight size={18}/></button>}><div className="uf-entry-form"><div className="editor-field"><span className="field-label">Neues Datum</span><UniflowPicker kind="date" label="Neues Datum" value={date} onChange={setDate}/></div><div className="uf-entry-grid"><TimeRangeFields from={from} to={to} onChange={(nextFrom,nextTo)=>{setFrom(nextFrom);setTo(nextTo)}}/></div>{error&&<p className="inline-error">{error}</p>}</div></BottomSheet>
 }
 function DeleteSheet({proposal,onConfirm,onClose}:{proposal:MoveProposal;onConfirm:()=>void;onClose:()=>void}) {
   return <BottomSheet title="Veranstaltungsgruppe endgültig löschen?" onClose={onClose}>
@@ -1048,7 +1050,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
     if(g.active&&g.occ){
       const target=g.target||targetAt(e.clientX,e.clientY)
       const span=minutes(g.occ.to)-minutes(g.occ.from)
-      const dest=target?{...target,to:timeString(minutes(target.from)+span)}:{date:g.occ.date,from:g.occ.from,to:g.occ.to}
+      const dest=target?{...target,to:g.occ.endTimeUnknown?'':timeString(minutes(target.from)+span)}:{date:g.occ.date,from:g.occ.from,to:g.occ.endTimeUnknown?'':g.occ.to}
       if(dest.date!==g.occ.date||dest.from!==g.occ.from)setProposal({occ:g.occ,...dest})
       else onNotice('Ziehe den Termin auf einen anderen Zeitslot.')
     }
@@ -1111,14 +1113,14 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
           if(end<=0||start>=height)return null
           const siblings=events.filter(o=>o.key!==occ.key&&intersects(o,occ))
           const group=[occ,...siblings].sort((a,b)=>a.key.localeCompare(b.key)),ix=group.findIndex(x=>x.key===occ.key),n=group.length
-          const live=date===today()&&!inactive&&!occ.cancelled&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'&&minutes(occ.from)<=clockNow.getHours()*60+clockNow.getMinutes()&&clockNow.getHours()*60+clockNow.getMinutes()<minutes(occ.to)
-          const past=date<today()||(date===today()&&minutes(occ.to)<=clockNow.getHours()*60+clockNow.getMinutes())
+          const live=date===today()&&!occ.endTimeUnknown&&!inactive&&!occ.cancelled&&!isAssessment(occ.offering.category)&&occ.offering.category!=='Freies Lernen'&&minutes(occ.from)<=clockNow.getHours()*60+clockNow.getMinutes()&&clockNow.getHours()*60+clockNow.getMinutes()<minutes(occ.to)
+          const past=date<today()||(date===today()&&!occ.endTimeUnknown&&minutes(occ.to)<=clockNow.getHours()*60+clockNow.getMinutes())
           const style={top:timelineY(start)+Math.min(4,(end-start)/4),height:Math.max(2,courseEndY(end)-timelineY(start)-Math.min(8,(end-start)/2)),'--course-accent':module?.color||'#A5A5A5','--course-ink':calendarInk(module?.color||'#A5A5A5'),left:`calc(${ix/n*100}% + 3px)`,width:`calc(${100/n}% - 6px)`} as CSSProperties
           if(fan&&start<insertionY&&end>insertionY){
             const cutTop=insertionY-timelineY(start)-Math.min(4,(end-start)/4),cutBottom=cutTop+expansionHeight
             style.clipPath=`polygon(0 0,100% 0,100% ${cutTop}px,0 ${cutTop}px,0 ${cutBottom}px,100% ${cutBottom}px,100% 100%,0 100%)`
           }
-          return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${occ.from} bis ${occ.to}`}
+          return <div key={occ.key} role="button" tabIndex={0} aria-label={`${module?.name||occ.offering.name}, ${timeRangeLabel(occ)}`}
             aria-expanded={fan?.occ.key===occ.key} className={'course '+(live?'course-live ':'')+(fan?.occ.key===occ.key?'course-expanded ':'')+(inactive?'course-inactive ':'')+(occ.cancelled?'course-cancelled ':'')+(past?'course-past ':'')+(past&&date===today()?'course-past-today ':'')+(pressed===occ.key?'being-dragged':'')}
             style={style} onPointerDown={e=>{e.stopPropagation();if(!inactive&&!occ.cancelled)onDown(e,occ)}} onPointerMove={onMove}
             onPointerUp={e=>{e.stopPropagation();onUp(e)}} onPointerCancel={cancelGesture}
@@ -1246,7 +1248,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
       </div>
     {fan && <div className="calendar-course-expansion" style={{top:insertionY+8,'--wallet-accent':walletAccent} as CSSProperties}>
       <div ref={walletRef} className="wallet-fan" role="region" aria-label="Veranstaltungsgruppen">
-        <div className="wallet-fan-head"><span><strong>{modules.find(module=>module.id===fan.occ.offering.moduleId)?.name||fan.occ.offering.name}</strong><small>{formatDate(fan.occ.date,{weekday:'short',day:'numeric',month:'short'})} · {fan.occ.from}–{fan.occ.to}{fanItems.length>1?` · ${fanItems.length-1} Alternativen`:''}</small></span><button aria-label="Stapel schließen" onClick={()=>setFan(null)}><X size={17}/></button></div>
+        <div className="wallet-fan-head"><span><strong>{modules.find(module=>module.id===fan.occ.offering.moduleId)?.name||fan.occ.offering.name}</strong><small>{formatDate(fan.occ.date,{weekday:'short',day:'numeric',month:'short'})} · {timeRangeLabel(fan.occ)}{fanItems.length>1?` · ${fanItems.length-1} Alternativen`:''}</small></span><button aria-label="Stapel schließen" onClick={()=>setFan(null)}><X size={17}/></button></div>
         <div className="wallet-cards">
         {fanItems.slice(1).map((item,i)=>{
           const selected=!!occurrenceAtOrigin(item.offering,item.origin,false)
@@ -1263,7 +1265,7 @@ function Calendar({data,semester,modules,userId,focusModuleId,onFocusChange,onCa
             onKeyDown={e=>{if(e.key==='Enter')onFanTap(item)}}>
             <div className="wallet-card-top"><strong>{module?.shortName||module?.name||item.offering.name} · {item.offering.contentLabel||item.offering.category}</strong><span>{item.cancelled?'×':selected?'✓':'○'}</span></div>
             <small>{item.offering.organizer||'Ohne Dozent'} · {placeLabel(item.offering)||'Raum offen'}</small>
-            <small>{formatDate(item.date,{weekday:'short',day:'numeric',month:'short'})} · {item.from}–{item.to}</small>
+            <small>{formatDate(item.date,{weekday:'short',day:'numeric',month:'short'})} · {timeRangeLabel(item)}</small>
             <span className="wallet-card-caption">{item.cancelled?'Fällt ohne Ersatz aus':selected?'Aktuell ausgewählt':equivalent?'Gleicher Inhalt':'Andere Veranstaltung · gleiche Zeit'}</span>
           </div>
         })}
@@ -1730,7 +1732,7 @@ export default function App() {
       const lesson=lessonForOccurrence(item,data),module=data.modules.find(entry=>entry.id===item.offering.moduleId)
       return {title:module?.name||item.offering.name,from:item.from,to:item.to,room:item.offering.room||undefined,attending:(data.learningCheckins||[]).some(checkin=>checkin.key===lesson.key&&(checkin.attended??checkin.rating!=='absent'))}
     })
-    const current=events.find(event=>minutes(event.from)<=clock&&clock<minutes(event.to))||null
+    const current=events.find(event=>!event.endTimeUnknown&&minutes(event.from)<=clock&&clock<minutes(event.to))||null
     const timer=window.setTimeout(()=>void publishFriendStatus({university:degree?.university||'',current,events}).catch(()=>{}),350)
     return()=>window.clearTimeout(timer)
   },[user?.id,cloudReady,onboarding,data.offerings,data.learningCheckins,data.modules,degree?.university,adviceClock])
@@ -1739,7 +1741,7 @@ export default function App() {
   const currentStudyContext=useMemo(()=>adviceContext(data,semester,semesterModules,new Date()),[data,semester,adviceClock])
   const currentModuleId=useMemo(()=>{
     const now=new Date(),clock=now.getHours()*60+now.getMinutes()
-    return occurrencesOn(data.offerings,today()).filter(occ=>!occ.cancelled&&occ.offering.semesterId===semester?.id&&semesterModules.some(module=>module.id===occ.offering.moduleId)&&!isAssessment(occ.offering.category)&&minutes(occ.from)<=clock&&clock<minutes(occ.to)).sort((a,b)=>b.from.localeCompare(a.from))[0]?.offering.moduleId
+    return occurrencesOn(data.offerings,today()).filter(occ=>!occ.cancelled&&!occ.endTimeUnknown&&occ.offering.semesterId===semester?.id&&semesterModules.some(module=>module.id===occ.offering.moduleId)&&!isAssessment(occ.offering.category)&&minutes(occ.from)<=clock&&clock<minutes(occ.to)).sort((a,b)=>b.from.localeCompare(a.from))[0]?.offering.moduleId
   },[data.offerings,semester?.id,adviceClock,semesterModules])
   const contextualColor=data.modules.find(module=>module.id===(page==='modules'?selectedModuleId:page==='calendar'?(focusModuleId||currentModuleId):activeLearningModuleId))?.color||'#d4d4d8'
   useEffect(()=>{
@@ -1894,7 +1896,7 @@ export default function App() {
         journey={journeysByModule[selectedModuleId]}
         premium={premium}
         onBack={closeModuleEditor}
-        onUpdateModule={updated=>mutate(d=>({...d,modules:d.modules.map(m=>m.id===updated.id?{...updated,semesterIds:updated.status==='current'?[d.activeSemesterId]:updated.semesterIds}:m)}))}
+        onUpdateModule={updated=>mutate(d=>({...d,modules:d.modules.map(m=>m.id===updated.id?{...updated,semesterIds:updated.status==='current'&&m.status!=='current'?[...new Set([...updated.semesterIds,d.activeSemesterId])]:updated.semesterIds}:m)}))}
         moduleSemesterControl={<SemesterAssignment data={data} module={data.modules.find(m=>m.id===selectedModuleId)!} onMutate={mutate} onChange={updated=>mutate(d=>({...d,modules:d.modules.map(m=>m.id===updated.id?updated:m)}))}/>}
         onDeleteModule={()=>setConfirmDeleteModule(data.modules.find(m=>m.id===selectedModuleId)||null)}
         onChangeOfferings={updated=>mutate(d=>{
@@ -1996,7 +1998,7 @@ export default function App() {
         ? 'Beide Termine gehören zum gleichen Inhalt. Du kannst zu einer anderen Gruppe wechseln oder beide besuchen.'
         : 'Hier liegt ein anderes Modul zur selben Zeit. Du kannst wechseln oder beide Termine sichtbar lassen.'}
         {pendingAlternative.conflict&&' Achtung: Am Ziel gibt es eine zeitliche Überschneidung.'}</p>
-      <div className="move-summary"><strong>{pendingAlternative.alt.offering.name}{pendingAlternative.alt.offering.organizer?' · '+pendingAlternative.alt.offering.organizer:''}</strong><span>{formatDate(pendingAlternative.alt.date)} · {pendingAlternative.alt.from}–{pendingAlternative.alt.to}{placeLabel(pendingAlternative.alt.offering)?' · '+placeLabel(pendingAlternative.alt.offering):''}</span></div>
+      <div className="move-summary"><strong>{pendingAlternative.alt.offering.name}{pendingAlternative.alt.offering.organizer?' · '+pendingAlternative.alt.offering.organizer:''}</strong><span>{formatDate(pendingAlternative.alt.date)} · {timeRangeLabel(pendingAlternative.alt)}{placeLabel(pendingAlternative.alt.offering)?' · '+placeLabel(pendingAlternative.alt.offering):''}</span></div>
       {pendingAlternative.occ&&<div className="attendance-modes" role="group" aria-label="Besuchsentscheidung">
         <button className={choiceAttendance==='replace'?'chosen':''} onClick={()=>setChoiceAttendance('replace')}><Check size={17}/><span><strong>Zur anderen Gruppe wechseln</strong><small>Die bisherige Veranstaltung bleibt im Hintergrund als Alternative erhalten.</small></span></button>
         <button className={choiceAttendance==='both'?'chosen':''} onClick={()=>setChoiceAttendance('both')}><Plus size={17}/><span><strong>Beide besuchen</strong><small>Beide Termine erscheinen im Plan{pendingAlternative.conflict?' – auch bei Überschneidung.':'.'}</small></span></button>
