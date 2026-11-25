@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
+import { ImagePlus, LoaderCircle, Trash2, Upload } from 'lucide-react'
 import './module-cover.css'
 
 async function prepareCover(file: File): Promise<string> {
@@ -32,8 +33,9 @@ async function prepareCover(file: File): Promise<string> {
   }
 }
 
-export default function ModuleCoverInput({ value, onChange }: { value?: string; onChange: (value: string | undefined) => void }) {
+export default function ModuleCoverInput({ value, color, onChange }: { value?: string; color?: string; onChange: (value: string | undefined) => void }) {
   const id = useId()
+  const input = useRef<HTMLInputElement>(null)
   const request = useRef(0)
   const change = useRef(onChange)
   change.current = onChange
@@ -54,12 +56,15 @@ export default function ModuleCoverInput({ value, onChange }: { value?: string; 
       if (current === request.current) setBusy(false)
     }
   }
-  return <div className="module-cover-input" aria-busy={busy}>
-    <label htmlFor={id}>Kursbild</label>
-    {value && <img className="module-cover-preview" src={value} alt="Aktuelles Kursbild" />}
-    <input id={id} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" disabled={busy} onChange={event => { void select(event.target.files?.[0]); event.currentTarget.value = '' }} />
-    <small>{busy ? 'Bild wird vorbereitet …' : 'Für die Kurskarte und den großen Lernbanner. Max. 20 MB.'}</small>
-    {value && <button type="button" disabled={busy} onClick={() => { setError(''); onChange(undefined) }}>Bild entfernen</button>}
+  return <div className="module-cover-input" aria-busy={busy} style={{'--cover-accent':color||'var(--module-accent, var(--mlh-accent, #929ddc))'} as CSSProperties}>
+    <div className="module-cover-label"><span>Kursbild</span><small>Optional</small></div>
+    <input ref={input} id={id} hidden type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" disabled={busy} aria-label="Kursbild auswählen" onChange={event => { void select(event.target.files?.[0]); event.currentTarget.value = '' }} />
+    <button type="button" className={'module-cover-picker'+(value?' has-image':'')} disabled={busy} onClick={()=>input.current?.click()} aria-describedby={id+'-hint'}>
+      {value&&<img className="module-cover-preview" src={value} alt=""/>}
+      <span className="module-cover-picker-icon">{busy?<LoaderCircle size={22} className="module-cover-spinner"/>:value?<Upload size={22}/>:<ImagePlus size={25}/>}</span>
+      <span className="module-cover-picker-copy"><strong>{busy?'Bild wird vorbereitet …':value?'Bild ändern':'Bild auswählen'}</strong><small>{value?'Dein Kurs. Dein Bild.':'Gib deinem Modul einen eigenen Look.'}</small></span>
+    </button>
+    <div className="module-cover-footer"><small id={id+'-hint'}>Für Kurskarte und Banner · bis 20 MB</small>{value&&<button type="button" disabled={busy} onClick={()=>{setError('');onChange(undefined)}}><Trash2 size={14}/><span>Entfernen</span></button>}</div>
     {error && <p role="alert" className="inline-error">{error}</p>}
   </div>
 }

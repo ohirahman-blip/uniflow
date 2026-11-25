@@ -451,7 +451,8 @@ export default function ModuleScheduleEditor({
   const editingOffering=editingGroup?.offerings.find(item=>item.id===editingSlotId)
   return <div className="screen secondary-screen module-detail-screen module-fast" style={{'--module-accent':module.color,'--mlh-accent':module.color} as CSSProperties}>
     <button className="text-back module-editor-back" onClick={onBack} aria-label="Zurück"><ArrowLeft size={20}/></button>
-    <div className="module-detail-heading">
+    <div className="module-detail-heading module-cover-heading">
+      {module.coverImage&&<img src={module.coverImage} alt="" className="module-heading-image"/>}
       <div><h1>{module.name}</h1>{semesterLabel&&<p className="module-semester-label">{semesterLabel}</p>}</div>
     </div>
     <button type="button" className="module-meta-open" onClick={()=>setAdvanced(true)}><PenLine size={17}/><span><strong>Modulangaben bearbeiten</strong><small>Name, Status, Leistungspunkte, Farbe und Kursbild</small></span><ChevronDown size={17}/></button>
@@ -463,7 +464,7 @@ export default function ModuleScheduleEditor({
         <label>Status<UniflowPicker label="Modulstatus" value={module.status} onChange={value=>onUpdateModule({...module,status:value as StudyModule['status']})} options={([['current','Aktuell'],['planned','Geplant'],['open','Offen'],['passed','Bestanden'],['failed','Nicht bestanden'],['recognized','Anerkannt']] as const).map(([value,label])=>({value,label}))}/></label>
         {moduleSemesterControl}<label>Note<input value={module.grade} onChange={e=>onUpdateModule({...module,grade:e.target.value})}/></label>
       </div>
-      <ModuleCoverInput key={module.id} value={module.coverImage} onChange={coverImage=>onUpdateModule({...module,coverImage})}/>
+      <ModuleCoverInput key={module.id} color={module.color} value={module.coverImage} onChange={coverImage=>onUpdateModule({...module,coverImage})}/>
       <div className="module-fast-colors">{colors.map(c=><button key={c} title={c} aria-label={'Modulfarbe '+c} className={module.color===c?'picked':''} style={{background:c}} onClick={()=>onUpdateModule({...module,color:c})}>{module.color===c&&<Check size={15}/>}</button>)}</div>
       <button className="module-fast-remove" onClick={onDeleteModule}><Trash2 size={16}/> Modul löschen</button>
     </div></ModuleOverlay>}

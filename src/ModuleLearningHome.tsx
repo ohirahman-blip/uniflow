@@ -93,9 +93,16 @@ function ActivityHistory({ events, tasks, sessions, onEditSession, onToggleTask,
 }
 
 
-export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onStudyBundleOpened,onStudyScheduleChange,data, semester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onAddAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
-  const visible = modules.filter(module => !module.hidden && !['passed','planned','recognized'].includes(module.status))
+export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onStudyBundleOpened,onStudyScheduleChange,data, semester: selectedSemester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onAddAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
+  const currentModules = modules.filter(module => !module.hidden && !['passed','planned','recognized'].includes(module.status))
+  const currentIds = new Set(currentModules.map(module=>module.id))
+  const pastModules = data.modules.filter(module=>module.degreeId===data.activeDegreeId&&!module.hidden&&module.status!=='planned'&&!currentIds.has(module.id)&&(
+    ['passed','recognized'].includes(module.status)||module.semesterIds.some(id=>data.semesters.some(item=>item.id===id&&item.start<(selectedSemester?.start||today())))
+  ))
+  const available = [...currentModules,...pastModules]
   const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
+  const [moduleScope,setModuleScope]=useState<'current'|'past'>(()=>pastModules.some(module=>module.id===selectedModule)?'past':'current')
+  const visible=moduleScope==='current'?currentModules:pastModules
   const [directoryOpen,setDirectoryOpen]=useState(()=>{if(currentModuleId)return false;try{return !localStorage.getItem(storageKey)}catch{return true}}),[openingModule,setOpeningModule]=useState('')
   const [detailMotion,setDetailMotion]=useState<'out'|'in'|''>('')
   const [switchDirection,setSwitchDirection]=useState<'up'|'down'>('down')
@@ -114,11 +121,13 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   const [taskTitle, setTaskTitle] = useState('')
   const [taskDate, setTaskDate] = useState('')
   const safeIndex = Math.max(0, visible.findIndex(module=>module.id===selectedModule))
-  const active = visible[safeIndex]
-  useEffect(()=>{if(active)onActiveModuleChange(active.id)},[active?.id,onActiveModuleChange])
+  const active = available.find(module=>module.id===selectedModule)||visible[0]||available[0]
+  const semester = active?.semesterIds.includes(selectedSemester?.id||'')?selectedSemester:data.semesters.filter(item=>active?.semesterIds.includes(item.id)).sort((a,b)=>b.start.localeCompare(a.start))[0]||selectedSemester
+  useEffect(()=>{if(active&&!directoryOpen){externalModuleId.current=active.id;onActiveModuleChange(active.id)}},[active?.id,directoryOpen,onActiveModuleChange])
   useEffect(()=>{
     if(!currentModuleId||currentModuleId===externalModuleId.current)return
     externalModuleId.current=currentModuleId
+    setModuleScope(currentIds.has(currentModuleId)?'current':'past')
     setSelectedModule(current=>current===currentModuleId?current:currentModuleId)
     setDirectoryOpen(false)
     try{localStorage.setItem(storageKey,currentModuleId)}catch{/* Keep navigation usable when storage is unavailable. */}
@@ -131,6 +140,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
   }, [data.offerings,semester,active?.id,studyPlan.lessons])
   useEffect(()=>{
     if(!requestedStudyBundle)return
+    setModuleScope(currentIds.has(requestedStudyBundle.moduleId)?'current':'past')
     setSelectedModule(requestedStudyBundle.moduleId)
     try{localStorage.setItem(storageKey,requestedStudyBundle.moduleId)}catch{/* Keep navigation usable when storage is unavailable. */}
     setDirectoryOpen(false)
@@ -180,13 +190,19 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
     setModal(null);setFinishingTimer(null);setEditingSession(null)
   }
 
-  if (!visible.length) return <main className="screen mlh-empty"><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
+  if (!available.length) return <main className="screen mlh-empty"><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className={'screen mlh-slider-window '+(directoryOpen?'is-directory':'is-module')} style={accent}>
     <div className="mlh-slider-track">
       <section className="mlh-directory mlh-slider-pane" aria-hidden={!directoryOpen}>
-        <div ref={node=>setModuleScroller(node,'directory')} onScroll={event=>syncModuleScroll(event.currentTarget,railScroll.current)} className="mlh-directory-list"><span className="mlh-directory-rail-spacer" aria-hidden="true"/>{visible.map(module=><button key={module.id} className={openingModule===module.id?'is-selected':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}>{module.coverImage&&<img className="mlh-course-image" src={module.coverImage} alt="" loading="lazy"/>}<span className="mlh-directory-name">{module.name}</span></button>)}</div>
-        <button className="mlh-directory-add" onClick={onCreateModule}><Plus size={16}/>Modul hinzufügen</button>
+        <div ref={node=>setModuleScroller(node,'directory')} onScroll={event=>syncModuleScroll(event.currentTarget,railScroll.current)} className="mlh-directory-scroll">
+          <div className="mlh-directory-filter" role="group" aria-label="Module anzeigen">
+            {(['current','past'] as const).map(scope=><button key={scope} type="button" aria-pressed={moduleScope===scope} onClick={()=>{setModuleScope(scope);moduleScroll.current=0;directoryScroll.current?.scrollTo({top:0})}}>{scope==='current'?'Aktuelle Module':'Vergangene Module'}<span>{scope==='current'?currentModules.length:pastModules.length}</span></button>)}
+          </div>
+          <div className="mlh-directory-list">{visible.map(module=><button key={module.id} className={openingModule===module.id?'is-selected':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}>{module.coverImage&&<img className="mlh-course-image" src={module.coverImage} alt="" loading="lazy"/>}<span className="mlh-directory-name">{module.name}</span></button>)}</div>
+          {!visible.length&&<p className="mlh-directory-empty">{moduleScope==='current'?'Hier sind noch keine aktuellen Module.':'Hier erscheinen deine abgeschlossenen Module und Module aus früheren Semestern.'}</p>}
+          <button className="mlh-directory-add" onClick={onCreateModule}><Plus size={16}/>Modul hinzufügen</button>
+        </div>
       </section>
       <section className="mlh-module-pane mlh-slider-pane" aria-hidden={directoryOpen}>
         <aside ref={node=>setModuleScroller(node,'rail')} onScroll={event=>syncModuleScroll(event.currentTarget,directoryScroll.current)} className="mlh-module-rail mlh-module-rail-fixed" aria-label="Module"><button className="mlh-rail-home" onClick={()=>{setModal(null);setDirectoryOpen(true)}} aria-label="Zurück zur Modulübersicht"><ArrowLeft size={17}/></button>{visible.map(module=><button key={module.id} className={module.id===active.id?'active':''} style={{'--module-color':module.color} as CSSProperties} onClick={()=>switchRail(module.id)} aria-label={module.name} title={module.name}>{module.shortName||module.name.slice(0,3).toUpperCase()}</button>)}</aside>

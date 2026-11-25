@@ -135,3 +135,23 @@
 .mlh-focus-card.has-cover>button{color:var(--mlh-accent);background:rgba(0,0,0,.8)}
 @media(max-width:1000px){.mlh-slider-window .mlh-directory-list{grid-template-columns:1fr;max-width:620px}}
 @media(max-width:720px){.mlh-slider-window .mlh-directory-list{bottom:120px;gap:12px}.mlh-slider-window .mlh-directory-list>button,.mlh-slider-window .mlh-directory-list>button:first-child{height:100px;min-height:100px;padding:16px 18px;border-radius:20px}.mlh-focus-card.has-cover{min-height:170px}}
+
+/* One shared scroll area for filters, courses and the add action. */
+.mlh-slider-window .mlh-directory-scroll{position:absolute;inset:24px 0 0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:10px max(20px,calc((100% - 920px)/2)) 48px;box-sizing:border-box}
+.mlh-directory-scroll::-webkit-scrollbar{display:none}
+.mlh-slider-window .mlh-directory-scroll .mlh-directory-list{position:relative;inset:auto;transform:none;width:100%;max-width:none;overflow:visible;padding:0;margin:0;box-sizing:border-box}
+.mlh-slider-window .mlh-directory-scroll .mlh-directory-add{position:static;transform:none;display:flex;justify-content:center;width:100%;margin:16px 0 0;padding:16px;border:1px dashed color-mix(in srgb,currentColor 14%,transparent);border-radius:20px;background:color-mix(in srgb,currentColor 3%,transparent);color:var(--muted);font-size:12px}
+.mlh-directory-filter{display:flex;gap:4px;width:fit-content;max-width:100%;margin:0 0 22px;padding:4px;border-radius:999px;background:color-mix(in srgb,currentColor 5%,transparent);box-sizing:border-box}
+.mlh-directory-filter>button{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 15px;border:0;border-radius:999px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.mlh-directory-filter>button[aria-pressed=true]{background:var(--page,#161619);color:var(--text,inherit)}
+.mlh-directory-filter>button>span{font-size:10px;opacity:.6;font-variant-numeric:tabular-nums}
+.mlh-directory-filter>button:focus-visible,.mlh-directory-scroll .mlh-directory-add:focus-visible{outline:2px solid var(--mlh-accent);outline-offset:2px}
+.mlh-directory-empty{padding:30px 18px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
+/* Carry the card gradient into the module, including modules without an image. */
+.mlh-slider-window .mlh-focus-card{overflow:hidden;background:linear-gradient(to bottom,color-mix(in srgb,var(--mlh-accent) 24%,#17171b),#111114);color:var(--mlh-accent)}
+.mlh-slider-window .mlh-focus-card::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(to bottom,#0001,#0009 50%,#000e);pointer-events:none}
+.mlh-slider-window .mlh-focus-card .mlh-focus-copy{color:var(--mlh-accent);text-shadow:0 1px 8px #0008}
+.mlh-slider-window .mlh-focus-card .mlh-focus-copy>span,.mlh-slider-window .mlh-focus-card .mlh-focus-copy p{opacity:1}
+.mlh-slider-window .mlh-focus-card>button{color:var(--mlh-accent);background:#000b}
+@media(max-width:1000px){.mlh-slider-window .mlh-directory-scroll{padding-inline:max(20px,calc((100% - 620px)/2))}}
+@media(max-width:720px){.mlh-slider-window .mlh-directory-scroll{top:max(18px,env(safe-area-inset-top,0px));padding-bottom:120px}.mlh-directory-filter{width:100%;margin-bottom:18px}.mlh-directory-filter>button{flex:1;gap:5px;padding:10px 8px;font-size:11px}}
