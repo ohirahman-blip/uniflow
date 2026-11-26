@@ -12,30 +12,14 @@
 body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen)
 :is(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']),select,.uf-picker-trigger,.big-choice,.uf-entry-module-choice){
   box-sizing:border-box!important;
-  appearance:none!important;
-  -webkit-appearance:none!important;
   min-width:0!important;
   max-width:100%!important;
   height:var(--uf-field-height)!important;
   min-height:var(--uf-field-height)!important;
   padding:0 var(--uf-field-padding)!important;
   margin:0;
-  border:1px solid var(--uf-field-border)!important;
-  border-radius:var(--uf-field-radius)!important;
-  background:var(--uf-field-background)!important;
-  box-shadow:none!important;
-  font-family:'Aeonik Pro',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
-  font-size:var(--uf-field-font)!important;
-  font-weight:500!important;
-  font-style:normal!important;
-  line-height:1.3!important;
-  letter-spacing:normal!important;
-  text-transform:none!important;
-  color:var(--uf-field-text)!important;
-  -webkit-text-fill-color:var(--uf-field-text)!important;
   -webkit-text-size-adjust:100%;
   text-size-adjust:100%;
-  transition:border-color 180ms ease,background-color 180ms ease;
 }
 body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen)
 :is(.uf-picker-trigger,.big-choice,.uf-entry-module-choice){display:flex!important;align-items:center!important;justify-content:space-between;gap:10px;width:100%}
@@ -47,17 +31,8 @@ body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen)
 }
 body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen)
 :is(.uf-picker-trigger,.big-choice,.uf-entry-module-choice)>svg{width:17px;height:17px;flex:0 0 17px;color:#9898a2;stroke-width:1.8}
-body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen)
-:is(input,select,.uf-picker-trigger,.big-choice,.uf-entry-module-choice):focus-visible{
-  outline:2px solid color-mix(in srgb,var(--module-accent,#b4b4be) 35%,transparent)!important;
-  outline-offset:2px;
-  border-color:color-mix(in srgb,var(--module-accent,#b4b4be) 55%,transparent)!important;
-}
 body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen) textarea{
   box-sizing:border-box;max-width:100%;min-width:0;
-  font-family:'Aeonik Pro',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
-  font-size:var(--uf-field-font)!important;font-weight:500!important;line-height:1.4!important;
-  border:1px solid var(--uf-field-border);border-radius:var(--uf-field-radius);background:var(--uf-field-background);
 }
 @media(max-width:720px),(hover:none) and (pointer:coarse){
   :root{--uf-field-font:16px;--uf-field-height:46px;--uf-editor-control-font:16px;--uf-editor-control-height:46px;--uf-editor-control-radius:14px}
@@ -76,7 +51,3 @@ body .uf-picker-trigger>.uf-picker-placeholder{
   font-weight:400!important;
 }
 body .uf-picker-trigger:has(>.uf-picker-placeholder)>svg{opacity:.4}
-body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen) select:has(option[value='']:checked){
-  color:rgba(240,240,245,.34)!important;
-  -webkit-text-fill-color:rgba(240,240,245,.34)!important;
-}

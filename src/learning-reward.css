@@ -9,8 +9,7 @@
 .learning-reward-points>span{display:block;margin-top:12px;font-family:inherit;font-weight:400;font-size:12px;line-height:1.6;color:var(--reward-accent);letter-spacing:.05em}
 .learning-reward-meter{height:5px;width:min(70%,260px);border-radius:99px;background:#ffffff12;overflow:hidden;margin:30px auto}
 .learning-reward-meter i{display:block;width:100%;height:100%;transform-origin:left;border-radius:inherit;background:var(--reward-accent)}
-.learning-reward-content>button{font:inherit;color:inherit;background:#ffffff08;border:1px solid #ffffff26;padding:12px 30px;min-height:44px;border-radius:999px;cursor:pointer}
-.learning-reward-content>button:focus-visible{outline:2px solid var(--reward-accent);outline-offset:4px}
+.learning-reward-content>button{padding:12px 30px;min-height:44px}
 .learning-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .learning-confetti i{position:absolute;top:-18px;width:7px;height:12px;border-radius:2px;background:var(--confetti-color);opacity:0;animation:reward-confetti var(--confetti-duration) cubic-bezier(.12,.4,.5,1) var(--confetti-delay) both}
 .learning-confetti i:nth-child(4n){width:5px;height:5px;border-radius:50%}.learning-confetti i:nth-child(3n){width:4px;height:14px}

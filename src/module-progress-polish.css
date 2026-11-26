@@ -1,8 +1,7 @@
-.module-fast>.module-editor-back{width:40px;height:40px;display:grid;place-items:center;padding:0;border:1px solid #8883;border-radius:50%;background:transparent;color:inherit;margin-bottom:18px}
-.module-fast>.module-editor-back:focus-visible{outline:2px solid var(--module-accent);outline-offset:3px}
+.module-fast>.module-editor-back{width:40px;height:40px;display:grid;place-items:center;padding:0;margin-bottom:18px}
 .module-fast-meta-grid>.study-semester{grid-column:1/-1;display:grid;gap:14px}
 .study-semester>label{display:grid;gap:9px;min-width:0}
-.study-semester>button{justify-self:start;padding:8px 12px;border:1px solid #8883;border-radius:12px;background:transparent;color:inherit;font:inherit}
+.study-semester>button{justify-self:start;padding:8px 12px}
 .mlh-lesson-list .mlh-progress-bars{display:flex;align-items:center;gap:4px;margin-top:6px;width:92px}
 .mlh-lesson-list .mlh-progress-bars>i{display:block;flex:1;height:3px;border:0;border-radius:99px;background:#8883}
 .mlh-lesson-list .mlh-progress-bars>i.is-yellow{background:#dbb754}

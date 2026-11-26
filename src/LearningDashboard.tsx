@@ -188,8 +188,8 @@ export default function LearningDashboard({data,semester,modules,timerStorageKey
       <div className="learn-active-timer-clock">
         <strong aria-label={`${Math.ceil(timerRemaining/60)} Minuten verbleibend`}>{formatTimer(timerRemaining)}</strong>
         <div>
-          <button onClick={studyTimer.endsAt?pauseStudyTimer:resumeStudyTimer}>{studyTimer.endsAt?<><Pause size={15}/> Pausieren</>:<><Play size={15}/> Weiter</>}</button>
-          <button className="learn-timer-stop" onClick={()=>saveStudyTimer(null)}><Square size={14}/> Beenden</button>
+          <button data-ui="button-2" onClick={studyTimer.endsAt?pauseStudyTimer:resumeStudyTimer}>{studyTimer.endsAt?<><Pause size={15}/> Pausieren</>:<><Play size={15}/> Weiter</>}</button>
+          <button data-ui="button-2" className="learn-timer-stop" onClick={()=>saveStudyTimer(null)}><Square size={14}/> Beenden</button>
         </div>
       </div>
       <i aria-hidden="true"><span style={{width:`${timerProgress}%`}}/></i>
@@ -217,11 +217,11 @@ export default function LearningDashboard({data,semester,modules,timerStorageKey
         <p>{suggestion.message}</p>
         <div className="learn-recommendation-footer">
           {suggestion.moduleId&&suggestion.kind!=='checkin'&&
-            <button onClick={()=>beginStudy(suggestion.moduleId,suggestion.kind==='review'?suggestion.lessonKey:undefined,suggestion.kind==='exam')}>
+            <button data-ui="button-2" onClick={()=>beginStudy(suggestion.moduleId,suggestion.kind==='review'?suggestion.lessonKey:undefined,suggestion.kind==='exam')}>
               Lernen erfassen <ArrowRight size={15}/>
             </button>}
           {suggestion.kind==='checkin'&&
-            <button onClick={()=>document.querySelector('.learn-checkins')?.scrollIntoView({behavior:'smooth',block:'center'})}>
+            <button data-ui="button-2" onClick={()=>document.querySelector('.learn-checkins')?.scrollIntoView({behavior:'smooth',block:'center'})}>
               Zum Check-in <ArrowRight size={15}/>
             </button>}
         </div>
@@ -249,10 +249,10 @@ export default function LearningDashboard({data,semester,modules,timerStorageKey
       <div className="learn-title"><h2>Wie lief dein Lernen?</h2><span className="learn-counter">{freePending.length} offen</span></div>
       <div className="learn-checkins">{freePending.slice(0,showAll?freePending.length:3).map(l=><div className="learn-checkin" key={l.key} style={accent(modules.find(m=>m.id===l.moduleId)?.color)}>
         <div className="learn-checkin-heading"><div><strong>{modules.find(m=>m.id===l.moduleId)?.name||'Modul'}</strong><span>{l.label} · {shortDate(l.date)} · {l.from}–{l.to}</span></div><span className="learn-eyebrow">Wie lief's?</span></div>
-        <div className="learn-rating-options">{ratingLabels.filter(r=>r.value!=='absent').map(r=><button className={'learn-rating learn-rating-'+r.value} key={r.value}
+        <div className="learn-rating-options">{ratingLabels.filter(r=>r.value!=='absent').map(r=><button data-ui="select-8" className={'learn-rating learn-rating-'+r.value} key={r.value}
           onClick={()=>onSession({moduleId:l.moduleId,date:l.date,duration:Math.max(5,minutes(l.to)-minutes(l.from)),kind:'review',rating:r.value as Exclude<LearningRating,'absent'>,scheduledKey:l.key})}>{r.label}</button>)}</div>
       </div>)}</div>
-      {freePending.length>3&&<button className="learn-text-action" onClick={()=>setShowAll(v=>!v)}>{showAll?'Weniger':'Weitere Lerneinheiten'} <ChevronRight size={15}/></button>}
+      {freePending.length>3&&<button data-ui="button-3" className="learn-text-action" onClick={()=>setShowAll(v=>!v)}>{showAll?'Weniger':'Weitere Lerneinheiten'} <ChevronRight size={15}/></button>}
     </section>}
     <section className="learn-section">
       <div className="learn-title"><h2>Lernplan</h2></div>
@@ -263,10 +263,10 @@ export default function LearningDashboard({data,semester,modules,timerStorageKey
           <div className="learn-planned-content"><strong>{t.title}</strong><small>{modules.find(m=>m.id===t.moduleId)?.name} · {t.duration} Minuten</small></div>
           {completedPlans.has(t.id)?<span className="learn-planned-done">Erledigt</span>:<>
             <div className="learn-planned-actions">
-              <button className="learn-planned-timer" onClick={()=>studyTimer?.planId===t.id?(studyTimer.endsAt?pauseStudyTimer():resumeStudyTimer()):startStudyTimer(t)}>{studyTimer?.planId===t.id?(studyTimer.endsAt?<><Pause size={14}/> Pausieren</>:<><Play size={14}/> Fortsetzen</>):<><Timer size={14}/> Timer starten</>}</button>
-              <button className="learn-planned-finish" onClick={()=>{if(studyTimer?.planId===t.id)saveStudyTimer(null);beginStudy(t.moduleId,t.lessonKey,t.kind==='exam',t.id);setDuration(t.duration)}}>Fertig?</button>
+              <button data-ui="button-2" className="learn-planned-timer" onClick={()=>studyTimer?.planId===t.id?(studyTimer.endsAt?pauseStudyTimer():resumeStudyTimer()):startStudyTimer(t)}>{studyTimer?.planId===t.id?(studyTimer.endsAt?<><Pause size={14}/> Pausieren</>:<><Play size={14}/> Fortsetzen</>):<><Timer size={14}/> Timer starten</>}</button>
+              <button data-ui="button-2" className="learn-planned-finish" onClick={()=>{if(studyTimer?.planId===t.id)saveStudyTimer(null);beginStudy(t.moduleId,t.lessonKey,t.kind==='exam',t.id);setDuration(t.duration)}}>Fertig?</button>
             </div>
-            <button className="learn-planned-delete" aria-label="Lernziel entfernen" onClick={()=>onRemovePlan(t.id)}><X size={15}/></button>
+            <button data-ui="button-4" className="learn-planned-delete" aria-label="Lernziel entfernen" onClick={()=>onRemovePlan(t.id)}><X size={15}/></button>
           </>}
         </div>)}
       </div>}
@@ -277,27 +277,27 @@ export default function LearningDashboard({data,semester,modules,timerStorageKey
           return <div className="learn-suggestion" key={module.id} style={accent(module.color)}>
             <span className="learn-suggestion-num">{String(index+1).padStart(2,'0')}</span>
             <div><strong>{module.name}</strong><small>{target?'Wiederholen: '+target.label:examFocus?'Prüfungsaufgaben üben':'Wissen festigen'} · Vorschlag 45 Min.</small></div>
-            <button aria-label={'Lernziel für '+module.name+' übernehmen'} title="Für heute einplanen" onClick={()=>onPlan({id:module.id+'-'+Date.now(),moduleId:module.id,date:today(),title:target?'Wiederholen: '+target.label:examFocus?'Prüfungsaufgaben üben':'Wissen festigen',kind:examFocus?'exam':'review',duration:45,lessonKey:target?.key})}><Plus size={17}/></button>
+            <button data-ui="button-2" aria-label={'Lernziel für '+module.name+' übernehmen'} title="Für heute einplanen" onClick={()=>onPlan({id:module.id+'-'+Date.now(),moduleId:module.id,date:today(),title:target?'Wiederholen: '+target.label:examFocus?'Prüfungsaufgaben üben':'Wissen festigen',kind:examFocus?'exam':'review',duration:45,lessonKey:target?.key})}><Plus size={17}/></button>
           </div>
         })}
         <div className="learn-suggestion learn-suggestion-free">
           <span className="learn-suggestion-free-spacer" aria-hidden="true"/>
           <div><strong>Freies Lernen</strong><small>Eigene Lerneinheit ohne Lernplan erfassen</small></div>
-          <button aria-label="Freies Lernen erfassen" onClick={()=>beginStudy()}><Plus size={17}/></button>
+          <button data-ui="button-2" aria-label="Freies Lernen erfassen" onClick={()=>beginStudy()}><Plus size={17}/></button>
         </div>
       </div>}
       <div className="learn-today"><Clock3 size={17}/><span>Heute erfasste Lerneinheiten</span><strong>{completed}</strong></div>
     </section>
     {studyOpen&&createPortal(<div className="learn-backdrop" onClick={e=>{if(e.target===e.currentTarget)setStudyOpen(false)}}>
       <div className="learn-sheet" role="dialog" aria-modal="true" aria-label="Lerneinheit erfassen">
-        <div className="learn-sheet-head"><div><h2>Freies Lernen</h2></div><button aria-label="Schließen" onClick={()=>setStudyOpen(false)}><X size={20}/></button></div>
+        <div className="learn-sheet-head"><div><h2>Freies Lernen</h2></div><button data-ui="button-4" aria-label="Schließen" onClick={()=>setStudyOpen(false)}><X size={20}/></button></div>
         <label>Modul<UniflowPicker label="Modul" value={chosenModule?.id||''} onChange={value=>{setModuleId(value);setLessonKey('')}} options={active.map(m=>({value:m.id,label:m.name}))}/></label>
         <label>Was hast du gemacht?<UniflowPicker label="Lernart" value={kind} onChange={value=>setKind(value as 'review'|'exam')} options={[{value:'review',label:'Stoff wiederholt / gelernt'},{value:'exam',label:'Prüfungsaufgaben geübt'}]}/></label>
         {kind==='review'&&<label>Welche Veranstaltung? (optional)<UniflowPicker label="Veranstaltung" value={lessonKey} onChange={setLessonKey} options={[{value:'',label:'Allgemeines Lernen'},...options.map(l=>({value:l.key,label:l.label+' · '+shortDate(l.date)}))]}/></label>}
         <label>Dauer<UniflowPicker kind="duration" label="Lerndauer" value={String(duration)} maxMinutes={360} onChange={value=>setDuration(Number(value))}/></label>
         <span className="learn-field-title">Wie lief es?</span>
-        <div className="learn-result-options">{ratingLabels.filter(r=>r.value!=='absent').map(r=><button key={r.value} className={result===r.value?'active':''} onClick={()=>setResult(r.value as typeof result)}>{r.label}</button>)}</div>
-        <button className="learn-submit" disabled={!chosenModule} onClick={submitStudy}>Lerneinheit speichern <Check size={17}/></button>
+        <div className="learn-result-options">{ratingLabels.filter(r=>r.value!=='absent').map(r=><button data-ui="select-8" key={r.value} className={result===r.value?'active':''} onClick={()=>setResult(r.value as typeof result)}>{r.label}</button>)}</div>
+        <button data-ui="button-1" className="learn-submit" disabled={!chosenModule} onClick={submitStudy}>Lerneinheit speichern <Check size={17}/></button>
       </div>
     </div>,document.body)}
   </div>

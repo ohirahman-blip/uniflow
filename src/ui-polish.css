@@ -1,8 +1,6 @@
 /* uniflow refinement: navigation motion, consistent editor controls,
    and deliberate modal/overlay levels. No calendar data or module relations. */
-.course.course-past.course-past-today,
-.course.course-past.course-past-today:hover,
-.course.course-past.course-past-today:focus-visible {
+.course.course-past.course-past-today,.course.course-past.course-past-today:hover,.course.course-past.course-past-today:focus-visible {
   filter:none;
   opacity:1;
 }
@@ -113,8 +111,7 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   min-width:0;
 }
 .uf-entry-full {grid-column:1/-1;}
-.uf-entry-form .field-label,
-.uf-entry-field .field-label {
+.uf-entry-form .field-label,.uf-entry-field .field-label {
   display:block;
   margin:0;
   color:#a6a6ac;
@@ -124,11 +121,7 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
 }
 .uf-entry-form .editor-field {min-width:0;margin:0;display:flex;flex-direction:column;gap:8px;}
 .uf-entry-form .editor-field .field-label {margin:0;}
-.uf-entry-form input.line-input,
-.uf-entry-form .uf-entry-field input,
-.uf-entry-form .big-choice,
-.uf-entry-form .uf-entry-module-choice,
-.uf-entry-form .uf-picker-trigger {
+.uf-entry-form input.line-input,.uf-entry-form .uf-entry-field input,.uf-entry-form .big-choice,.uf-entry-form .uf-entry-module-choice,.uf-entry-form .uf-picker-trigger {
   box-sizing:border-box;
   display:flex;
   align-items:center;
@@ -136,40 +129,19 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   min-width:0;
   min-height:44px;
   max-width:100%;
-  border:1px solid transparent;
-  border-radius:10px;
   padding:0 12px;
-  background:#2b2b2d;
-  color:#f0f0f2;
-  font-family:inherit;
-  font-size:12px;
-  font-weight:500;
-  line-height:1.3;
 }
-.uf-entry-form input.line-input,
-.uf-entry-form .uf-entry-field input {
+.uf-entry-form input.line-input,.uf-entry-form .uf-entry-field input {
   display:block;
-  font-size:12px;
-  font-weight:500;
 }
-.uf-entry-form .uf-picker-trigger:hover,
-.uf-entry-form .big-choice:hover,
-.uf-entry-form .uf-entry-module-choice:hover {background:#37373b;}
-.uf-entry-form .uf-picker-trigger:focus-visible,
-.uf-entry-form input:focus-visible,
-.uf-entry-form .big-choice:focus-visible,
-.uf-entry-form .uf-entry-module-choice:focus-visible {border-color:#8b8b91;outline:none;}
-.uf-entry-module-choice,
-.uf-entry-form .big-choice {text-align:left;justify-content:space-between;gap:8px;}
+.uf-entry-module-choice,.uf-entry-form .big-choice {text-align:left;justify-content:space-between;gap:8px;}
 /* The module search/create panel needs more space than the half-width
    collapsed selector; give the entire grid row to it while it is open. */
 .uf-entry-grid > .uf-entry-field:has(> .module-dropdown) {
   grid-column:1/-1;
 }
-.uf-entry-module-choice span,
-.uf-entry-form .big-choice span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
-.uf-entry-module-choice svg,
-.uf-entry-form .big-choice svg {flex:0 0 auto;color:#9999a0;}
+.uf-entry-module-choice span,.uf-entry-form .big-choice span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.uf-entry-module-choice svg,.uf-entry-form .big-choice svg {flex:0 0 auto;color:#9999a0;}
 .uf-entry-form .module-dropdown {
   position:relative;
   width:100%;
@@ -181,9 +153,9 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   padding:9px;
 }
 .uf-entry-form .module-pick-list {max-height:min(32svh,220px);}
-.uf-entry-form .module-pick-list button {gap:9px;font-size:12px;padding:12px 4px;overflow-wrap:anywhere;}
+.uf-entry-form .module-pick-list button {gap:9px;padding:12px 4px;overflow-wrap:anywhere;}
 .uf-entry-form .quick-new-module {display:flex;align-items:center;gap:7px;min-width:0;}
-.uf-entry-form .quick-new-module input {min-width:0;flex:1 1 auto;padding:7px;background:#343438;font-size:12px;min-height:38px;}
+.uf-entry-form .quick-new-module input {min-width:0;flex:1 1 auto;padding:7px;min-height:38px;}
 .uf-entry-form .quick-new-module input[type=number] {flex:0 0 52px;width:52px;}
 .uf-entry-form .quick-new-module button {flex:0 0 36px;min-height:38px;}
 .uf-entry-form .alternative-editor-copy {margin:0 0 3px;color:#a4a3a8;font-size:12px;line-height:1.5;}
@@ -210,7 +182,6 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
 .uf-entry-advanced[open] > summary svg {transform:rotate(180deg);}
 .uf-entry-advanced .uf-entry-grid {padding:3px 0 7px;}
 /* Custom category entry inside all shared option sheets. */
-.uf-picker-custom-toggle {color:var(--uniflow-accent,#f94f72)!important;}
 .uf-picker-custom-toggle > span {display:flex;align-items:center;gap:9px;}
 .uf-picker-custom-entry {padding:8px 0 4px;display:grid;gap:8px;}
 .uf-picker-custom-entry label {font-size:11px;color:#a5a4aa;}
@@ -220,15 +191,9 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   min-width:0;
   min-height:44px;
   width:100%;
-  background:#303035;
-  color:#fff;
-  border:1px solid #48484e;
-  border-radius:10px;
   padding:10px;
-  font-size:12px;
 }
-.uf-picker-custom-row > button {display:flex;gap:7px;align-items:center;background:var(--uniflow-accent,#f94f72);color:#fff;border:0;border-radius:10px;padding:0 12px;font-size:12px;font-weight:700;}
-.uf-picker-custom-row > button:disabled {opacity:.4;}
+.uf-picker-custom-row > button {display:flex;gap:7px;align-items:center;padding:0 12px;}
 /* Match font sizes in the two module fields: Inhalt and Art. */
 .module-fast .module-fast-topic-inputs label {
   font-size:12px;
@@ -239,23 +204,11 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   height:44px;
   min-height:44px;
   max-height:44px;
-  font-size:12px;
-  font-weight:500;
-  line-height:normal;
-  border:1px solid transparent;
-  border-radius:10px;
-  background:#2b2b2d;
-  color:#f0f0f2;
   padding:0 12px;
 }
 .module-fast .module-fast-topic-inputs .uf-picker-trigger>span {font-size:12px;font-weight:500;}
-.module-fast .module-fast-topic-inputs input:focus-visible {border-color:#8b8b91;}
 
 /* One compact control language across all non-premium edit surfaces. */
-.sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger),
-.module-fast :is(.module-fast-fields,.module-fast-meta-grid,.module-learning-editor,.module-exception-editor) :is(input,select,textarea,.uf-picker-trigger),
-.learn-sheet :is(input,select,textarea,.uf-picker-trigger),
-.admin-form :is(input,select,textarea,.uf-picker-trigger),
 .settings-screen :is(.setting-input input,.number-setting input) {
   box-sizing:border-box;
   min-height:44px;
@@ -268,15 +221,15 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   font-weight:500;
   line-height:1.3;
 }
+.sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger),.module-fast :is(.module-fast-fields,.module-fast-meta-grid,.module-learning-editor,.module-exception-editor) :is(input,select,textarea,.uf-picker-trigger),.learn-sheet :is(input,select,textarea,.uf-picker-trigger),.admin-form :is(input,select,textarea,.uf-picker-trigger) {
+  box-sizing:border-box;
+  min-height:44px;
+}
 .sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger) {
   width:100%;
   height:44px;
   padding:0 12px;
 }
-.sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger):focus-visible,
-.module-fast :is(input,select,textarea,.uf-picker-trigger):focus-visible,
-.learn-sheet :is(input,select,textarea,.uf-picker-trigger):focus-visible,
-.admin-form :is(input,select,textarea,.uf-picker-trigger):focus-visible,
 .settings-screen :is(.setting-input input,.number-setting input):focus-visible {
   border-color:#8b8b91;
   outline:none;
@@ -286,62 +239,24 @@ html[data-theme='light'] .mobile-navigation {background:#fff;}
   min-height:0;
   height:auto;
   padding:0;
-  border:0;
-  border-radius:0;
-  background:transparent;
   text-align:right;
 }
-.settings-screen .number-setting input:focus-visible {border:0;outline:0;}
 .settings-screen .setting-input-plain input {
   min-height:0;
   padding:0;
-  border:0;
-  border-radius:0;
-  background:transparent;
 }
-.settings-screen .setting-input-plain input:focus-visible {
-  border:0;
-  outline:0;
-}
-.settings-screen input[type="number"],
-.module-hub input[type="number"],
-.module-fast input[type="number"],
-.sheet input[type="number"] {-moz-appearance:textfield;appearance:textfield;}
-.settings-screen input[type="number"]::-webkit-inner-spin-button,
-.settings-screen input[type="number"]::-webkit-outer-spin-button,
-.module-hub input[type="number"]::-webkit-inner-spin-button,
-.module-hub input[type="number"]::-webkit-outer-spin-button,
-.module-fast input[type="number"]::-webkit-inner-spin-button,
-.module-fast input[type="number"]::-webkit-outer-spin-button,
-.sheet input[type="number"]::-webkit-inner-spin-button,
-.sheet input[type="number"]::-webkit-outer-spin-button {-webkit-appearance:none;margin:0;}
-.sheet .editor-field > input[type="number"],
-.module-fast .module-fast-meta-grid input[type="number"] {
-  background:transparent;
-  border:0;
-  border-bottom:1px solid #45454a;
-  border-radius:0;
-}
+.settings-screen input[type="number"],.module-hub input[type="number"],.module-fast input[type="number"],.sheet input[type="number"] {-moz-appearance:textfield;}
+.settings-screen input[type="number"]::-webkit-inner-spin-button,.settings-screen input[type="number"]::-webkit-outer-spin-button,.module-hub input[type="number"]::-webkit-inner-spin-button,.module-hub input[type="number"]::-webkit-outer-spin-button,.module-fast input[type="number"]::-webkit-inner-spin-button,.module-fast input[type="number"]::-webkit-outer-spin-button,.sheet input[type="number"]::-webkit-inner-spin-button,.sheet input[type="number"]::-webkit-outer-spin-button {-webkit-appearance:none;margin:0;}
 .sheet :is(.category-list button,.repeat-switch button) {font-size:12px;}
-html[data-theme='light'] .uf-entry-form input.line-input,
-html[data-theme='light'] .uf-entry-form .uf-entry-field input,
-html[data-theme='light'] .uf-entry-form .big-choice,
-html[data-theme='light'] .uf-entry-form .uf-entry-module-choice,
-html[data-theme='light'] .uf-entry-form .uf-picker-trigger {background:#ededf0;color:#18181b;}
 html[data-theme='light'] .uf-entry-form .module-dropdown {background:#eee;color:#161616;border-color:#d7d7dc;}
-html[data-theme='light'] .uf-picker-custom-row input {background:#eee;color:#222;border-color:#ccc;}
 @media(max-width:380px) {
   .uf-entry-grid {gap:9px;}
-  .uf-entry-form .uf-entry-module-choice,
-  .uf-entry-form .uf-entry-field input,
-  .uf-entry-form input.line-input {padding:0 9px;}
+  .uf-entry-form .uf-entry-module-choice,.uf-entry-form .uf-entry-field input,.uf-entry-form input.line-input {padding:0 9px;}
   .uf-picker-custom-row {grid-template-columns:minmax(0,1fr);}
   .uf-picker-custom-row > button {justify-content:center;min-height:40px;}
 }
 @media(prefers-reduced-motion:reduce) {
-  .uf-page-stage,.mobile-navigation button::before,
-  .mobile-navigation button svg,.mobile-navigation button span,
-  .uf-entry-advanced > summary svg {animation:none!important;transition:none!important;}
+  .uf-page-stage,.mobile-navigation button::before,.mobile-navigation button svg,.mobile-navigation button span,.uf-entry-advanced > summary svg {animation:none!important;transition:none!important;}
   .uf-page-stage {animation:none!important;}
 }
 
@@ -399,8 +314,7 @@ html[data-theme='light'] .uf-picker-custom-row input {background:#eee;color:#222
   color:#242023;
   background:transparent;
 }
-.course .course-rating-star:hover,
-.course .course-rating-star:focus-visible {
+.course .course-rating-star:hover,.course .course-rating-star:focus-visible {
   background:transparent;
   color:#151318;
   outline:none;
@@ -412,15 +326,12 @@ html[data-theme='light'] .uf-picker-custom-row input {background:#eee;color:#222
 }
 .course.course-inactive .course-rating-star{color:#a7a7ae;}
 .course.course-inactive .course-rating-star.is-rated{color:#efebef;}
-.wallet-context-menu .wallet-context-danger {color:#f1a5a5;}
 
 /* Room inputs use the same font size and weight as the Module editor. */
-input.line-input.room-input {font-family:inherit;font-size:12px;font-weight:500;}
 
 /* Compact, uppercase section titles for Modules and Settings only.
    Do not affect the calendar, the module-detail editor or other pages. */
-.module-hub .page-title-row h1,
-.settings-screen .page-title-row h1{
+.module-hub .page-title-row h1,.settings-screen .page-title-row h1{
   font-size:12px;
   font-weight:700;
   line-height:1.4;
@@ -498,10 +409,6 @@ input.line-input.room-input {font-family:inherit;font-size:12px;font-weight:500;
   padding:0;
   display:grid;
   place-items:center;
-  border-radius:50%;
-  font-size:10px;
-  line-height:1;
-  font-weight:600;
 }
 
 /* Unified editor controls: the same compact geometry on every edit surface. */
@@ -513,11 +420,7 @@ input.line-input.room-input {font-family:inherit;font-size:12px;font-weight:500;
   --uf-editor-control-selected:#4a4a4d;
   --uf-editor-control-border:#68686d;
 }
-.sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger),
-.sheet .editor-field > .uf-entry-module-choice,
-.uf-entry-form :is(input.line-input,.uf-entry-field input,.big-choice,.uf-entry-module-choice,.uf-picker-trigger),
-.module-fast :is(input,select,textarea,.uf-picker-trigger),
-.module-learning-editor input {
+.uf-entry-form :is(input.line-input,.uf-entry-field input,.big-choice,.uf-entry-module-choice,.uf-picker-trigger) {
   min-height:var(--uf-editor-control-height);
   height:var(--uf-editor-control-height);
   border-radius:var(--uf-editor-control-radius);
@@ -528,33 +431,20 @@ input.line-input.room-input {font-family:inherit;font-size:12px;font-weight:500;
   font-weight:500;
   line-height:1.3;
 }
-.sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger),
-.sheet .editor-field > .uf-entry-module-choice,
-.uf-entry-form :is(input.line-input,.uf-entry-field input,.big-choice,.uf-entry-module-choice,.uf-picker-trigger) {
+.sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger),.sheet .editor-field > .uf-entry-module-choice,.module-fast :is(input,select,textarea,.uf-picker-trigger),.module-learning-editor input {
+  min-height:var(--uf-editor-control-height);
+  height:var(--uf-editor-control-height);
+}
+.sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger),.sheet .editor-field > .uf-entry-module-choice,.uf-entry-form :is(input.line-input,.uf-entry-field input,.big-choice,.uf-entry-module-choice,.uf-picker-trigger) {
   width:100%;
   box-sizing:border-box;
   padding:0 12px;
 }
 .sheet .editor-field > .big-choice { justify-content:space-between; }
-.sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger,.uf-entry-module-choice):focus-visible,
-.uf-entry-form :is(input,.big-choice,.uf-entry-module-choice,.uf-picker-trigger):focus-visible {
-  border-color:var(--uf-editor-control-border);
-  outline:none;
-}
-.sheet :is(.category-list button,.repeat-switch button),
-.module-learning-filters button,
-.module-fast .module-fast-alternatives-toggle>span,
-.module-fast .module-fast-add-alt { font-size:var(--uf-editor-control-font); }
+.sheet :is(.category-list button,.repeat-switch button),.module-fast .module-fast-alternatives-toggle>span,.module-fast .module-fast-add-alt { font-size:var(--uf-editor-control-font); }
 
 /* No accent color inside editing/selection controls. */
-.sheet :is(.category-list button.chosen,.repeat-switch button.chosen,.repeat-switch button.selected),
-.module-learning-filters button.active,
-.module-sort-direction button.selected,
-.uf-picker-option.selected,
-.uf-picker-scroll button.selected,
-.uf-picker-preset-grid button.selected,
-.uf-picker-calendar button.selected,
-.uf-picker-confirm {
+.sheet :is(.category-list button.chosen,.repeat-switch button.chosen,.repeat-switch button.selected) {
   background:var(--uf-editor-control-selected)!important;
   border-color:var(--uf-editor-control-border)!important;
   color:#fff!important;
@@ -567,20 +457,14 @@ input.line-input.room-input {font-family:inherit;font-size:12px;font-weight:500;
     --uf-editor-control-font:16px;
     --uf-editor-control-radius:14px;
   }
-  .sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger),
-  .sheet .editor-field > .uf-entry-module-choice,
-  .uf-entry-form :is(input.line-input,.uf-entry-field input,.big-choice,.uf-entry-module-choice,.uf-picker-trigger) {
+  .sheet .editor-field > :is(input.line-input,.big-choice,.uf-picker-trigger),.sheet .editor-field > .uf-entry-module-choice,.uf-entry-form :is(input.line-input,.uf-entry-field input,.big-choice,.uf-entry-module-choice,.uf-picker-trigger) {
     padding-left:10px;
     padding-right:10px;
   }
 }
 
 /* Light mode uses true white surfaces; controls stay a quiet neutral gray. */
-html[data-theme='light'] .app-root,
-html[data-theme='light'] .screen,
-html[data-theme='light'] .app-main,
-html[data-theme='light'] .sheet,
-html[data-theme='light'] .sheet-footer { background:#fff; }
+html[data-theme='light'] .app-root,html[data-theme='light'] .screen,html[data-theme='light'] .app-main,html[data-theme='light'] .sheet,html[data-theme='light'] .sheet-footer { background:#fff; }
 html[data-theme='light'] :is(.sheet .editor-field > input.line-input,.sheet .editor-field > .big-choice,.sheet .editor-field > .uf-picker-trigger,.sheet .editor-field > .uf-entry-module-choice,
   .uf-entry-form input.line-input,.uf-entry-form .uf-entry-field input,.uf-entry-form .big-choice,.uf-entry-form .uf-entry-module-choice,.uf-entry-form .uf-picker-trigger,
   .module-fast :is(input,select,textarea,.uf-picker-trigger),.module-learning-editor input) {
@@ -588,9 +472,6 @@ html[data-theme='light'] :is(.sheet .editor-field > input.line-input,.sheet .edi
   color:#202024;
   border-color:#dedee1;
 }
-html[data-theme='light'] .sheet :is(.category-list button,.repeat-switch button),
-html[data-theme='light'] .module-learning-filters button { background:#f0f0f1; color:#4c4c51; }
-html[data-theme='light'] .sheet :is(.category-list button.chosen,.repeat-switch button.chosen,.repeat-switch button.selected),
-html[data-theme='light'] .module-learning-filters button.active { background:#d9d9dc!important; color:#202024!important; }
-html[data-theme='light'] .sheet .module-dropdown,
-html[data-theme='light'] .uf-entry-form .module-dropdown { background:#fff; border-color:#dedee1; }
+html[data-theme='light'] .sheet :is(.category-list button,.repeat-switch button) { background:#f0f0f1; color:#4c4c51; }
+html[data-theme='light'] .sheet :is(.category-list button.chosen,.repeat-switch button.chosen,.repeat-switch button.selected) { background:#d9d9dc!important; color:#202024!important; }
+html[data-theme='light'] .sheet .module-dropdown,html[data-theme='light'] .uf-entry-form .module-dropdown { background:#fff; border-color:#dedee1; }

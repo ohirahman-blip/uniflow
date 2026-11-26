@@ -58,13 +58,13 @@ export default function ModuleCoverInput({ value, color, onChange }: { value?: s
   }
   return <div className="module-cover-input" aria-busy={busy} style={{'--cover-accent':color||'var(--module-accent, var(--mlh-accent, #929ddc))'} as CSSProperties}>
     <div className="module-cover-label"><span>Kursbild</span><small>Optional</small></div>
-    <input ref={input} id={id} hidden type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" disabled={busy} aria-label="Kursbild auswählen" onChange={event => { void select(event.target.files?.[0]); event.currentTarget.value = '' }} />
-    <button type="button" className={'module-cover-picker'+(value?' has-image':'')} disabled={busy} onClick={()=>input.current?.click()} aria-describedby={id+'-hint'}>
+    <input data-ui="file-1" ref={input} id={id} hidden type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" disabled={busy} aria-label="Kursbild auswählen" onChange={event => { void select(event.target.files?.[0]); event.currentTarget.value = '' }} />
+    <button data-ui="special-2" type="button" className={'module-cover-picker'+(value?' has-image':'')} disabled={busy} onClick={()=>input.current?.click()} aria-describedby={id+'-hint'}>
       {value&&<img className="module-cover-preview" src={value} alt=""/>}
       <span className="module-cover-picker-icon">{busy?<LoaderCircle size={22} className="module-cover-spinner"/>:value?<Upload size={22}/>:<ImagePlus size={25}/>}</span>
       <span className="module-cover-picker-copy"><strong>{busy?'Bild wird vorbereitet …':value?'Bild ändern':'Bild auswählen'}</strong><small>{value?'Dein Kurs. Dein Bild.':'Gib deinem Modul einen eigenen Look.'}</small></span>
     </button>
-    <div className="module-cover-footer"><small id={id+'-hint'}>Für Kurskarte und Banner · bis 20 MB</small>{value&&<button type="button" disabled={busy} onClick={()=>{setError('');onChange(undefined)}}><Trash2 size={14}/><span>Entfernen</span></button>}</div>
+    <div className="module-cover-footer"><small id={id+'-hint'}>Für Kurskarte und Banner · bis 20 MB</small>{value&&<button data-ui="button-6" type="button" disabled={busy} onClick={()=>{setError('');onChange(undefined)}}><Trash2 size={14}/><span>Entfernen</span></button>}</div>
     {error && <p role="alert" className="inline-error">{error}</p>}
   </div>
 }

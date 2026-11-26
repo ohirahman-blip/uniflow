@@ -7,36 +7,29 @@
 .mlh-first-open>.mlh-module-head,.mlh-first-open>.mlh-score-banner{animation:learn-intro 450ms cubic-bezier(.2,.8,.2,1) both}
 @keyframes learn-intro{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .mlh-score-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:720px;margin:24px auto 32px;padding:0;border:0;border-radius:0;background:transparent;box-sizing:border-box}
-.mlh-score-banner .mlh-score{flex:1;min-width:0;min-height:148px;margin:0;padding:18px;align-items:center;justify-content:center;text-align:center;border:1px solid #ffffff18;border-radius:24px;background:#ffffff03!important;box-sizing:border-box}
+.mlh-score-banner .mlh-score{flex:1;min-width:0;min-height:148px;margin:0;padding:18px;align-items:center;justify-content:center;text-align:center;box-sizing:border-box}
 .mlh-score-banner .mlh-score>span:first-child{font-size:10px;letter-spacing:.12em}
 .mlh-score-banner .mlh-score strong{font-size:clamp(2.7rem,9vw,5.8rem);text-shadow:none;overflow-wrap:anywhere;line-height:1.12}
 .mlh-score-banner .mlh-score-number{transform-origin:center center}
 .mlh-score-banner .mlh-actions{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:0;padding:0;flex:0 0 146px;border:0;border-radius:0;background:transparent;box-sizing:border-box}
-.mlh-score-banner .mlh-actions>button{min-height:36px;min-width:0;width:100%;max-width:none;padding:9px 10px;color:inherit;justify-content:flex-start;border:1px solid #ffffff22;border-radius:999px;background:transparent;gap:8px}
+.mlh-score-banner .mlh-actions>button{min-height:36px;min-width:0;width:100%;max-width:none;padding:9px 10px;justify-content:flex-start;gap:8px}
 .mlh-score-banner .mlh-actions svg{width:17px;height:17px;flex-basis:17px}
 .mlh-score-banner .mlh-actions strong,.mlh-score-banner .mlh-actions>button:hover strong,.mlh-score-banner .mlh-actions>button:focus-visible strong{font-size:11px;max-width:none;opacity:1;margin-left:0;white-space:normal;text-align:left}
-.mlh-score-banner .mlh-actions>.mlh-action-secondary{background:transparent;border-color:transparent;color:var(--muted);font-weight:400}
-.mlh-score-banner .mlh-actions>.mlh-action-secondary:hover{border-color:#ffffff25;color:inherit}
-.mlh-score-banner .mlh-actions>button{transition:transform 220ms cubic-bezier(.2,.8,.2,1),border-color 220ms ease,background-color 220ms ease,color 220ms ease}
-.mlh-score-banner .mlh-actions>button:focus-visible{outline:2px solid var(--mlh-accent);outline-offset:3px;background:color-mix(in srgb,var(--mlh-accent) 8%,transparent);border-color:var(--mlh-accent);color:var(--mlh-accent);transform:translateY(-2px)}
-@media(hover:hover) and (pointer:fine){
-  .mlh-score-banner .mlh-actions>button:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--mlh-accent) 65%,transparent);background:color-mix(in srgb,var(--mlh-accent) 8%,transparent);color:var(--mlh-accent)}
-  .mlh-score-banner .mlh-actions>button:active{transform:translateY(0) scale(.98)}
-}
 .settings-theme{display:flex;align-items:center;justify-content:space-between;gap:18px;font-size:13px}.settings-theme>.uf-picker-trigger{width:min(55%,200px)}
 .settings-sound-row{display:flex;align-items:center;justify-content:space-between;gap:18px;font-size:13px}
 .profile-theme{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;font-size:13px}
-.profile-theme>.uf-picker-trigger{width:150px;background:var(--panel);border:1px solid #ffffff20;border-radius:13px;color:inherit}
-.profile-theme select,.study-goal-form input:not([type=checkbox]),.study-semester-create input{font:inherit;min-width:0;box-sizing:border-box;color:inherit;background:var(--panel);border:1px solid #ffffff20;border-radius:13px;padding:11px 13px}
-.study-add-module,.profile-goals>button,.profile-goals article>button,.study-goal-form>button,.study-semester>button,.study-semester-create>button{border:1px solid #ffffff25;border-radius:14px;padding:10px 14px;background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer}
+.profile-theme>.uf-picker-trigger{width:150px}
+.profile-theme select,.study-goal-form input:not([type=checkbox]),.study-semester-create input{min-width:0;box-sizing:border-box;padding:11px 13px}
+.study-add-module{border:1px solid #ffffff25;border-radius:14px;padding:10px 14px;background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer}
+.profile-goals>button,.profile-goals article>button,.study-goal-form>button,.study-semester>button,.study-semester-create>button{padding:10px 14px}
 .study-add-module{margin-bottom:24px;width:100%}.profile-goals article>button{margin:12px 8px 0 0}
 .study-goal-form{display:grid;gap:16px;padding:18px;border:1px solid #ffffff20;border-radius:20px}
 .study-goal-form label,.study-semester label{display:grid;gap:8px;min-width:0;font-size:12px}
 .study-goal-form fieldset{display:grid;gap:12px;min-width:0;border:1px solid #ffffff18;border-radius:14px;padding:14px}
-.study-goal-form fieldset label{display:flex;align-items:center;gap:10px;overflow-wrap:anywhere}.study-goal-form input[type=checkbox]{accent-color:var(--module-accent,#aaa)}
+.study-goal-form fieldset label{display:flex;align-items:center;gap:10px;overflow-wrap:anywhere}
 .study-semester{display:grid;gap:12px;min-width:0}.study-semester-create{display:grid;gap:10px}.study-semester small{color:var(--muted)}
 .overview-dashboard>.mlh-running-timer{max-width:none;margin:0 0 25px}.mlh-timer-controls{flex-wrap:wrap}
-.session-discard{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;border:1px solid #ffffff22;border-radius:16px;padding:14px;margin-top:12px;color:inherit}.session-discard p{width:100%;text-align:center;margin:0 0 5px;font-size:12px}.session-discard button{background:transparent;border:1px solid #ffffff30;border-radius:18px;color:inherit;padding:9px 13px;font:inherit;font-size:12px;cursor:pointer}
+.session-discard{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;border:1px solid #ffffff22;border-radius:16px;padding:14px;margin-top:12px;color:inherit}.session-discard p{width:100%;text-align:center;margin:0 0 5px;font-size:12px}.session-discard button{padding:9px 13px}
 
 /* One light palette for the shell, sheets and all newer app surfaces. */
 html[data-theme='light']{
@@ -52,10 +45,7 @@ html[data-theme='light'] .uf-brandmark .uf-logo-plus::before,html[data-theme='li
 html[data-theme='light'] .settings-screen .settings-ai-inline{border-bottom-color:#20212620}
 html[data-theme='light'] .settings-screen .settings-ai-label{color:#4d4e58}
 html[data-theme='light'] .settings-screen .settings-ai-badge{color:var(--uf-premium-text);background:var(--uf-premium-surface);border-color:var(--uf-premium-border);-webkit-text-fill-color:currentColor}
-html[data-theme='light'] .settings-screen .settings-ai-toggle:not(.is-on){background:#d1d1d8}
-html[data-theme='light'] .settings-screen .settings-ai-toggle.is-on{background:color-mix(in srgb,var(--module-accent) 50%,#202126)}
 html[data-theme='light'] .settings-screen .settings-ai-toggle span{background:#fff;box-shadow:0 1px 3px #20212630}
-html[data-theme='light'] .settings-screen .settings-ai-toggle:focus-visible{outline-color:#805489}
 html[data-theme='light'] .settings-screen .settings-ai-status{color:#704769}
 html[data-theme='light'] .settings-screen .settings-ai-result{background:#f0eaf2;color:#202126}
 html[data-theme='light'] .settings-screen .settings-ai-result>span{color:#704769}
@@ -68,8 +58,6 @@ html[data-theme='light'] :is(.profile-panel,.sheet,.mlh-sheet,.uf-picker-dialog,
 html[data-theme='light'] :is(.app-top,.app-brand,.app-desktop-side){color:#202126!important}
 html[data-theme='light'] :is(.uf-logo-word,.wordmark){color:#202126!important;-webkit-text-fill-color:#202126!important}
 html[data-theme='light'] :is(.mobile-navigation,.app-desktop-side){background:#fafafad9!important;border-color:#20212620!important}
-html[data-theme='light'] :is(.mobile-navigation,.app-desktop-side) button{color:#72737d!important}
-html[data-theme='light'] :is(.mobile-navigation,.app-desktop-side) button.active{color:#202126!important}
 html[data-theme='light'] .mobile-navigation button.active::before{background:#2021260c!important}
 html[data-theme='light'] .mobile-navigation button.active svg{stroke:#202126!important;fill:transparent!important}
 html[data-theme='light'] :is(.overview-score,.overview-next>button,.overview-task,.overview-new-task,.profile-goals article,.profile-menu>button,.module-fast-course,.module-fast-panel,.module-fast-group,.wallet-choice-banner,.mlh-running-timer){background:#20212603!important;border-color:#20212620!important;color:#202126!important;box-shadow:none!important}
@@ -79,24 +67,15 @@ html[data-theme='light'] :is(.mlh-task,.mlh-homework-row,.mlh-exam-row,.mlh-acti
 html[data-theme='light'] :is(.mlh-task>i,.mlh-homework-check>i,.mlh-exam-check>i,.overview-task i){border-color:#20212670!important}
 html[data-theme='light'] :is(.mlh-module-head h1,.mlh-score,.mlh-score strong,.mlh-tasks h2,.mlh-task strong){color:#202126!important}
 html[data-theme='light'] :is(.overview-next small,.overview-task small,.profile-menu small,.profile-modules small,.mlh-exam-open small,.module-fast small,.scope-intro,.quiet-copy,.field-label,.setting-hint){color:#666772!important}
-html[data-theme='light'] :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen,.profile-panel,.overview-dashboard) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea,.uf-picker-trigger,.big-choice,.uf-entry-module-choice){background:var(--uf-field-background)!important;border-color:var(--uf-field-border)!important;color:#202126!important;-webkit-text-fill-color:#202126!important}
 html[data-theme='light'] body :is(input,textarea)::placeholder,html[data-theme='light'] body .uf-picker-trigger>.uf-picker-placeholder{color:#20212666!important;-webkit-text-fill-color:#20212666!important;opacity:1!important}
-html[data-theme='light'] :is(.uf-picker-dialog,.sheet,.mlh-sheet) button:not(.primary-action):not(.mlh-primary):not(.picked):not(.selected):not(.chosen){color:inherit}
-html[data-theme='light'] :is(.mlh-primary,.primary-action){background:#292a31!important;color:#fff!important}
-html[data-theme='light'] :is(.uf-picker-option,.uf-picker-calendar-day,.uf-picker-time-option){color:#202126!important}
-html[data-theme='light'] :is(.uf-picker-option.is-selected,.uf-picker-calendar-day.is-selected){background:#20212612!important;color:#202126!important}
-html[data-theme='light'] .uf-assessment-picker button{color:#202126!important}
 html[data-theme='light'] :is(.wallet-choice-banner>button,.module-fast-header button,.module-fast-panel button,.module-fast-group button){color:inherit!important}
 html[data-theme='light'] :is(.calendar-page,.days-grid,.day-column,.calendar-lanes,.time-ruler,.ruler-track,.uf-week-strip){background:transparent!important}
 html[data-theme='light'] :is(.day-heading,.ruler-head,.uf-week-strip){color:#666772!important;border-color:#20212618!important}
-html[data-theme='light'] .calendar-compact-toolbar button{color:#202126!important}
 html[data-theme='light'] svg.lucide-plus{stroke:currentColor}
-html[data-theme='light'] .profile-theme>.uf-picker-trigger{background:#20212605;border-color:#20212620}
 html[data-theme='light'] :is(.mlh-timer-clock,.mlh-timer-controls>button,.mlh-start-timer,.mlh-timeline-now>span){color:#202126!important}
 html[data-theme='light'] :is(.mlh-timer-controls>button,.mlh-start-timer){border-color:#20212630!important}
 html[data-theme='light'] .mlh-score .mlh-score-number.is-rising strong{color:#198542!important}
 html[data-theme='light'] :is(.uf-wheel-shell,.uf-picker-option,.uf-picker-calendar button,.uf-picker-calendar-nav button,.uf-picker-close){background:#20212608!important;color:#202126!important}
-html[data-theme='light'] .uf-picker-option.selected{background:#20212615!important;border-color:#20212640!important}
 html[data-theme='light'] .uf-wheel-selected-area{background:#20212612!important;border-color:#20212625!important}
 html[data-theme='light'] .calendar-course-expansion .wallet-card{background:color-mix(in srgb,var(--wallet-accent) 8%,#fff)!important;color:#202126!important}
 html[data-theme='light'] :is(.wallet-scope button,.wallet-edit,.wallet-reset,.wallet-choice-banner button){color:#202126!important;border-color:#20212625!important}
@@ -107,13 +86,10 @@ html[data-theme='light'] .screen-calendar .course:not(.course-expanded):not(.cou
 html[data-theme='light'] .module-fast .module-fast-topic{background:#fff;border-color:#20212620}
 html[data-theme='light'] .settings-screen .settings-section h2{color:#4d4e58}
 html[data-theme='light'] :is(.session-discard,.session-discard button){border-color:#20212630}
-html[data-theme='light'] .mlh-primary{background:color-mix(in srgb,var(--mlh-accent,var(--module-accent)) 70%,#fff)!important;color:#202126!important}
 html[data-theme='light'] .app-root .screen-calendar{background:var(--page)!important}
 html[data-theme='light'] .screen-calendar :is(.calendar-page,.calendar-sticky-header,.calendar-sticky-header::before,.calendar-compact-toolbar,.uf-week-strip,.time-ruler){background:var(--page)!important}
 html[data-theme='light'] .screen-calendar :is(.day-track,.day-heading,.ruler-head){background:transparent!important}
 html[data-theme='light'] .screen-calendar :is(.view-switch,.calendar-tools){background:#20212606;border-color:#20212620}
-html[data-theme='light'] .screen-calendar :is(.calendar-today,.calendar-focus.chosen){background:#20212609!important;color:#202126!important}
-html[data-theme='light'] .calendar-compact-toolbar .view-switch button.active{background:#20212614!important;color:#202126!important}
 html[data-theme='light'] .screen-calendar .course:not(.course-expanded):not(.course-inactive) :is(.course-title,.course-kind-icon,.course-kind-icon svg){color:color-mix(in srgb,var(--course-accent) 55%,#202126)!important}
 html[data-theme='light'] .screen-calendar .course:not(.course-expanded):not(.course-inactive) :is(.course-meta,.course-meta span,.course-place,.course-place span,.course-hours){color:#656671!important}
 html[data-theme='light'] .screen-calendar .course.course-inactive:not(.course-expanded){border-color:color-mix(in srgb,var(--course-accent) 40%,#20212618)!important}
@@ -121,29 +97,14 @@ html[data-theme='light'] .screen-calendar .course.course-inactive:not(.course-ex
 html[data-theme='light'] .screen-calendar .calendar-course-expansion .wallet-fan-head{color:#202126}
 html[data-theme='light'] .screen-calendar .calendar-course-expansion .wallet-card{color:color-mix(in srgb,var(--wallet-accent) 55%,#202126)!important;border-color:color-mix(in srgb,var(--wallet-accent) 40%,#20212618)}
 html[data-theme='light'] .screen-calendar .calendar-course-expansion .wallet-card.wallet-card-picked{background:var(--wallet-accent)!important;color:var(--wallet-ink)!important}
-html[data-theme='light'] .screen-calendar .calendar-course-expansion .wallet-fan-head button{background:#20212609;color:#202126}
 html[data-theme='light'] .wallet-context-menu{background:#fff;color:#202126;border-color:#20212625}
-html[data-theme='light'] .wallet-context-menu button{color:#202126}
-html[data-theme='light'] .wallet-context-menu button:hover,html[data-theme='light'] .wallet-context-menu button:focus-visible{background:#20212609}
-html[data-theme='light'] .wallet-context-menu .wallet-context-danger{color:#b33f45}
 html[data-theme='light'] .uf-month-cell{background:#fff;border-color:#20212618}
 html[data-theme='light'] .uf-month-cell.other-month{background:#20212604}
-html[data-theme='light'] :is(.uf-month-day,.uf-month-back){color:#202126}
-html[data-theme='light'] .uf-month-back{background:#20212608}
 html[data-theme='light'] :is(.uf-month-weekdays,.uf-month-grid){border-color:#20212618}
-html[data-theme='light'] .uf-month-cell.is-today .uf-month-day{background:#202126;color:#fff}
-html[data-theme='light'] .uf-month-pill{background:color-mix(in srgb,var(--month-accent) 18%,#fff);color:#202126}
-html[data-theme='light'] .uf-month-pill.exam{background:color-mix(in srgb,var(--month-accent) 30%,#fff)}
-html[data-theme='light'] .mlh-score-banner .mlh-score{background:#20212603!important;border-color:#20212625}
 html[data-theme='light'] .mlh-score-banner .mlh-actions{background:transparent;border:0}
-html[data-theme='light'] .mlh-score-banner .mlh-actions>button{background:transparent;color:#202126!important}
-html[data-theme='light'] .mlh-score-banner .mlh-actions>.mlh-action-secondary{background:transparent;border-color:transparent!important;color:#70717b!important}
 @media(min-width:800px){.mlh-score-banner .mlh-score{padding:24px 30px}.mlh-score-banner .mlh-actions{flex-basis:184px}}
 @media(max-width:380px){.mlh-score-banner{padding:0;gap:12px}.mlh-score-banner .mlh-score{padding:15px 10px}.mlh-score-banner .mlh-actions{flex-basis:136px}.mlh-score-banner .mlh-actions>button{padding:8px}.mlh-score-banner .mlh-score strong{font-size:clamp(2rem,8vw,3rem)}}
 @media(prefers-reduced-motion:reduce){.mlh-first-open>.mlh-module-head,.mlh-first-open>.mlh-score-banner{animation:none!important}}
-html[data-theme='light'] .mlh-score-banner .mlh-actions>button:focus-visible{background:#20212607;border-color:#805489!important;color:#202126!important}
-@media(hover:hover) and (pointer:fine){html[data-theme='light'] .mlh-score-banner .mlh-actions>button:hover{background:color-mix(in srgb,var(--mlh-accent) 12%,transparent);border-color:color-mix(in srgb,var(--mlh-accent) 60%,#202126)!important;color:#202126!important}}
-@media(prefers-reduced-motion:reduce){.mlh-score-banner .mlh-actions>button{transition:none!important}.mlh-score-banner .mlh-actions>button:hover,.mlh-score-banner .mlh-actions>button:focus-visible,.mlh-score-banner .mlh-actions>button:active{transform:none!important}}
 
 .overview-advice{margin:0 0 24px;padding:22px 24px;border:1px solid #ffffff18;border-radius:24px;background:#ffffff03;color:var(--uf-color-text);min-width:0}
 .overview-advice>header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
@@ -163,7 +124,6 @@ html[data-theme='light'] body .profile-panel :is(.number-setting input,.setting-
 html[data-theme='light'] body .profile-panel input::placeholder{color:#20212666!important;-webkit-text-fill-color:#20212666!important}
 
 /* Keep the Today action in its outer toolbar, without another pill inside. */
-.app-root .calendar-page .calendar-tools>.calendar-today{background:transparent!important;border:0!important;border-radius:0;box-shadow:none!important}
 
 /* Keep native elastic edge feedback. The top follows the app canvas while the
    lower browser/PWA underlay stays true black instead of flashing grey. */
@@ -173,12 +133,8 @@ body{overscroll-behavior-y:auto;background-color:var(--uf-page-background,#0b0b0
 
 /* The light palette's earlier :is(.calendar-focus.chosen) rule had higher
    specificity than the generic Today reset, restoring an unwanted gray fill. */
-html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today,
-html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today:hover,
-html[data-theme='light'] .app-root .screen-calendar .calendar-page .calendar-tools>button.calendar-today:active{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important}
 
 /* Flat light controls: the offset-shadow experiment has been removed. */
-html[data-theme='light'] button{box-shadow:none!important}
 
 /* Hovered controls grow subtly in place instead of jumping upward. */
 @media(hover:hover) and (pointer:fine){
@@ -220,7 +176,6 @@ html[data-theme='light'] button{box-shadow:none!important}
 .mobile-nav-indicator{display:none}
 @media(max-width:799px){
   .app-root nav.mobile-navigation .mobile-nav-indicator{display:block;position:absolute;top:4px;left:calc(8px + (100% - 16px) * var(--nav-position,.5));width:42px;height:42px;border-radius:50%;transform:translateX(-50%);z-index:-1;pointer-events:none;opacity:var(--nav-highlight,1);background:#ffffff16;border:1px solid #ffffff12;box-shadow:inset 0 1px 0 #ffffff16;transition:left 420ms cubic-bezier(.22,1,.36,1),opacity 180ms ease,background-color 200ms ease}
-  .app-root nav.mobile-navigation button{border-radius:999px}
   .app-root nav.mobile-navigation button::before{content:none!important;display:none!important}
   html[data-theme='light'] .app-root nav.mobile-navigation .mobile-nav-indicator{background:#20212610;border-color:#20212609;box-shadow:inset 0 1px 0 #ffffffb0}
 }
@@ -251,12 +206,10 @@ html[data-theme='light'] .module-fast :is(
   .module-quick-thinking>div>span,.module-fast-quick-lock-label
 ){color:#66676f!important}
 html[data-theme='light'] .module-fast :is(h1,h2,h3,strong){color:#202126!important}
-html[data-theme='light'] .module-fast .module-fast-quick-premium>summary>svg:first-child,
-html[data-theme='light'] .module-fast .module-quick-premium-label{color:#704769!important}
+html[data-theme='light'] .module-fast .module-fast-quick-premium>summary>svg:first-child,html[data-theme='light'] .module-fast .module-quick-premium-label{color:#704769!important}
 html[data-theme='light'] .module-fast .module-quick-premium-label{background:#ede3f0!important}
-html[data-theme='light'] .module-fast :is(input,select,textarea,.uf-picker-trigger,.big-choice,.uf-entry-module-choice){background:#fff!important;border-color:#d8d8dd!important;color:#202126!important;-webkit-text-fill-color:#202126!important;color-scheme:light!important}
+html[data-theme='light'] .module-fast :is(input,select,textarea,.uf-picker-trigger,.big-choice,.uf-entry-module-choice){color-scheme:light!important}
 html[data-theme='light'] .module-fast :is(input,textarea)::placeholder{color:#20212666!important;-webkit-text-fill-color:#20212666!important}
-html[data-theme='light'] .module-fast .module-fast-quick textarea{background:#fff!important;border:1px solid #d8d8dd!important}
 html[data-theme='light'] .module-fast :is(.module-fast-topic,.module-fast-slot,.module-fast-meta,.module-fast-quick,.module-learning-history,.module-assessment-card,.module-fast-exceptions){box-shadow:none!important}
 html[data-theme='light'] .module-fast :is(.module-fast-topic,.module-fast-slot,.module-fast-meta,.module-fast-quick,.module-learning-history,.module-assessment-card,.module-fast-exceptions,.module-fast-preview){border:1px solid #dedee2!important}
 html[data-theme='light'] .module-fast :is(.module-fast-slot .module-slot-edit-form,.module-fast-ai-topic,.module-fast-ai-extras,.module-learning-row,.module-fast-exception){border-color:#dedee2!important}
@@ -268,8 +221,6 @@ html[data-theme='light'] .module-fast :is(
   .module-fast-preview-button,.module-fast-section-head>button,.module-learning-topic-actions button:first-child,
   .module-exception-actions button.primary
 ){background:#24252b!important;border-color:#24252b!important;color:#fff!important}
-html[data-theme='light'] .module-fast .module-fast-remove,
-html[data-theme='light'] .module-fast :is(.module-fast-slot-actions button.danger,.module-learning-delete){color:#b14f58!important}
 html[data-theme='light'] .module-fast .module-fast-dot{background:#9a9aa1!important}
 html[data-theme='light'] .module-fast .module-fast-dot.active{background:#303137!important}
 html[data-theme='light'] .module-fast .module-fast-quick-locked-icon{color:#66676f!important}
@@ -279,13 +230,10 @@ html[data-theme='light'] .module-fast .module-quick-thinking-track{background:#e
 html[data-theme='light'] .module-fast .module-quick-thinking-track>i{background:linear-gradient(90deg,transparent,#805489,transparent)!important}
 
 /* Homework and assessment sheets use the same complete light palette as other forms. */
-html[data-theme='light'] .sheet .assessment-time-switch{background:#f1f1f3!important;border:1px solid #d8d8dd!important;color:#202126!important}
-html[data-theme='light'] .sheet .assessment-time-switch.enabled{background:#e9e9ec!important;border-color:#cfcfd5!important}
 html[data-theme='light'] .sheet .assessment-time-switch>span{color:#66676f!important}
 html[data-theme='light'] .sheet .assessment-check{background:transparent!important;color:#303137!important}
 html[data-theme='light'] .sheet .assessment-check>span{background:#fff!important;border-color:#8c8c94!important;color:#202126!important}
 html[data-theme='light'] .sheet .assessment-check.completed>span{background:#24252b!important;border-color:#24252b!important;color:#fff!important}
-html[data-theme='light'] .sheet .assessment-notes-input{background:#fff!important;border-color:#d8d8dd!important;color:#202126!important;-webkit-text-fill-color:#202126!important}
 html[data-theme='light'] .sheet .assessment-notes-input::placeholder{color:#20212666!important;-webkit-text-fill-color:#20212666!important}
 html[data-theme='light'] .sheet .uf-assessment-preview :is(h2,p){color:#202126!important}
 html[data-theme='light'] .sheet .uf-assessment-preview-kind{color:#66676f!important}

@@ -16,13 +16,13 @@ export default function LearningSessionForm({initialMinutes=45,initialRating,ini
     onSave({duration:parsed,rating,date})
   }
   return <form className="mlh-form" onSubmit={event=>{event.preventDefault();save()}}>
-    <label><span>{finishing?'Gemessene Lernzeit · anpassbar':'Dauer · Minuten oder Stunden:Minuten'}</span><input type="text" inputMode="text" value={duration} placeholder="45 oder 1:30" onChange={event=>{setDuration(event.target.value);setError('')}} autoComplete="off"/></label>
+    <label><span>{finishing?'Gemessene Lernzeit · anpassbar':'Dauer · Minuten oder Stunden:Minuten'}</span><input data-ui="field-1" type="text" inputMode="text" value={duration} placeholder="45 oder 1:30" onChange={event=>{setDuration(event.target.value);setError('')}} autoComplete="off"/></label>
     <label><span>Datum</span><UniflowPicker kind="date" label="Datum der Lernsession" value={date} onChange={setDate}/></label>
-    <div className="mlh-rating"><span>Wie gut hast du den Stoff verstanden?</span>{([{value:'understood',label:'Gut'},{value:'partial',label:'Teilweise'},{value:'struggling',label:'Gar nicht'}] as const).map(option=><button type="button" key={option.value} aria-pressed={rating===option.value} className={rating===option.value?'active':''} onClick={()=>{setRating(option.value);setError('')}}>{option.label}</button>)}</div>
+    <div className="mlh-rating"><span>Wie gut hast du den Stoff verstanden?</span>{([{value:'understood',label:'Gut'},{value:'partial',label:'Teilweise'},{value:'struggling',label:'Gar nicht'}] as const).map(option=><button data-ui="select-8" type="button" key={option.value} aria-pressed={rating===option.value} className={rating===option.value?'active':''} onClick={()=>{setRating(option.value);setError('')}}>{option.label}</button>)}</div>
     {error&&<p className="auth-error" role="alert">{error}</p>}
-    <button className="mlh-primary" type="submit">{finishing?'Beenden & speichern':'Session speichern'}<ArrowRight size={18}/></button>
-    {onDiscard&&(discardRequested?<div className="session-discard"><p>Session ohne Punkte verwerfen?</p><button type="button" onClick={onDiscard}>Ja, verwerfen</button><button type="button" onClick={()=>setDiscardRequested(false)}>Behalten</button></div>:<button className="dismiss-action" type="button" onClick={()=>setDiscardRequested(true)}>Lernsession verwerfen</button>)}
-    {onStart&&<button className="mlh-start-timer" type="button" disabled={timerExists} onClick={()=>{if(parsed===null){setError('Gib zuerst eine gültige Dauer ein.');return}onStart(parsed)}}><Play size={16}/> Timer starten</button>}
+    <button data-ui="button-1" className="mlh-primary" type="submit">{finishing?'Beenden & speichern':'Session speichern'}<ArrowRight size={18}/></button>
+    {onDiscard&&(discardRequested?<div className="session-discard"><p>Session ohne Punkte verwerfen?</p><button data-ui="button-2" type="button" onClick={onDiscard}>Ja, verwerfen</button><button data-ui="button-2" type="button" onClick={()=>setDiscardRequested(false)}>Behalten</button></div>:<button data-ui="button-2" className="dismiss-action" type="button" onClick={()=>setDiscardRequested(true)}>Lernsession verwerfen</button>)}
+    {onStart&&<button data-ui="button-2" className="mlh-start-timer" type="button" disabled={timerExists} onClick={()=>{if(parsed===null){setError('Gib zuerst eine gültige Dauer ein.');return}onStart(parsed)}}><Play size={16}/> Timer starten</button>}
     {onStart&&timerExists&&<p>Es läuft bereits ein Lerntimer. Du kannst trotzdem eine andere Session direkt speichern.</p>}
   </form>
 }

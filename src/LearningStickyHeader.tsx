@@ -23,6 +23,6 @@ export default function LearningStickyHeader({moduleId,title,color,score,onHisto
     return()=>{observer?.disconnect();resize.disconnect()}
   },[moduleId])
   return createPortal(<header ref={bar} className={'learning-sticky-header'+(hidden?' is-visible':'')} style={{'--mlh-accent':color} as CSSProperties} aria-hidden={!hidden} inert={!hidden}>
-    <div><button onClick={onHistory} tabIndex={hidden?0:-1} aria-label={`${title}: ${score} Punkte, Aktivitäten öffnen`}><AnimatedScore key={moduleId} value={score} storageKey={`sticky-score:${moduleId}`}/><span className="learning-sticky-points">PUNKTE</span></button></div>
+    <div><button data-ui="special-4" onClick={onHistory} tabIndex={hidden?0:-1} aria-label={`${title}: ${score} Punkte, Aktivitäten öffnen`}><AnimatedScore key={moduleId} value={score} storageKey={`sticky-score:${moduleId}`}/><span className="learning-sticky-points">PUNKTE</span></button></div>
   </header>,document.body)
 }

@@ -28,7 +28,6 @@
   gap:2px;
   margin:0;
   padding:0 2px;
-  line-height:1;
   text-align:center;
   white-space:nowrap;
   pointer-events:none;
@@ -125,35 +124,10 @@
   -webkit-tap-highlight-color:transparent;
   display:grid;
   place-items:center;
-  border:0;
-  border-radius:999px;
-  background:transparent;
-  outline:none;
   margin:0;
   padding:0;
   width:100%;
   height:46px;
-  color:#f1f1f2;
-  font-size:16px;
-  font-weight:700;
-  line-height:1;
-  font-variant-numeric:tabular-nums;
-  cursor:pointer;
-  transition:color 140ms ease;
-}
-.uf-week-strip-button.uf-week-first {
-  color:#080808;
-  font-weight:700;
-}
-.uf-week-strip-button.uf-week-today:not(.uf-week-first) {
-  color:#f45866;
-}
-.uf-week-strip-button.uf-week-second {
-  color:#f6f6f7;
-}
-.uf-week-strip-button:focus-visible {
-  outline:2px solid #ffffff;
-  outline-offset:-1px;
 }
 .uf-week-strip-assessments {
   display:flex;
@@ -169,68 +143,24 @@
 .uf-week-assessment {
   width:15px;
   height:14px;
-  border:0;
-  background:transparent;
-  color:#f6b29e;
   display:grid;
   place-items:center;
   padding:0;
-  cursor:pointer;
 }
-.uf-week-assessment.done{color:#85858a;}
-.uf-week-assessment-more{font-size:9px;color:#aaa;}
 /* Date headers now live exclusively in the fixed strip, in every view. The timeline remains untouched. */
 .calendar-lanes .ruler-head {display:none;}
 /* Clear the lingering iOS :hover backdrop after Today / arrow navigation.
    Desktop keyboards keep their visible focus indicator. */
-.calendar-compact-toolbar .calendar-tools > .calendar-today,
-.calendar-compact-toolbar .calendar-tools > button[aria-label="Vorheriger Zeitraum"],
-.calendar-compact-toolbar .calendar-tools > button[aria-label="Nächster Zeitraum"] {
+.calendar-compact-toolbar .calendar-tools > .calendar-today,.calendar-compact-toolbar .calendar-tools > button[aria-label="Vorheriger Zeitraum"],.calendar-compact-toolbar .calendar-tools > button[aria-label="Nächster Zeitraum"] {
   -webkit-tap-highlight-color:transparent;
-  background:transparent;
-  color:#bfc0c5;
-  outline:none;
-}
-.calendar-compact-toolbar .calendar-tools > .calendar-today:hover,
-.calendar-compact-toolbar .calendar-tools > .calendar-today:active,
-.calendar-compact-toolbar .calendar-tools > button[aria-label="Vorheriger Zeitraum"]:hover,
-.calendar-compact-toolbar .calendar-tools > button[aria-label="Nächster Zeitraum"]:hover,
-.calendar-compact-toolbar .calendar-tools > button[aria-label="Vorheriger Zeitraum"]:active,
-.calendar-compact-toolbar .calendar-tools > button[aria-label="Nächster Zeitraum"]:active {
-  background:transparent;
-  color:#bfc0c5;
-}
-@media(hover:hover) and (pointer:fine) {
-  .calendar-compact-toolbar .calendar-tools > .calendar-today:hover,
-  .calendar-compact-toolbar .calendar-tools > button[aria-label="Vorheriger Zeitraum"]:hover,
-  .calendar-compact-toolbar .calendar-tools > button[aria-label="Nächster Zeitraum"]:hover {
-    color:#ffffff;
-  }
-}
-.calendar-compact-toolbar .calendar-tools > .calendar-today:focus-visible,
-.calendar-compact-toolbar .calendar-tools > button[aria-label="Vorheriger Zeitraum"]:focus-visible,
-.calendar-compact-toolbar .calendar-tools > button[aria-label="Nächster Zeitraum"]:focus-visible {
-  outline:2px solid #9e9ea3;
-  outline-offset:0;
-  background:transparent;
 }
 html[data-theme='light'] .uf-week-strip-month strong {color:#3a3a3d;}
 html[data-theme='light'] .uf-week-strip-month span {color:#8b8b91;}
 html[data-theme='light'] .uf-week-strip { background:#f7f7f6; border-bottom-color:#dadada; box-shadow:0 5px 14px #f7f7f6aa; }
 html[data-theme='light'] .uf-week-strip-labels span {color:#272729;}
 html[data-theme='light'] .uf-week-strip-labels .uf-weekend {color:#959599;}
-html[data-theme='light'] .uf-week-strip-button {color:#303034;}
 html[data-theme='light'] .uf-week-range{background:#e0dfe2;border-color:rgba(0,0,0,.045);}
 html[data-theme='light'] .uf-week-liquid-core {background:#202023;}
-html[data-theme='light'] .uf-week-strip-button.uf-week-first {color:white;}
-html[data-theme='light'] .uf-week-strip-button.uf-week-second {color:#28282b;}
-html[data-theme='light'] .uf-week-strip-button.uf-week-today:not(.uf-week-first){color:#e94f68;}
-html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > .calendar-today,
-html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria-label="Vorheriger Zeitraum"],
-html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria-label="Nächster Zeitraum"] {color:#555;}
-html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > .calendar-today:hover,
-html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria-label="Vorheriger Zeitraum"]:hover,
-html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria-label="Nächster Zeitraum"]:hover{background:transparent;color:#38383a;}
 /* Match the horizontally scrolling calendar's full-bleed width on phones.
    Its opaque sticky surface masks course cards underneath right up to the edge. */
 @media(max-width:720px){
@@ -249,7 +179,7 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
 @media(max-width:420px){
   .uf-week-strip{padding-top:6px;padding-bottom:6px;}
   .uf-week-strip-labels{margin-bottom:4px;}
-  .uf-week-strip-button{font-size:15px;height:41px;}
+  .uf-week-strip-button{height:41px;}
   .uf-week-range{top:2px;height:39px;}
   .uf-week-liquid{top:1px;height:41px;}
   .uf-week-liquid-core{height:34px;width:min(34px,calc(100% - 10px));}
@@ -258,7 +188,7 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
   .uf-week-strip-days{min-height:55px;}
 }
 @media(prefers-reduced-motion:reduce){
-  .uf-week-range,.uf-week-liquid,.uf-week-strip-button{transition:none!important;}
+  .uf-week-range,.uf-week-liquid{transition:none!important;}
   .uf-week-liquid-core{animation:none!important;}
 }
 
@@ -268,13 +198,7 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
 .calendar-page {
   overflow-anchor:none;
 }
-.calendar-lanes,
-.calendar-lanes .snap-viewport,
-.calendar-lanes .snap-page,
-.calendar-lanes .days-grid,
-.calendar-lanes .day-column,
-.calendar-lanes .day-track,
-.calendar-lanes .ruler-track {
+.calendar-lanes,.calendar-lanes .snap-viewport,.calendar-lanes .snap-page,.calendar-lanes .days-grid,.calendar-lanes .day-column,.calendar-lanes .day-track,.calendar-lanes .ruler-track {
   margin-top:0;
   padding-top:0;
 }
@@ -309,17 +233,8 @@ html[data-theme='light'] .calendar-compact-toolbar .calendar-tools > button[aria
   border-radius:50%;
   background:var(--uniflow-accent,#f94f72);
 }
-.uf-week-strip-button.uf-week-today,
-.uf-week-strip-button.uf-week-today:not(.uf-week-first) {
-  color:#fff;
-}
-html[data-theme='light'] .uf-week-liquid-core.uf-week-liquid-today,
-html[data-theme='light'] .uf-week-today-marker::after {
+html[data-theme='light'] .uf-week-liquid-core.uf-week-liquid-today,html[data-theme='light'] .uf-week-today-marker::after {
   background:var(--uniflow-accent,#f94f72);
-}
-html[data-theme='light'] .uf-week-strip-button.uf-week-today,
-html[data-theme='light'] .uf-week-strip-button.uf-week-today:not(.uf-week-first) {
-  color:white;
 }
 /* Keep the weekday labels and the outer surface stationary.
    Only the seven numbers/markers move between successive weeks. */
@@ -398,10 +313,7 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
   .uf-week-dates-previous > span.uf-week-previous-today::before {width:min(38px,calc(100% - 6px));height:38px;}
 }
 @media(prefers-reduced-motion:reduce) {
-  .uf-week-strip-days.uf-week-slide-in-left,
-  .uf-week-strip-days.uf-week-slide-in-right,
-  .uf-week-dates-previous.uf-week-slide-out-left,
-  .uf-week-dates-previous.uf-week-slide-out-right {
+  .uf-week-strip-days.uf-week-slide-in-left,.uf-week-strip-days.uf-week-slide-in-right,.uf-week-dates-previous.uf-week-slide-out-left,.uf-week-dates-previous.uf-week-slide-out-right {
     animation:none!important;
   }
   .uf-week-dates-previous {display:none;}
@@ -414,8 +326,7 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
 .calendar-compact-toolbar {
   z-index:40;
 }
-.calendar-compact-toolbar .quick-task-wrap,
-.calendar-compact-toolbar .focus-select-wrap {
+.calendar-compact-toolbar .quick-task-wrap,.calendar-compact-toolbar .focus-select-wrap {
   z-index:1;
 }
 .calendar-compact-toolbar .mini-popover {
@@ -457,8 +368,7 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
   top: auto;
   z-index: 1;
 }
-.calendar-sticky-header .quick-task-wrap,
-.calendar-sticky-header .focus-select-wrap {
+.calendar-sticky-header .quick-task-wrap,.calendar-sticky-header .focus-select-wrap {
   position: relative;
   z-index: 4;
 }
@@ -492,7 +402,6 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
   min-width:36px;
   overflow:hidden;
   white-space:nowrap;
-  transition:width 280ms cubic-bezier(.2,.8,.2,1),background-color 180ms ease,color 180ms ease;
 }
 .calendar-compact-toolbar .view-switch .calendar-view-count.active { width:64px; }
 .calendar-compact-toolbar .view-switch .calendar-view-count-two.active { width:70px; }
@@ -517,26 +426,20 @@ html[data-theme='light'] .uf-week-dates-previous > span.uf-week-previous-today {
   .calendar-compact-toolbar .view-switch .calendar-view-count-two.active { width:68px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .calendar-compact-toolbar .view-switch .calendar-view-count,
   .calendar-view-label { transition:none!important; }
 }
-html[data-theme='light'] .calendar-sticky-header,
-html[data-theme='light'] .calendar-sticky-header > .calendar-compact-toolbar {
+html[data-theme='light'] .calendar-sticky-header,html[data-theme='light'] .calendar-sticky-header > .calendar-compact-toolbar {
   background: #f7f7f6;
 }
 
 /* The month marker doubles as an actual button; no extra toolbar required. */
-.uf-week-strip-month{pointer-events:auto;cursor:pointer;border:0;background:transparent;color:inherit;font-family:inherit;appearance:none}
-.uf-week-strip-month:focus-visible{outline:2px solid #8b8b91;outline-offset:2px;border-radius:7px}
+.uf-week-strip-month{pointer-events:auto}
 /* Gesture area handles touch swipes and horizontal trackpad scrolling. */
 .uf-week-strip-viewport{touch-action:pan-y;overscroll-behavior-x:contain}
 
 /* The selected week should track the gesture quickly instead of visually
    catching up after a 400ms separate animation. */
-.uf-week-strip-days.uf-week-slide-in-left,
-.uf-week-strip-days.uf-week-slide-in-right,
-.uf-week-dates-previous.uf-week-slide-out-left,
-.uf-week-dates-previous.uf-week-slide-out-right{
+.uf-week-strip-days.uf-week-slide-in-left,.uf-week-strip-days.uf-week-slide-in-right,.uf-week-dates-previous.uf-week-slide-out-left,.uf-week-dates-previous.uf-week-slide-out-right{
   animation-duration:180ms;
 }
 .calendar-sticky-header>.calendar-compact-toolbar{border-bottom:0}

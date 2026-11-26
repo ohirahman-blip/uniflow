@@ -29,7 +29,7 @@ export default function LessonFeedback({lesson,topic='',rating,canRate,onTopic,o
     if(cleaned!==topic.trim())onTopic(lesson,cleaned)
   }
   return <section className={'lesson-feedback'+(compact?' lesson-feedback-compact':'')} aria-label="Feedback zu dieser Veranstaltung">
-    <input
+    <input data-ui="field-1"
       className="lesson-feedback-topic"
       aria-label="Thema nur für diesen Veranstaltungstermin"
       value={draft}
@@ -40,7 +40,7 @@ export default function LessonFeedback({lesson,topic='',rating,canRate,onTopic,o
       maxLength={100}
     />
     <div className="lesson-feedback-options" role="group" aria-label="Verständnis dieser Vorlesung">
-      {ratings.map(item=><button
+      {ratings.map(item=><button data-ui="select-8"
         type="button" key={item.value} title={item.title}
         aria-pressed={rating===item.value} disabled={!canRate}
         className={'lesson-feedback-rating-'+item.value+(rating===item.value?' chosen':'')}

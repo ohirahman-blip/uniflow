@@ -19,7 +19,7 @@ export default function StudyTimerCard({timer,moduleName,color,onChange,onFinish
     <div className="mlh-timer-clock" role="timer" aria-label={overtime?'Zusatzzeit nach Timerende':'Verbleibende Lernzeit'}>{overtime?'+':''}{timerClock(overtime?elapsed-target:target-elapsed)}</div>
     <p>Gelernt: {timerClock(elapsed)}</p>
     <div className="mlh-timer-progress" aria-hidden="true"><i style={{width:`${Math.min(100,elapsed/Math.max(1,target)*100)}%`}}/></div>
-    <div className="mlh-timer-controls"><button onClick={()=>onChange(timer.runningSince===null?{...timer,runningSince:Date.now()}:pauseTimer(timer))}>{timer.runningSince===null?<Play size={16}/>:<Pause size={16}/>} {timer.runningSince===null?'Fortsetzen':'Stoppen'}</button><button onClick={()=>onFinish(pauseTimer(timer))}><Square size={14}/> Beenden</button>{onDiscard&&<button onClick={()=>setDiscardRequested(true)}>Verwerfen</button>}</div>
-    {onDiscard&&discardRequested&&<div className="session-discard"><p>Session ohne Punkte verwerfen?</p><button onClick={onDiscard}>Ja, verwerfen</button><button onClick={()=>setDiscardRequested(false)}>Behalten</button></div>}
+    <div className="mlh-timer-controls"><button data-ui="button-2" onClick={()=>onChange(timer.runningSince===null?{...timer,runningSince:Date.now()}:pauseTimer(timer))}>{timer.runningSince===null?<Play size={16}/>:<Pause size={16}/>} {timer.runningSince===null?'Fortsetzen':'Stoppen'}</button><button data-ui="button-2" onClick={()=>onFinish(pauseTimer(timer))}><Square size={14}/> Beenden</button>{onDiscard&&<button data-ui="button-2" onClick={()=>setDiscardRequested(true)}>Verwerfen</button>}</div>
+    {onDiscard&&discardRequested&&<div className="session-discard"><p>Session ohne Punkte verwerfen?</p><button data-ui="button-2" onClick={onDiscard}>Ja, verwerfen</button><button data-ui="button-2" onClick={()=>setDiscardRequested(false)}>Behalten</button></div>}
   </section>
 }

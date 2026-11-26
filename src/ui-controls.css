@@ -1,0 +1,161 @@
+/* The public control vocabulary. Use data-ui, never a feature-specific paint rule.
+ * Important declarations in this named layer protect the vocabulary from broad
+ * legacy selectors. Geometry/placement outside a control stays with the feature.
+ * All dark/light values and all standard hover/selection/focus states live here. */
+@layer uniflow-controls {
+  :root {
+    --ui-surface:var(--uf-calm-control);
+    --ui-hover:var(--uf-calm-hover);
+    --ui-text:var(--uf-calm-text);
+    --ui-muted:var(--uf-calm-muted);
+    --ui-line:var(--uf-calm-control-line);
+    --ui-primary-bg:#e3e3e7;
+    --ui-primary-text:#202126;
+    --ui-danger:#e79a9f;
+    --ui-radius:14px;
+    --ui-height:48px;
+    --ui-small-height:40px;
+    --ui-font:13px;
+    --ui-font-family:'Aeonik Pro',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --ui-duration:160ms;
+    --ui-accent:var(--module-accent,var(--mlh-accent,var(--uniflow-accent,#929ddc)));
+  }
+  html[data-theme='light'] {
+    --ui-primary-bg:#303139;
+    --ui-primary-text:#fff;
+    --ui-danger:#a83d4a;
+  }
+
+  /* Button 1–6: a shared body, six intentional paint/shape variants. */
+  [data-ui^='button-'] {
+    box-sizing:border-box!important;
+    appearance:none!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:8px!important;
+    min-height:var(--ui-height)!important;
+    padding:11px 16px!important;
+    border:0!important;
+    border-radius:var(--ui-radius)!important;
+    background:var(--ui-surface)!important;
+    color:var(--ui-text)!important;
+    font-family:var(--ui-font-family)!important;
+    font-size:var(--ui-font)!important;
+    font-weight:600!important;
+    line-height:1.3!important;
+    letter-spacing:normal!important;
+    text-decoration:none!important;
+    text-shadow:none!important;
+    box-shadow:none!important;
+    cursor:pointer!important;
+    transform:none!important;
+    filter:none!important;
+    transition:background-color var(--ui-duration) ease,color var(--ui-duration) ease,opacity var(--ui-duration) ease!important;
+  }
+  [data-ui='button-1'] {background:var(--ui-primary-bg)!important;color:var(--ui-primary-text)!important;font-weight:650!important}
+  [data-ui='button-3'] {background:transparent!important;padding:8px 4px!important;color:var(--ui-muted)!important;min-height:var(--ui-small-height)!important}
+  [data-ui='button-4'] {width:var(--ui-small-height)!important;min-width:var(--ui-small-height)!important;max-width:var(--ui-small-height)!important;height:var(--ui-small-height)!important;min-height:var(--ui-small-height)!important;padding:0!important;border-radius:50%!important;flex-shrink:0!important}
+  [data-ui='button-5'] {background:color-mix(in srgb,var(--ui-danger) 12%,var(--uf-calm-surface))!important;color:var(--ui-danger)!important}
+  [data-ui='button-6'] {min-height:var(--ui-small-height)!important;padding:10px 14px!important;border-radius:999px!important;background:color-mix(in srgb,var(--ui-text) 5%,transparent)!important}
+  [data-ui^='button-']>svg {flex-shrink:0;width:18px;height:18px;color:inherit!important;stroke:currentColor!important}
+
+  /* Field 1–4 and Dropdown 1 share the same closed-field dimensions. */
+  :is([data-ui^='field-'],[data-ui='dropdown-1']) {
+    box-sizing:border-box!important;
+    appearance:none!important;
+    -webkit-appearance:none!important;
+    min-width:0!important;
+    max-width:100%!important;
+    width:100%;
+    min-height:var(--ui-height)!important;
+    height:var(--ui-height);
+    padding:0 14px!important;
+    border:1px solid var(--ui-line)!important;
+    border-radius:var(--ui-radius)!important;
+    background:var(--ui-surface)!important;
+    color:var(--ui-text)!important;
+    -webkit-text-fill-color:var(--ui-text)!important;
+    font-family:var(--ui-font-family)!important;
+    font-size:var(--ui-font)!important;
+    font-weight:500!important;
+    line-height:1.4!important;
+    letter-spacing:normal!important;
+    text-transform:none!important;
+    box-shadow:none!important;
+    text-shadow:none!important;
+    transition:border-color var(--ui-duration) ease,background-color var(--ui-duration) ease!important;
+  }
+  [data-ui='field-2'] {height:auto;min-height:100px!important;padding:12px 14px!important;resize:none!important;overflow-y:auto}
+  /* Auto-growing schedule input keeps its explicit inline height, but cannot be dragged. */
+  .module-fast-quick-body>[data-ui='field-2'] {min-height:48px!important;height:auto;overflow:hidden}
+  [data-ui='field-3'] {height:auto!important;min-height:58px!important;background:transparent!important;border:0!important;border-bottom:1px solid var(--ui-line)!important;border-radius:0!important;padding:12px 0!important;font-size:clamp(24px,4vw,36px)!important;font-weight:600!important}
+  [data-ui='field-4'] {font-size:24px!important;font-variant-numeric:tabular-nums!important;text-align:center!important}
+  button[data-ui='dropdown-1'] {display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;text-align:left!important;cursor:pointer!important}
+  [data-ui='dropdown-1']>span {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:inherit!important;color:inherit!important}
+  [data-ui='dropdown-1']>svg {width:17px!important;height:17px!important;flex:0 0 17px;color:var(--ui-muted)!important}
+  select[data-ui='dropdown-1'] {appearance:auto!important;-webkit-appearance:menulist!important;cursor:pointer!important}
+  [data-ui^='field-']::placeholder,
+  [data-ui='dropdown-1']>.uf-picker-placeholder {color:color-mix(in srgb,var(--ui-muted) 75%,transparent)!important;-webkit-text-fill-color:color-mix(in srgb,var(--ui-muted) 75%,transparent)!important;opacity:1!important;font-weight:400!important}
+
+  /* Selection 1: segment. Selection 2: option/menu row. Selection 8: rating. */
+  :is([data-ui='select-1'],[data-ui='select-2'],[data-ui='select-8']) {
+    box-sizing:border-box!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:8px!important;
+    min-height:var(--ui-small-height)!important;
+    padding:10px 12px!important;
+    border:0!important;
+    border-radius:12px!important;
+    background:var(--ui-surface)!important;
+    color:var(--ui-muted)!important;
+    font-family:var(--ui-font-family)!important;
+    font-size:12px!important;
+    font-weight:600!important;
+    line-height:1.3!important;
+    box-shadow:none!important;
+    cursor:pointer!important;
+    transform:none!important;
+    filter:none!important;
+    transition:background-color var(--ui-duration) ease,color var(--ui-duration) ease!important;
+  }
+  [data-ui='select-1'],[data-ui='select-8'] {justify-content:center!important;text-align:center!important}
+  [data-ui='select-2'] {width:100%!important;min-height:48px!important;justify-content:space-between!important;text-align:left!important}
+  :is([data-ui='select-1'],[data-ui='select-2'],[data-ui='select-8']):is(.selected,.chosen,.active,.is-selected,[aria-pressed='true'],[aria-selected='true'],[aria-checked='true']) {background:color-mix(in srgb,var(--ui-accent) 22%,var(--ui-surface))!important;color:var(--ui-text)!important}
+  [data-ui='select-2'] strong{font:inherit!important;color:inherit!important}
+  [data-ui='select-2'] small{display:block;font-size:11px!important;line-height:1.4!important;color:var(--ui-muted)!important}
+  [data-ui='select-8'].lesson-feedback-rating-understood.chosen,
+  [data-ui='select-8'].learn-rating-understood{--ui-accent:#7ebbaa}
+  [data-ui='select-8'].lesson-feedback-rating-partial.chosen,
+  [data-ui='select-8'].learn-rating-partial{--ui-accent:#e5c47c}
+  [data-ui='select-8'].lesson-feedback-rating-struggling.chosen,
+  [data-ui='select-8'].learn-rating-struggling{--ui-accent:#db7878}
+
+  /* Selection 3: native checkbox or a checklist row with a check indicator. */
+  input[data-ui='select-3'] {appearance:auto!important;-webkit-appearance:checkbox!important;accent-color:var(--ui-accent)!important;width:18px!important;height:18px!important;min-height:18px!important;flex:0 0 18px!important;cursor:pointer!important}
+  button[data-ui='select-3'] {display:flex;align-items:center;gap:10px;min-height:40px;border:0!important;background:transparent!important;color:var(--ui-text)!important;font:inherit!important;cursor:pointer!important;box-shadow:none!important}
+  button[data-ui='select-3']>i {box-sizing:border-box;display:grid;place-items:center;flex:0 0 19px;width:19px;height:19px;border:1.5px solid var(--ui-muted)!important;border-radius:50%;background:transparent!important;color:var(--ui-primary-text)!important}
+  button[data-ui='select-3']:is([aria-checked='true'],.active)>i {background:var(--ui-accent)!important;border-color:var(--ui-accent)!important}
+
+  /* Selection 4: one on/off switch, including sharing and settings. */
+  [data-ui='select-4'] {position:relative!important;box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;width:48px!important;min-width:48px!important;height:28px!important;min-height:28px!important;max-height:28px!important;flex:0 0 48px!important;padding:3px!important;border:0!important;border-radius:999px!important;background:var(--uf-calm-hover)!important;box-shadow:none!important;cursor:pointer!important;transition:background-color var(--ui-duration) ease!important}
+  [data-ui='select-4']>svg,[data-ui='select-4']>span,[data-ui='select-4']>i{display:none!important}
+  [data-ui='select-4']::before {content:''!important;display:block!important;position:static!important;width:22px!important;height:22px!important;flex:0 0 22px!important;border:0!important;border-radius:50%!important;background:var(--ui-text)!important;transform:translateX(0)!important;transition:transform var(--ui-duration) ease!important;box-shadow:none!important}
+  [data-ui='select-4']::after{content:none!important}
+  [data-ui='select-4'][aria-checked='true'] {background:color-mix(in srgb,var(--ui-accent) 70%,var(--ui-surface))!important}
+  [data-ui='select-4'][aria-checked='true']::before {transform:translateX(20px)!important}
+
+  /* Shared interaction states; no inherited glow, lift or sweep. */
+  :is([data-ui^='button-'],[data-ui^='field-'],[data-ui^='select-'],[data-ui='dropdown-1']):focus-visible {outline:2px solid var(--ui-accent)!important;outline-offset:3px!important}
+  [data-ui]:disabled {cursor:not-allowed!important;opacity:.45!important}
+  @media(hover:hover) and (pointer:fine) {
+    [data-ui^='button-']:not(:disabled):hover {background:var(--ui-hover)!important}
+    [data-ui='button-1']:not(:disabled):hover {background:color-mix(in srgb,var(--ui-primary-bg) 88%,var(--ui-primary-text))!important}
+    [data-ui='button-5']:not(:disabled):hover {background:color-mix(in srgb,var(--ui-danger) 20%,var(--uf-calm-surface))!important}
+    [data-ui='button-3']:not(:disabled):hover {background:transparent!important;color:var(--ui-text)!important}
+    :is([data-ui='select-1'],[data-ui='select-2'],[data-ui='select-8']):not(:disabled):hover {background:color-mix(in srgb,var(--ui-accent) 12%,var(--ui-surface))!important}
+  }
+  @media(max-width:720px),(hover:none) and (pointer:coarse) { :root{--ui-font:16px} }
+  @media(prefers-reduced-motion:reduce) { [data-ui],[data-ui]>span,[data-ui]>i {transition:none!important;animation:none!important} }
+}

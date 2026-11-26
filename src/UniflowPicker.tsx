@@ -79,7 +79,7 @@ function PickerWheel({label,items,selected,onSelect}:{
           if(e.key==='Home'){e.preventDefault();choose(items.findIndex(x=>!x.disabled),true)}
           if(e.key==='End'){e.preventDefault();choose(items.reduce((last,x,i)=>x.disabled?last:i,-1),true)}
         }}>
-        {items.map((item,index)=><button type="button" role="option" key={item.value}
+        {items.map((item,index)=><button data-ui="select-7" type="button" role="option" key={item.value}
           id={label==='Stunde'?'uf-wheel-hour-'+item.value:'uf-wheel-minute-'+item.value}
           className={'uf-wheel-option'+(item.value===selected?' is-selected':'')}
           aria-selected={item.value===selected} disabled={item.disabled}
@@ -166,37 +166,37 @@ export default function UniflowPicker(props: Props) {
   const canNext = !max || isoDay(nextMonth.getFullYear(), nextMonth.getMonth(), 1) <= max.slice(0, 7) + '-01'
 
   return <>
-    <button ref={trigger} type="button" className="uf-picker-trigger" aria-label={props.label} aria-haspopup="dialog" aria-expanded={open} disabled={props.disabled} onClick={openPicker}>
+    <button data-ui="dropdown-1" ref={trigger} type="button" className="uf-picker-trigger" aria-label={props.label} aria-haspopup="dialog" aria-expanded={open} disabled={props.disabled} onClick={openPicker}>
       <span className={!props.value ? 'uf-picker-placeholder' : ''}>{display}</span>
       {kind === 'time' ? <Clock3 size={16}/> : kind === 'date' ? <CalendarDays size={16}/> : <ChevronDown size={16}/>}
     </button>
     {open && createPortal(
       <div className="uf-picker-backdrop" onClick={e => { if (e.target === e.currentTarget) closePicker() }}>
         <section className="uf-picker-dialog" ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label={props.label}>
-          <div className="uf-picker-heading"><h2>{props.label}</h2><button type="button" aria-label="Schließen" className="uf-picker-close" onClick={closePicker}><X size={19}/></button></div>
+          <div className="uf-picker-heading"><h2>{props.label}</h2><button data-ui="button-4" type="button" aria-label="Schließen" className="uf-picker-close" onClick={closePicker}><X size={19}/></button></div>
           {kind === 'select' && <div className="uf-picker-choices" role="list">
-            {options.map(option => <button type="button" key={option.value} className={'uf-picker-option ' + (draft === option.value ? 'selected' : '')} onClick={() => commit(option.value)} aria-pressed={draft === option.value}>
+            {options.map(option => <button data-ui="select-2" type="button" key={option.value} className={'uf-picker-option ' + (draft === option.value ? 'selected' : '')} onClick={() => commit(option.value)} aria-pressed={draft === option.value}>
               <span><strong>{option.label}</strong>{option.detail && <small>{option.detail}</small>}</span>{draft === option.value && <Check size={17}/>}
             </button>)}
             {'allowCustom' in props && props.allowCustom && <>
-              <button type="button" className={'uf-picker-option uf-picker-custom-toggle'+(creatingCustom?' selected':'')} onClick={() => setCreatingCustom(value=>!value)} aria-expanded={creatingCustom}>
+              <button data-ui="select-2" type="button" className={'uf-picker-option uf-picker-custom-toggle'+(creatingCustom?' selected':'')} onClick={() => setCreatingCustom(value=>!value)} aria-expanded={creatingCustom}>
                 <span><Plus size={16}/> Eigene Art hinzufügen</span>
               </button>
               {creatingCustom && <div className="uf-picker-custom-entry">
                 <label htmlFor="uf-custom-category">Bezeichnung</label>
                 <div className="uf-picker-custom-row">
-                  <input id="uf-custom-category" type="text" maxLength={45} autoFocus placeholder="z. B. Workshop oder Praktikum" value={customLabel} onChange={e=>setCustomLabel(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&customLabel.trim())commit(customLabel.trim())}}/>
-                  <button type="button" disabled={!customLabel.trim()} onClick={()=>commit(customLabel.trim())}><Check size={16}/> Übernehmen</button>
+                  <input data-ui="field-1" id="uf-custom-category" type="text" maxLength={45} autoFocus placeholder="z. B. Workshop oder Praktikum" value={customLabel} onChange={e=>setCustomLabel(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&customLabel.trim())commit(customLabel.trim())}}/>
+                  <button data-ui="button-2" type="button" disabled={!customLabel.trim()} onClick={()=>commit(customLabel.trim())}><Check size={16}/> Übernehmen</button>
                 </div>
               </div>}
             </>}
           </div>}
           {kind === 'time' && <>
-            <label className="uf-picker-time-entry"><span>Uhrzeit eingeben</span><input type="text" inputMode="numeric" autoComplete="off" aria-label={props.label+' eingeben'} placeholder="09:30" maxLength={5} value={draft} onFocus={event=>event.currentTarget.select()} onChange={event=>setDraft(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'&&validTime){event.preventDefault();commit(parsedTime||'')}}}/></label>
+            <label className="uf-picker-time-entry"><span>Uhrzeit eingeben</span><input data-ui="field-4" type="text" inputMode="numeric" autoComplete="off" aria-label={props.label+' eingeben'} placeholder="09:30" maxLength={5} value={draft} onFocus={event=>event.currentTarget.select()} onChange={event=>setDraft(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'&&validTime){event.preventDefault();commit(parsedTime||'')}}}/></label>
             <p className="uf-picker-helper">Zum Beispiel 9:30, 930 oder 9. Alternativ am Rad auswählen.</p>
-            <button type="button" className="uf-picker-wheel-toggle" aria-expanded={timeWheels} onClick={()=>{setDraft(parsedTime||'09:00');setTimeWheels(value=>!value)}}>{timeWheels?'Scrollauswahl ausblenden':'Scrollauswahl öffnen'}</button>
+            <button data-ui="button-2" type="button" className="uf-picker-wheel-toggle" aria-expanded={timeWheels} onClick={()=>{setDraft(parsedTime||'09:00');setTimeWheels(value=>!value)}}>{timeWheels?'Scrollauswahl ausblenden':'Scrollauswahl öffnen'}</button>
             {!validTime&&<p className="uf-picker-error" role="alert">Bitte eine gültige Uhrzeit bis {pad(Math.floor(maxMinutes/60))}:{pad(maxMinutes%60)} eingeben.</p>}
-            {props.kind==='time'&&props.allowEmpty&&<button type="button" className="uf-picker-clear" onClick={()=>commit('')}>Ohne Endzeit</button>}
+            {props.kind==='time'&&props.allowEmpty&&<button data-ui="button-2" type="button" className="uf-picker-clear" onClick={()=>commit('')}>Ohne Endzeit</button>}
             {timeWheels&&<div className="uf-picker-columns uf-picker-wheel-columns">
               <PickerWheel label="Stunde" selected={hour}
                 items={Array.from({length:maxMinutes>=1440?25:24},(_,h)=>({value:h,disabled:h*60>maxMinutes}))}
@@ -208,28 +208,28 @@ export default function UniflowPicker(props: Props) {
           </>}
           {kind === 'duration' && <>
             <p className="uf-picker-helper">Schnellauswahl</p>
-            <div className="uf-picker-preset-grid">{presets.filter(n => n <= maxMinutes).map(n => <button type="button" key={n} aria-pressed={duration === n} className={duration === n ? 'selected' : ''} onClick={() => setDraft(String(n))}>{minutesLabel(n)}</button>)}</div>
+            <div className="uf-picker-preset-grid">{presets.filter(n => n <= maxMinutes).map(n => <button data-ui="select-1" type="button" key={n} aria-pressed={duration === n} className={duration === n ? 'selected' : ''} onClick={() => setDraft(String(n))}>{minutesLabel(n)}</button>)}</div>
             <label className="uf-picker-duration"><span>Individuelle Dauer (Minuten)</span><div className="uf-picker-duration-row">
-              <button type="button" aria-label="5 Minuten weniger" onClick={() => setDraft(String(Math.max(5, (Number(draft) || 5) - 5)))}><Minus size={17}/></button>
-              <input aria-label="Dauer in Minuten" type="text" inputMode="numeric" value={draft} onChange={e => { if (/^\d{0,4}$/.test(e.target.value)) setDraft(e.target.value) }}/>
-              <button type="button" aria-label="5 Minuten mehr" onClick={() => setDraft(String(Math.min(maxMinutes, (Number(draft) || 0) + 5)))}><Plus size={17}/></button>
+              <button data-ui="button-4" type="button" aria-label="5 Minuten weniger" onClick={() => setDraft(String(Math.max(5, (Number(draft) || 5) - 5)))}><Minus size={17}/></button>
+              <input data-ui="field-4" aria-label="Dauer in Minuten" type="text" inputMode="numeric" value={draft} onChange={e => { if (/^\d{0,4}$/.test(e.target.value)) setDraft(e.target.value) }}/>
+              <button data-ui="button-4" type="button" aria-label="5 Minuten mehr" onClick={() => setDraft(String(Math.min(maxMinutes, (Number(draft) || 0) + 5)))}><Plus size={17}/></button>
             </div></label>
             {!validDuration && <p className="uf-picker-error">Bitte 5 bis {maxMinutes} Minuten wählen.</p>}
           </>}
           {kind === 'date' && <>
-            <div className="uf-picker-calendar-nav"><button type="button" disabled={!canPrev} aria-label="Vorheriger Monat" onClick={() => setMonth(new Date(y, m - 1, 1))}><ChevronLeft size={19}/></button><strong>{monthName}</strong><button type="button" disabled={!canNext} aria-label="Nächster Monat" onClick={() => setMonth(new Date(y, m + 1, 1))}><ChevronRight size={19}/></button></div>
+            <div className="uf-picker-calendar-nav"><button data-ui="button-4" type="button" disabled={!canPrev} aria-label="Vorheriger Monat" onClick={() => setMonth(new Date(y, m - 1, 1))}><ChevronLeft size={19}/></button><strong>{monthName}</strong><button data-ui="button-4" type="button" disabled={!canNext} aria-label="Nächster Monat" onClick={() => setMonth(new Date(y, m + 1, 1))}><ChevronRight size={19}/></button></div>
             <div className="uf-picker-calendar">
               {['Mo','Di','Mi','Do','Fr','Sa','So'].map(name => <span key={name} className="uf-picker-weekday">{name}</span>)}
               {Array.from({ length: offset }, (_, n) => <span key={'blank-'+n}/>)}
               {Array.from({ length: dayCount }, (_, n) => {
                 const d = isoDay(y, m, n + 1)
-                return <button key={d} type="button" disabled={(!!min && d < min) || (!!max && d > max)} aria-pressed={draft === d} className={draft === d ? 'selected' : ''} onClick={() => setDraft(d)}>{n + 1}</button>
+                return <button data-ui="button-2" key={d} type="button" disabled={(!!min && d < min) || (!!max && d > max)} aria-pressed={draft === d} className={draft === d ? 'selected' : ''} onClick={() => setDraft(d)}>{n + 1}</button>
               })}
             </div>
           </>}
           {kind !== 'select' && <div className="uf-picker-actions">
-            <button type="button" className="uf-picker-cancel" onClick={closePicker}>Abbrechen</button>
-            <button type="button" className="uf-picker-confirm" disabled={(kind === 'time' && !validTime) || (kind === 'duration' && !validDuration) || (kind === 'date' && !draft)} onClick={() => commit(kind==='time'?(parsedTime||''):draft)}>Übernehmen <Check size={17}/></button>
+            <button data-ui="button-2" type="button" className="uf-picker-cancel" onClick={closePicker}>Abbrechen</button>
+            <button data-ui="button-1" type="button" className="uf-picker-confirm" disabled={(kind === 'time' && !validTime) || (kind === 'duration' && !validDuration) || (kind === 'date' && !draft)} onClick={() => commit(kind==='time'?(parsedTime||''):draft)}>Übernehmen <Check size={17}/></button>
           </div>}
         </section>
       </div>,

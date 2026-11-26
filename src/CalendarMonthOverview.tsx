@@ -20,15 +20,15 @@ export default function CalendarMonthOverview({anchor,semesterId,assessments,mod
   return <section className="uf-month" aria-label="Monatsübersicht für Prüfungen und Hausaufgaben">
     <div className="uf-month-heading"><div><span>MONATSÜBERSICHT</span>
       <h2>{formatDate(month+'-01',{month:'long',year:'numeric'})}</h2></div>
-      <button type="button" className="uf-month-back" onClick={onBack}><ArrowLeft size={16}/> Zum Stundenplan</button>
+      <button data-ui="special-3" type="button" className="uf-month-back" onClick={onBack}><ArrowLeft size={16}/> Zum Stundenplan</button>
     </div>
     <div className="uf-month-weekdays" aria-hidden="true">{weekdays.map(w=><span key={w}>{w}</span>)}</div>
     <div className="uf-month-grid">{calendarMonthDates(anchor).map(date=>{
       const entries=byDate.get(date)||[]
       return <div className={'uf-month-cell'+(date.slice(0,7)===month?'':' other-month')+(date===today()?' is-today':'')} key={date}>
-        <button type="button" className="uf-month-day" onClick={()=>onSelectDate(date)}
+        <button data-ui="special-3" type="button" className="uf-month-day" onClick={()=>onSelectDate(date)}
           aria-label={formatDate(date,{weekday:'long',day:'numeric',month:'long'})+' im Stundenplan anzeigen'}>{Number(date.slice(-2))}</button>
-        <div className="uf-month-assessments">{entries.map(item=><button type="button" key={item.id}
+        <div className="uf-month-assessments">{entries.map(item=><button data-ui="special-3" type="button" key={item.id}
           className={'uf-month-pill '+(item.type==='exam'?'exam':'homework')+(item.completed?' complete':'')}
           style={{'--month-accent':colors.get(item.moduleId)||'#aa9cbd'} as CSSProperties}
           title={(item.type==='exam'?'Prüfung: ':'Hausaufgabe: ')+item.title}

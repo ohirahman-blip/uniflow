@@ -42,7 +42,7 @@ export default function LearningRewardCelebration({reward,moduleName,color,sound
         <strong aria-hidden="true"><span>+{points}</span><span className="learning-reward-fill" style={{clipPath:`inset(${(1-progress)*100}% 0 0)`}}>+{points}</span></strong><span>PUNKTE</span>
       </div>
       <div className="learning-reward-meter" aria-hidden="true"><i style={{transform:`scaleX(${progress})`}}/></div>
-      <button ref={close} onClick={onClose} onKeyDown={event=>{if(event.key==='Tab')event.preventDefault()}}>Weiter</button>
+      <button data-ui="button-2" ref={close} onClick={onClose} onKeyDown={event=>{if(event.key==='Tab')event.preventDefault()}}>Weiter</button>
     </div>
   </section>,document.body)
 }
