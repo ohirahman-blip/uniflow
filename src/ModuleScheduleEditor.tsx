@@ -409,8 +409,7 @@ export default function ModuleScheduleEditor({
         )
         if(duplicate)continue
         const previousSameAlternative=added.find(item=>(item.contentId||item.familyId||item.id)===contentId&&offeringAlternativeId(item)===alternativeId)
-        if(!eventDraft.to)fresh.to=''
-    fresh.selected=existingAlternatives[alternativeIndex]?.offerings[0]?.selected??previousSameAlternative?.selected??(
+        fresh.selected=existingAlternatives[alternativeIndex]?.offerings[0]?.selected??previousSameAlternative?.selected??(
           current.length===0&&alternativeIndex===0&&!collides(fresh,[...offerings,...added]))
         added.push(fresh)
       }
