@@ -1731,11 +1731,12 @@ export default function App() {
   useEffect(()=>{
     if(!user||!cloudReady||onboarding)return
     const now=new Date(),clock=now.getHours()*60+now.getMinutes(),day=today()
-    const events=occurrencesOn(data.offerings,day).filter(item=>!item.cancelled&&!isAssessment(item.offering.category)&&item.offering.category!=='Freies Lernen').sort((a,b)=>a.from.localeCompare(b.from)).map(item=>{
+    const occurrences=occurrencesOn(data.offerings,day).filter(item=>!item.cancelled&&!isAssessment(item.offering.category)&&item.offering.category!=='Freies Lernen').sort((a,b)=>a.from.localeCompare(b.from))
+    const events=occurrences.map(item=>{
       const lesson=lessonForOccurrence(item,data),module=data.modules.find(entry=>entry.id===item.offering.moduleId)
       return {title:module?.name||item.offering.name,from:item.from,to:item.to,room:item.offering.room||undefined,attending:(data.learningCheckins||[]).some(checkin=>checkin.key===lesson.key&&(checkin.attended??checkin.rating!=='absent'))}
     })
-    const current=events.find(event=>!event.endTimeUnknown&&minutes(event.from)<=clock&&clock<minutes(event.to))||null
+    const current=events[occurrences.findIndex(event=>!event.endTimeUnknown&&minutes(event.from)<=clock&&clock<minutes(event.to))]||null
     const timer=window.setTimeout(()=>void publishFriendStatus({university:degree?.university||'',current,events}).catch(()=>{}),350)
     return()=>window.clearTimeout(timer)
   },[user?.id,cloudReady,onboarding,data.offerings,data.learningCheckins,data.modules,degree?.university,adviceClock])
