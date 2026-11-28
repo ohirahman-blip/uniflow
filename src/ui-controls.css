@@ -26,7 +26,7 @@
     --ui-danger:#a83d4a;
   }
 
-  /* Button 1–6: a shared body, six intentional paint/shape variants. */
+  /* Buttons share a body; 7–9 use the original calendar/dashboard templates. */
   [data-ui^='button-'] {
     box-sizing:border-box!important;
     appearance:none!important;
@@ -155,6 +155,66 @@
     [data-ui='button-5']:not(:disabled):hover {background:color-mix(in srgb,var(--ui-danger) 20%,var(--uf-calm-surface))!important}
     [data-ui='button-3']:not(:disabled):hover {background:transparent!important;color:var(--ui-text)!important}
     :is([data-ui='select-1'],[data-ui='select-2'],[data-ui='select-8']):not(:disabled):hover {background:color-mix(in srgb,var(--ui-accent) 12%,var(--ui-surface))!important}
+  }
+  /* Button 7: original compact calendar tools. */
+  [data-ui='button-7'] {
+    width:36px!important;min-width:36px!important;max-width:none!important;
+    height:36px!important;min-height:36px!important;flex-shrink:0;
+    padding:0!important;border-radius:50%!important;
+    background:var(--uf-calm-surface)!important;color:var(--ui-muted)!important;
+    font-size:12px!important;
+  }
+  [data-ui='button-7'].calendar-today {
+    width:auto!important;min-width:54px!important;padding:0 13px!important;
+    border-radius:999px!important;background:transparent!important;font-weight:700!important;
+  }
+  [data-ui='button-7'][aria-label='Vorheriger Zeitraum']>svg,
+  [data-ui='button-7'][aria-label='Nächster Zeitraum']>svg{width:19px;height:19px}
+  [data-ui='button-7'].chosen {
+    background:color-mix(in srgb,var(--ui-accent) 14%,var(--uf-calm-surface))!important;
+    color:var(--ui-accent)!important;
+  }
+  /* Button 8: original light, compact + Task action. */
+  [data-ui='button-8'] {
+    min-height:0!important;height:auto!important;padding:8px 13px!important;
+    gap:6px!important;border-radius:18px!important;background:transparent!important;
+    color:#cecad6!important;font-size:12px!important;font-weight:400!important;
+    line-height:normal!important;transition:transform 150ms ease,background-color 150ms ease!important;
+  }
+  [data-ui='button-8']>svg{width:17px;height:17px}
+  html[data-theme='light'] [data-ui='button-8']{background:#f1f1f3!important;color:var(--ui-text)!important}
+  /* Button 9: original unobtrusive trash icon, without a filled circle. */
+  [data-ui='button-9'] {
+    width:auto!important;min-width:0!important;max-width:none!important;
+    height:auto!important;min-height:0!important;padding:12px!important;
+    border-radius:0!important;background:transparent!important;color:#74707e!important;
+  }
+  [data-ui='button-9']>svg{width:16px;height:16px}
+  html[data-theme='light'] [data-ui='button-9']{color:var(--ui-muted)!important}
+  .mlh-history-actions [data-ui='button-9']>svg{width:17px;height:17px}
+  .mlh-next-trailing [data-ui='button-9']{width:30px!important;height:30px!important;padding:0!important;border-radius:50%!important;color:var(--ui-muted)!important;opacity:.55}
+  /* Selection 10: original calendar view capsules, independent of form tabs. */
+  [data-ui='select-10']{
+    display:inline-flex;align-items:center;justify-content:center;gap:0;
+    width:auto;min-width:38px;height:34px;min-height:34px;padding:0 10px;
+    border:0!important;border-radius:999px!important;background:transparent!important;
+    color:var(--ui-muted)!important;box-shadow:none!important;cursor:pointer;
+    font-family:var(--ui-font-family);font-size:12px;font-weight:400;
+  }
+  [data-ui='select-10'].active{background:var(--ui-text)!important;color:var(--uf-calm-page)!important}
+  @media(hover:hover) and (pointer:fine){
+    [data-ui='button-7']:not(:disabled):hover{background:var(--ui-hover)!important;color:var(--ui-text)!important}
+    [data-ui='button-7'].calendar-today:not(:disabled):hover{background:transparent!important}
+    [data-ui='button-8']:not(:disabled):hover{background:var(--uf-grey)!important;transform:scale(1.008)!important}
+    html[data-theme='light'] [data-ui='button-8']:not(:disabled):hover{background:#f1f1f3!important}
+    [data-ui='button-9']:not(:disabled):hover{background:transparent!important;color:var(--ui-text)!important}
+    .mlh-next-trailing [data-ui='button-9']:not(:disabled):hover{background:color-mix(in srgb,currentColor 8%,transparent)!important;opacity:1}
+  }
+  @media(max-width:720px){
+    [data-ui='button-7']{width:33px!important;min-width:33px!important;height:34px!important;min-height:34px!important}
+    [data-ui='button-7'].calendar-today{min-width:46px!important;padding:0 9px!important;font-size:11px!important}
+    [data-ui='button-7'][aria-label='Vorheriger Zeitraum'],[data-ui='button-7'][aria-label='Nächster Zeitraum']{display:none!important}
+    [data-ui='select-10']{min-width:34px;padding-inline:7px}
   }
   @media(max-width:720px),(hover:none) and (pointer:coarse) { :root{--ui-font:16px} }
   @media(prefers-reduced-motion:reduce) { [data-ui],[data-ui]>span,[data-ui]>i {transition:none!important;animation:none!important} }

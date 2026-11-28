@@ -25,6 +25,9 @@ Aeonik Pro, Standardhöhe 48 px, kompakte Höhe 40 px, Standardradius 14 px. Sta
 | Button 4 – `button-4` | Kreis, 40 × 40 px, meist 18-px-Icon | Schließen, Pfeile, kleine Werkzeuge |
 | Button 5 – `button-5` | Dezent rot getönte Fläche, rote Schrift, Radius 14 px | Löschen und gefährliche Aktionen |
 | Button 6 – `button-6` | Kompakte Kapsel, 40 px, schwache Flächentönung | Hinzufügen, kurze Aktionen |
+| Button 7 – `button-7` | Frühere Kalenderwerkzeuge: rund, 36 px (mobil 33 × 34 px), dezente Fläche; Heute als transparenter Text in der Leiste | Kalenderleiste, Fokus, Navigation |
+| Button 8 – `button-8` | Früherer „+ Aufgabe“-Button: 12-px-Schrift, 8 × 13 px Innenabstand, Radius 18 px; dunkel transparent, hell dezent grau | Kompakte Hinzufügen-Aktion im Dashboard |
+| Button 9 – `button-9` | Früherer Papierkorb: freistehendes dezentes Icon ohne gefüllten Kreis, 16 px | Aufgaben löschen; kompakte 30-px-Variante im Lernbereich |
 
 ## Felder und Dropdowns
 
@@ -49,6 +52,7 @@ Aeonik Pro, Standardhöhe 48 px, kompakte Höhe 40 px, Standardradius 14 px. Sta
 | Auswahl 7 – `select-7` | Vertikale Auswahlzeilen in der Scrollrolle | Uhrzeit/Dauer per Scrollen |
 | Auswahl 8 – `select-8` | Kompakte Bewertungssegmente, Statusfarbe | Lernfeedback |
 | Auswahl 9 – `select-9` | Abgerundete Filterleiste; mobil Icons, aktives Segment wächst mit Text | Aktuelle, vergangene, geplante und alle Module |
+| Auswahl 10 – `select-10` | Frühere Kalenderansicht: kompakte 34-px-Kapseln, aktive Auswahl kontrastreich gefüllt | Tag, zwei Tage, Woche und Monat |
 
 ## Funktionsgebundene Sondertypen
 
