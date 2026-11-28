@@ -222,9 +222,9 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
     </section>
 
     <section className="mlh-actions mlh-compact-actions" aria-label="Modulaktionen">
-      <button data-ui="button-6" aria-label="Lernsession starten" onClick={() => open('session')}><Timer size={17} /><strong>Lernsession</strong></button>
-      <button data-ui="button-6" aria-label="Gelernten Stoff eintragen" onClick={() => open('content')}><BookOpenCheck size={17} /><strong>Stoff eintragen</strong></button>
-      <button data-ui="button-6" className="mlh-action-secondary" aria-label="Modul bearbeiten" onClick={() => onEditModule(active.id)}><PenLine size={17} /><strong>Bearbeiten</strong></button>
+      <button data-ui="action-1" aria-label="Lernsession starten" onClick={() => open('session')}><Timer size={17} /><strong>Lernsession</strong></button>
+      <button data-ui="action-1" aria-label="Gelernten Stoff eintragen" onClick={() => open('content')}><BookOpenCheck size={17} /><strong>Stoff eintragen</strong></button>
+      <button data-ui="action-1" className="mlh-action-secondary" aria-label="Modul bearbeiten" onClick={() => onEditModule(active.id)}><PenLine size={17} /><strong>Bearbeiten</strong></button>
     </section>
 
     {data.studyTimer&&<StudyTimerCard timer={data.studyTimer} moduleName={data.modules.find(module=>module.id===data.studyTimer?.moduleId)?.name||'Lernsession'} color={data.modules.find(module=>module.id===data.studyTimer?.moduleId)?.color||active.color} onChange={onTimerChange} onDiscard={()=>onTimerChange(undefined)} onFinish={timer=>{onTimerChange(timer);setFinishingTimer(timer);setEditingSession(null);setModal('session')}}/>}

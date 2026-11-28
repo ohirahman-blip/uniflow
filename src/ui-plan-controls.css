@@ -1,0 +1,61 @@
+/* Original examination, study-plan and action designs, before the control migration.
+ * Canonical plan-1/action-1 templates; feature files retain content and placement. */
+@layer uniflow-controls {
+.mlh-actions.mlh-compact-actions>button:where([data-ui="action-1"]){width:auto !important;min-height:0 !important;padding:10px 13px !important;border:0 !important;border-radius:999px !important;background:color-mix(in srgb,currentColor 4.5%,transparent) !important;box-shadow:none !important;flex-direction:row !important;gap:7px !important;color:var(--muted) !important}
+.mlh-actions.mlh-compact-actions>button:hover:where([data-ui="action-1"]){transform:scale(1.025) !important;background:color-mix(in srgb,var(--mlh-accent) 10%,transparent) !important;color:inherit !important}
+@media (max-width:720px){.mlh-actions.mlh-compact-actions>button:where([data-ui="action-1"]){flex:0 0 auto !important}}
+@media (prefers-reduced-motion:reduce){.mlh-actions.mlh-compact-actions>button:where([data-ui="action-1"]){transition:none !important}}
+.mlh-exam-cards>button:where([data-ui="plan-1"]){display:flex !important;align-items:center !important;justify-content:space-between !important;gap:14px !important;padding:14px 15px !important;border:1px solid color-mix(in srgb,var(--mlh-accent) 20%,transparent) !important;border-radius:15px !important;background:color-mix(in srgb,var(--mlh-accent) 4%,transparent) !important;color:inherit !important;text-align:left !important;transition:background 200ms ease,border-color 200ms ease !important}
+.mlh-exam-cards>button:hover:where([data-ui="plan-1"]){border-color:var(--mlh-accent) !important;background:color-mix(in srgb,var(--mlh-accent) 9%,transparent) !important}
+.mlh-timeline-month button:where([data-ui="plan-1"]){display:flex !important;align-items:baseline !important;gap:7px !important;flex-wrap:wrap !important;text-align:left !important;padding:5px 8px !important;background:transparent !important;border:0 !important;border-left:2px solid color-mix(in srgb,var(--exam-color) 30%,transparent) !important;color:#84848e !important;font:inherit !important}
+.mlh-timeline-month button.is-own:where([data-ui="plan-1"]){border-color:var(--mlh-accent) !important;color:var(--mlh-accent) !important;background:color-mix(in srgb,var(--mlh-accent) 5%,transparent) !important;border-radius:0 7px 7px 0 !important}
+@media (max-width:520px){.mlh-timeline-month button:where([data-ui="plan-1"]){display:grid !important;gap:2px !important}}
+.mlh-exam-cards>button.is-completed:where([data-ui="plan-1"]){opacity:.45 !important;border-color:#ffffff12 !important;background:transparent !important}
+.mlh-exam-cards>button.is-completed strong:where([data-ui="plan-1"]),.mlh-exam-cards>button.is-completed small:where([data-ui="plan-1"]),.mlh-timeline-month button.is-completed strong:where([data-ui="plan-1"]),.mlh-timeline-month button.is-completed small:where([data-ui="plan-1"]){text-decoration:line-through !important;text-decoration-thickness:1px !important}
+.mlh-timeline-month button.is-completed:where([data-ui="plan-1"]){opacity:.4 !important}.mlh-exam-cards .mlh-exam-check:where([data-ui="plan-1"]){display:grid !important;place-items:center !important;flex:0 0 42px !important;align-self:stretch !important;padding:0 !important;border:0 !important;background:none !important;color:var(--mlh-accent) !important;cursor:pointer !important}.mlh-exam-check i:where([data-ui="plan-1"]){width:17px !important;height:17px !important;border:1px solid #ffffff60 !important;border-radius:50% !important;display:grid !important;place-items:center !important}.mlh-exam-row.is-completed .mlh-exam-check i:where([data-ui="plan-1"]){border-color:var(--mlh-accent) !important}.mlh-exam-cards .mlh-exam-open:where([data-ui="plan-1"]){flex:1 !important;display:flex !important;justify-content:space-between !important;gap:9px !important;align-items:center !important;text-align:left !important;padding:14px 14px 14px 0 !important;border:0 !important;background:none !important;color:inherit !important;min-width:0 !important;cursor:pointer !important}.mlh-exam-open span:where([data-ui="plan-1"]){display:grid !important;gap:6px !important}.mlh-exam-open strong:where([data-ui="plan-1"]){font-size:13px !important;font-weight:550 !important;overflow-wrap:anywhere !important}.mlh-exam-open small:where([data-ui="plan-1"]){font-size:11px !important;color:#92929d !important}.mlh-exam-row.is-completed .mlh-exam-open:where([data-ui="plan-1"]){text-decoration:line-through !important;opacity:.4 !important;filter:blur(.6px) !important}
+html[data-theme='light'] :is(.overview-task>button,.overview-tasks>header>button,.overview-score form button,.profile-menu>button,.profile-modules button,.profile-goals button,.study-add-module,.study-semester button,.mlh-utility>button,.mlh-actions>button,.mlh-task,.mlh-homework-open,.mlh-exam-open):where([data-ui="plan-1"]){color:inherit!important;border-color:#20212625!important}
+html[data-theme='light'] :is(.mlh-task,.mlh-homework-row,.mlh-exam-row,.mlh-actions>button,.profile-modules section>button,.study-goal-form,.study-goal-form fieldset):where([data-ui="plan-1"]){border-color:#20212625!important}
+html[data-theme='light'] :is(.overview-next small,.overview-task small,.profile-menu small,.profile-modules small,.mlh-exam-open small,.module-fast small,.scope-intro,.quiet-copy,.field-label,.setting-hint):where([data-ui="plan-1"]){color:#666772!important}
+.study-learning-timeline .study-plan-timeline-item>button:where([data-ui="plan-1"]){flex-shrink:0 !important;display:grid !important;place-items:center !important;width:30px !important;height:30px !important;padding:0 !important;border:0 !important;border-radius:50% !important;color:var(--study-line-color) !important;background:transparent !important}
+.study-scope-list-row input[type=checkbox]:where([data-ui="plan-1"]){width:16px !important;height:16px !important;flex-shrink:0 !important;accent-color:var(--mlh-accent) !important}
+.study-scope-list-row>.uf-picker-trigger:where([data-ui="plan-1"]){width:108px !important;min-height:32px !important;padding:7px 9px !important;border-radius:10px !important;background:transparent !important;border:1px solid #8883 !important;font-size:11px !important}
+.study-review-again:where([data-ui="plan-1"]){display:flex !important;align-items:center !important;gap:5px !important;background:transparent !important;color:var(--muted) !important;border:0 !important;font:inherit !important;font-size:10px !important;padding:7px 0 !important;flex-shrink:0 !important}
+.semester-overview-tabs>button:where([data-ui="plan-1"]){font:inherit !important;font-size:11px !important;color:var(--muted) !important;background:transparent !important;border:0 !important;padding:8px 12px !important;border-radius:999px !important;cursor:pointer !important;transition:color 220ms ease,transform 180ms ease !important}
+.semester-overview-tabs>button:active:where([data-ui="plan-1"]){transform:scale(.96) !important}
+.semester-overview-tabs>button[aria-selected=true]:where([data-ui="plan-1"]){color:var(--mlh-accent) !important}
+.semester-overview-tabs>button:focus-visible:where([data-ui="plan-1"]){outline:2px solid var(--mlh-accent) !important;outline-offset:2px !important}
+@media (prefers-reduced-motion:reduce){.semester-overview-tabs>button:where([data-ui="plan-1"]){transition:none !important}}
+@media (prefers-reduced-motion:reduce){.semester-overview-tabs>button:active:where([data-ui="plan-1"]){transform:none !important}}
+@media (prefers-reduced-motion:reduce){.semester-overview-tabs>button:where([data-ui="plan-1"]){transition:none !important}}
+.study-plan-bundle>button:where([data-ui="plan-1"]){display:flex !important;gap:5px !important;align-items:center !important;padding:8px 10px !important;border:1px solid #8883 !important;border-radius:99px !important;background:transparent !important;color:var(--mlh-accent) !important;font:inherit !important;font-size:10px !important}
+.study-plan-scope>.uf-picker-trigger:where([data-ui="plan-1"]){margin-top:15px !important}
+.study-plan-scope-row input[type=checkbox]:where([data-ui="plan-1"]){accent-color:var(--mlh-accent) !important;width:16px !important;height:16px !important;flex-shrink:0 !important}
+.study-plan-scope-row input[type=number]:where([data-ui="plan-1"]){width:65px !important;min-width:0 !important;box-sizing:border-box !important;padding:8px !important;border:1px solid #8883 !important;border-radius:10px !important;background:transparent !important;color:inherit !important;font:inherit !important}
+.study-plan-weekdays>button:where([data-ui="plan-1"]){width:36px !important;height:36px !important;border:1px solid #8884 !important;border-radius:50% !important;background:transparent !important;color:inherit !important;font:inherit !important;font-size:11px !important}
+.study-plan-weekdays>button[aria-pressed=true]:where([data-ui="plan-1"]){background:color-mix(in srgb,var(--module-accent,#a7a7b1) 20%,transparent) !important;border-color:var(--module-accent,#a7a7b1) !important}
+.study-plan-field input:where([data-ui="plan-1"]){width:110px !important;box-sizing:border-box !important;padding:10px 12px !important;border:1px solid #8883 !important;border-radius:12px !important;background:transparent !important;color:inherit !important;font:inherit !important}
+.study-plan-day-off>button:where([data-ui="plan-1"]){border:1px solid #8883 !important;background:transparent !important;color:inherit !important;border-radius:12px !important;padding:12px !important;font:inherit !important;font-size:11px !important}.study-plan-days-off>button:where([data-ui="plan-1"]){display:flex !important;gap:8px !important;align-items:center !important;border:1px solid #8883 !important;border-radius:99px !important;padding:8px 10px !important;background:transparent !important;color:inherit !important;font:inherit !important;font-size:11px !important}@media (hover:hover){.study-plan-bundle>button:hover:where([data-ui="plan-1"]){border-color:var(--mlh-accent) !important;background:color-mix(in srgb,var(--mlh-accent) 6%,transparent) !important}}
+html:not([data-theme='light']) .profile-panel .study-plan-weekdays>button:where([data-ui="plan-1"]),html:not([data-theme='light']) .profile-panel .study-plan-day-off>button:where([data-ui="plan-1"]),html:not([data-theme='light']) .profile-panel .study-plan-days-off>button:where([data-ui="plan-1"]){
+  border:0!important;
+  background:#101011!important;
+  box-shadow:none!important;
+}
+html:not([data-theme='light']) .profile-panel .study-plan-weekdays>button[aria-pressed='true']:where([data-ui="plan-1"]){
+  background:color-mix(in srgb,var(--module-accent,var(--uniflow-accent,#a98aa0)) 24%,#101011)!important;
+}
+.mlh-actions.mlh-compact-actions>button:where([data-ui="action-1"]){
+  border:0!important;
+  background:var(--uf-grey)!important;
+  box-shadow:none!important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:0!important;
+}
+.mlh-actions.mlh-compact-actions>button:hover:where([data-ui="action-1"]){background:var(--uf-calm-hover)!important}
+html[data-theme='light'] .mlh-actions.mlh-compact-actions>button:where([data-ui="action-1"]){background:#f1f1f3!important;color:#66676f!important}
+html[data-theme='light'] .mlh-actions.mlh-compact-actions>button:hover:where([data-ui="action-1"]){background:#e8e8eb!important;color:#202126!important}
+@media (hover:hover) and (pointer:fine){
+  .mlh-actions.mlh-compact-actions>button:hover strong:where([data-ui="action-1"]),.mlh-actions.mlh-compact-actions>button:focus-visible strong:where([data-ui="action-1"]){max-width:140px !important;opacity:1 !important;margin-left:8px !important}}
+@media (max-width:720px){
+  .mlh-actions.mlh-compact-actions>button:not(.mlh-action-secondary) strong:where([data-ui="action-1"]){max-width:140px !important;opacity:1 !important;margin-left:8px !important;overflow:visible !important}}
+}

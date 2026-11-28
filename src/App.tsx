@@ -51,6 +51,7 @@ import './workspace-refinements.css'
 import './ui-special-controls.css'
 import './ui-controls.css'
 import './module-directory.css'
+import './ui-plan-controls.css'
 
 type Page = 'overview' | 'dashboard' | 'calendar' | 'friends' | 'modules' | 'settings' | 'admin'
 const pageFromUrl = (userId?: string): Page => {

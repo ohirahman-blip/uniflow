@@ -6,7 +6,7 @@ import {parseClock} from './time-range'
 import './UniflowPicker.css'
 
 export type PickerOption = { value: string; label: string; detail?: string }
-type Shared = { value: string; onChange: (value: string) => void; label: string; placeholder?: string; disabled?: boolean }
+type Shared = { value: string; onChange: (value: string) => void; label: string; placeholder?: string; disabled?: boolean; design?: 'plan' }
 type Props =
   | (Shared & { kind?: 'select'; options: PickerOption[]; allowCustom?: boolean })
   | (Shared & { kind: 'time'; maxMinutes?: number; allowEmpty?: boolean })
@@ -166,7 +166,7 @@ export default function UniflowPicker(props: Props) {
   const canNext = !max || isoDay(nextMonth.getFullYear(), nextMonth.getMonth(), 1) <= max.slice(0, 7) + '-01'
 
   return <>
-    <button data-ui="dropdown-1" ref={trigger} type="button" className="uf-picker-trigger" aria-label={props.label} aria-haspopup="dialog" aria-expanded={open} disabled={props.disabled} onClick={openPicker}>
+    <button data-ui={props.design==='plan'?'plan-1':'dropdown-1'} ref={trigger} type="button" className="uf-picker-trigger" aria-label={props.label} aria-haspopup="dialog" aria-expanded={open} disabled={props.disabled} onClick={openPicker}>
       <span className={!props.value ? 'uf-picker-placeholder' : ''}>{display}</span>
       {kind === 'time' ? <Clock3 size={16}/> : kind === 'date' ? <CalendarDays size={16}/> : <ChevronDown size={16}/>}
     </button>
