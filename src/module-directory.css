@@ -17,7 +17,6 @@
 .mlh-directory-toolbar{display:flex;align-items:center;gap:8px;width:100%;margin:0 0 22px}
 .mlh-directory-filter{display:flex;gap:4px;flex:1;min-width:0;margin:0;padding:3px;border:0;border-radius:999px;background:var(--uf-calm-surface-strong);box-sizing:border-box}
 .mlh-goals-section{width:100%;min-width:0;text-align:left}
-.mlh-goals-section>h1{font-size:22px;font-weight:550;margin:0 0 20px}
 .mlh-goals-section .profile-goals{width:100%;max-width:720px;margin:0 auto}
 .mlh-goals-section .study-goal-form{border:0!important;border-radius:16px;background:var(--uf-calm-surface)!important}
 .mlh-filter-short{display:none}

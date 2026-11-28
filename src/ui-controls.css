@@ -159,7 +159,12 @@
   .uf-picker-trigger>.uf-picker-placeholder{color:var(--ui-muted)!important;-webkit-text-fill-color:var(--ui-muted)!important;opacity:.65!important}
   [data-ui='button-10']{gap:7px!important;min-height:40px!important;padding:9px 13px!important;border-radius:12px!important;background:var(--uf-calm-surface-strong)!important;color:var(--ui-muted)!important;white-space:nowrap;flex-shrink:0}
   [data-ui='button-10'][aria-pressed='true']{background:var(--ui-text)!important;color:var(--uf-calm-page)!important}
-  @media(max-width:720px){[data-ui='button-10']{width:40px!important;height:40px!important;min-width:40px!important;padding:0!important;border-radius:50%!important}[data-ui='button-10']>span{display:none}}
+  @media(max-width:720px){
+    [data-ui='button-10']{width:40px!important;height:40px!important;min-width:40px!important;padding:0!important;gap:0!important;border-radius:50%!important}
+    [data-ui='button-10']>span{display:block;max-width:0;overflow:hidden;opacity:0;transition:max-width 180ms ease,opacity 180ms ease}
+    [data-ui='button-10'][aria-pressed='true']{width:auto!important;padding:0 12px!important;gap:7px!important;border-radius:999px!important}
+    [data-ui='button-10'][aria-pressed='true']>span{max-width:60px;opacity:1}
+  }
   :is([data-ui='plan-1'],[data-ui='action-1']):focus-visible{outline:2px solid var(--ui-accent)!important;outline-offset:3px!important}
   /* Shared interaction states; no inherited glow, lift or sweep. */
   :is([data-ui^='button-'],[data-ui^='field-'],[data-ui^='select-'],[data-ui='dropdown-1']):focus-visible {outline:2px solid var(--ui-accent)!important;outline-offset:3px!important}

@@ -191,7 +191,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
     setModal(null);setFinishingTimer(null);setEditingSession(null)
   }
 
-  if (!available.length) return <main className="screen mlh-empty"><button data-ui="button-10" className="mlh-goals-toggle" type="button" aria-label="Ziele" aria-pressed={goalsOpen} onClick={()=>setGoalsOpen(value=>!value)}><Target size={18}/><span>Ziele</span></button>{goalsOpen?<section className="mlh-goals-section" aria-label="Deine Ziele"><h1>Deine Ziele</h1><GoalManager data={data} onMutate={onMutate}/></section>:<><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button data-ui="button-2" onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></>}</main>
+  if (!available.length) return <main className="screen mlh-empty"><button data-ui="button-10" className="mlh-goals-toggle" type="button" aria-label="Ziele" aria-pressed={goalsOpen} onClick={()=>setGoalsOpen(value=>!value)}><Target size={18}/><span>Ziele</span></button>{goalsOpen?<section className="mlh-goals-section" aria-label="Deine Ziele"><GoalManager data={data} onMutate={onMutate}/></section>:<><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button data-ui="button-2" onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></>}</main>
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className={'screen mlh-slider-window '+(directoryOpen?'is-directory':'is-module')} style={accent}>
     <div className="mlh-slider-track">
@@ -202,7 +202,7 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
 
           </div>
           <button data-ui="button-10" className="mlh-goals-toggle" type="button" aria-label="Ziele" title="Ziele" aria-pressed={goalsOpen} aria-controls="learning-directory-content" onClick={()=>{setGoalsOpen(value=>!value);directoryScroll.current?.scrollTo({top:0})}}><Target size={18}/><span>Ziele</span></button></div>
-          <div id="learning-directory-content">{goalsOpen?<section className="mlh-goals-section" aria-label="Deine Ziele"><h1>Deine Ziele</h1><GoalManager data={data} onMutate={onMutate}/></section>:<>
+          <div id="learning-directory-content">{goalsOpen?<section className="mlh-goals-section" aria-label="Deine Ziele"><GoalManager data={data} onMutate={onMutate}/></section>:<>
           {(moduleScope==='all'?groups:[{key:moduleScope,label:'',modules:visible}]).map(group=><section className="mlh-directory-group" key={group.key}>
             {group.label&&<h2>{group.label}</h2>}
             <div className="mlh-directory-list">{group.modules.map(module=><button data-ui="special-1" key={module.id} className={(openingModule===module.id?'is-selected ':'')+(moduleScope==='all'&&isPlanned(module)?'is-planned':'')} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}>{module.coverImage&&<img className="mlh-course-image" src={module.coverImage} alt="" loading="lazy"/>}<span className="mlh-directory-name">{module.name}</span>{moduleScope==='all'&&isPlanned(module)&&<small className="mlh-course-planned">Geplant</small>}</button>)}</div>

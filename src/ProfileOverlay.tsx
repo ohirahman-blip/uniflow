@@ -1,13 +1,13 @@
 import {useSwipeToDismiss} from './useSwipeToDismiss'
 import {useEffect,useMemo,useRef,useState,type ReactNode} from 'react'
 import {createPortal} from 'react-dom'
-import {ArrowLeft,ChevronRight,GraduationCap,Layers2,Plus,Settings2,UserRound,X} from 'lucide-react'
+import {ArrowLeft,ChevronRight,GraduationCap,Layers2,Plus,Settings,X} from 'lucide-react'
 import UniflowPicker from './UniflowPicker'
 import {semesterNumber,type AppData,type StudyModule} from './model'
-type Section='home'|'modules'|'settings'
+type Section='modules'|'settings'
 type ModuleSort='semester'|'semester-desc'|'name'
 export default function ProfileOverlay({initialSection='home',data,settings,onClose,onModule,onProfileChange,onCreateModule}:{initialSection?:'home'|'modules';data:AppData;onCreateModule:()=>void;settings:ReactNode;onClose:()=>void;onModule:(module:StudyModule)=>void;onProfileChange:(name:string)=>void}){
-  const [section,setSection]=useState<Section>(initialSection)
+  const [section,setSection]=useState<Section>(initialSection==='modules'?'modules':'settings')
   const [moduleStatus,setModuleStatus]=useState<'all'|StudyModule['status']>('all')
   const [moduleSemester,setModuleSemester]=useState('all')
   const [moduleSort,setModuleSort]=useState<ModuleSort>('semester')
@@ -42,9 +42,9 @@ export default function ProfileOverlay({initialSection='home',data,settings,onCl
     const overflow=document.body.style.overflow;document.body.style.overflow='hidden'
     return()=>{window.removeEventListener('keydown',close);document.body.style.overflow=overflow;previousFocus?.focus()}
   },[onClose])
-  return createPortal(<div className="profile-backdrop" onPointerDown={event=>{if(event.target===event.currentTarget)onClose()}}><section ref={panel} className="profile-panel" role="dialog" aria-modal="true" aria-label="Dein Profil">
-    <header>{section!=='home'?<button data-ui="button-2" aria-label="Zur Profilübersicht" onClick={()=>setSection('home')}><ArrowLeft size={20}/></button>:<UserRound size={20}/>}<h1>{section==='home'?'Dein Profil':section==='modules'?'Alle Module':'Einstellungen'}</h1><button data-ui="button-4" aria-label="Profil schließen" onClick={onClose}><X size={20}/></button></header>
-    <div className="profile-body">{section==='home'&&<><label className="profile-name"><span>Dein Name</span><input data-ui="field-1" value={data.profile} onChange={event=>onProfileChange(event.target.value)} placeholder="Dein Name"/></label><div className="profile-menu">{([{id:'modules',icon:Layers2,title:'Module & Semester',detail:`${data.modules.length} Module · dein gesamtes Studium`},{id:'settings',icon:Settings2,title:'Einstellungen',detail:'Studium, Mitteilungen, Semester und Daten'}] as const).map(item=><button data-ui="special-6" key={item.id} onClick={()=>setSection(item.id)}><item.icon size={20}/><span><strong>{item.title}</strong><small>{item.detail}</small></span><ChevronRight size={17}/></button>)}</div></>}
+  return createPortal(<div className="profile-backdrop" onPointerDown={event=>{if(event.target===event.currentTarget)onClose()}}><section ref={panel} className="profile-panel" role="dialog" aria-modal="true" aria-label={section==='modules'?'Module verwalten':'Einstellungen'}>
+    <header>{section==='modules'?<button data-ui="button-4" aria-label="Zurück zu Einstellungen" onClick={()=>setSection('settings')}><ArrowLeft size={20}/></button>:<Settings size={20}/>}<h1>{section==='modules'?'Alle Module':'Einstellungen'}</h1><button data-ui="button-4" aria-label="Einstellungen schließen" onClick={onClose}><X size={20}/></button></header>
+    <div className="profile-body">{section==='settings'&&<section className="settings-section"><h2>Konto & Verwaltung</h2><label className="profile-name"><span>Dein Name</span><input data-ui="field-1" value={data.profile} onChange={event=>onProfileChange(event.target.value)} placeholder="Dein Name"/></label><div className="profile-menu"><button data-ui="special-6" onClick={()=>setSection('modules')}><Layers2 size={20}/><span><strong>Module & Semester verwalten</strong><small>{data.modules.length} Module · dein gesamtes Studium</small></span><ChevronRight size={17}/></button></div></section>}
     {section==='modules'&&<div className="profile-modules">
       <div className="profile-module-toolbar">
         <div className="profile-module-filter-row" aria-label="Module sortieren und filtern">

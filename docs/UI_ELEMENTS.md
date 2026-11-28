@@ -28,7 +28,7 @@ Verbindliche Vorlagen sind die ursprüngliche Kalenderleiste, „+ Aufgabe“, d
 | Button 7 – `button-7` | Frühere Kalenderwerkzeuge: rund, 36 px (mobil 33 × 34 px), dezente Fläche; Heute als transparenter Text in der Leiste | Kalenderleiste, Fokus, Navigation |
 | Button 8 – `button-8` | Früherer „+ Aufgabe“-Button: 12-px-Schrift, 8 × 13 px Innenabstand, Radius 18 px; dunkel transparent, hell dezent grau | Kompakte Hinzufügen-Aktion im Dashboard |
 | Button 9 – `button-9` | Früherer Papierkorb: freistehendes dezentes Icon ohne gefüllten Kreis, 16 px | Aufgaben löschen; kompakte 30-px-Variante im Lernbereich |
-| Button 10 – `button-10` | Ziele: mobil runder 40-px-Iconbutton, am Desktop abgerundetes Rechteck mit Icon und Text; aktive Fläche kontrastreich | Eigener Ziele-Bereich neben der Modulfilterleiste in Lernen |
+| Button 10 – `button-10` | Ziele: mobil zunächst runder 40-px-Iconbutton, bei Auswahl expandiert er mit dem Text „Ziele“; am Desktop abgerundetes Rechteck mit Icon und Text | Eigener Ziele-Bereich neben der Modulfilterleiste in Lernen, ohne zusätzliche Überschrift |
 
 ## Felder und Dropdowns
 
