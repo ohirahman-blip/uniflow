@@ -9,6 +9,9 @@
     --ui-text:var(--uf-calm-text);
     --ui-muted:var(--uf-calm-muted);
     --ui-line:var(--uf-calm-control-line);
+    --ui-field-height:42px;
+    --ui-field-radius:12px;
+    --ui-field-bg:var(--uf-calm-surface-strong);
     --ui-primary-bg:#e3e3e7;
     --ui-primary-text:#202126;
     --ui-danger:#e79a9f;
@@ -69,12 +72,12 @@
     min-width:0!important;
     max-width:100%!important;
     width:100%;
-    min-height:42px!important;
-    height:42px;
+    min-height:var(--ui-field-height)!important;
+    height:var(--ui-field-height);
     padding:0 12px!important;
-    border:1px solid var(--ui-line)!important;
-    border-radius:12px!important;
-    background:var(--uf-calm-surface)!important;
+    border:0!important;
+    border-radius:var(--ui-field-radius)!important;
+    background:var(--ui-field-bg)!important;
     color:var(--ui-text)!important;
     -webkit-text-fill-color:var(--ui-text)!important;
     font-family:var(--ui-font-family)!important;
@@ -90,7 +93,7 @@
   [data-ui='field-2'] {height:auto;min-height:100px!important;padding:12px 14px!important;resize:none!important;overflow-y:auto}
   /* Auto-growing schedule input keeps its explicit inline height, but cannot be dragged. */
   .module-fast-quick-body>[data-ui='field-2'] {min-height:48px!important;height:auto;overflow:hidden}
-  [data-ui='field-3'] {height:auto!important;min-height:58px!important;background:transparent!important;border:0!important;border-bottom:1px solid var(--ui-line)!important;border-radius:0!important;padding:12px 0!important;font-size:clamp(24px,4vw,36px)!important;font-weight:600!important}
+  [data-ui='field-3'] {height:auto!important;min-height:58px!important;background:transparent!important;border:0!important;border-radius:0!important;padding:12px 0!important;font-size:clamp(24px,4vw,36px)!important;font-weight:600!important}
   [data-ui='field-4'] {font-size:24px!important;font-variant-numeric:tabular-nums!important;text-align:center!important}
   button[data-ui='dropdown-1'] {display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;text-align:left!important;cursor:pointer!important}
   [data-ui='dropdown-1']>span {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:inherit!important;color:inherit!important}
@@ -147,12 +150,22 @@
   [data-ui='select-4'][aria-checked='true'] {background:color-mix(in srgb,var(--ui-accent) 70%,var(--ui-surface))!important}
   [data-ui='select-4'][aria-checked='true']::before {transform:translateX(20px)!important}
 
-  [data-ui='plan-1']:where(.uf-picker-trigger){box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;padding:9px 12px;border:1px solid var(--ui-line);border-radius:12px;background:transparent;color:var(--ui-text);font:500 12px/1.4 var(--ui-font-family);cursor:pointer}
+  [data-ui='plan-1']:where(.uf-picker-trigger){box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;padding:9px 12px;border:0;border-radius:12px;background:var(--ui-field-bg);color:var(--ui-text);font:500 12px/1.4 var(--ui-font-family);cursor:pointer}
+  .search-field:has([data-ui='field-1']),.setting-input:has([data-ui='field-1']),.setting-input-plain:has([data-ui='field-1']),.number-setting:has([data-ui='field-1']){border:0!important;box-shadow:none!important;border-radius:var(--ui-field-radius)!important;background:var(--ui-field-bg)!important}
+  .search-field>[data-ui='field-1']{background:transparent!important}
+  .uf-picker-dialog,.module-dropdown,.mini-popover{border:0!important;background:var(--uf-calm-surface)!important;color:var(--ui-text)!important;border-radius:20px!important}
+  .uf-picker-choices>[data-ui='select-2']{background:transparent!important}
+  .uf-picker-choices>[data-ui='select-2'][aria-pressed='true']{background:var(--ui-field-bg)!important;color:var(--ui-text)!important}
+  .uf-picker-trigger>.uf-picker-placeholder{color:var(--ui-muted)!important;-webkit-text-fill-color:var(--ui-muted)!important;opacity:.65!important}
+  [data-ui='button-10']{gap:7px!important;min-height:40px!important;padding:9px 13px!important;border-radius:12px!important;background:var(--uf-calm-surface-strong)!important;color:var(--ui-muted)!important;white-space:nowrap;flex-shrink:0}
+  [data-ui='button-10'][aria-pressed='true']{background:var(--ui-text)!important;color:var(--uf-calm-page)!important}
+  @media(max-width:720px){[data-ui='button-10']{width:40px!important;height:40px!important;min-width:40px!important;padding:0!important;border-radius:50%!important}[data-ui='button-10']>span{display:none}}
   :is([data-ui='plan-1'],[data-ui='action-1']):focus-visible{outline:2px solid var(--ui-accent)!important;outline-offset:3px!important}
   /* Shared interaction states; no inherited glow, lift or sweep. */
   :is([data-ui^='button-'],[data-ui^='field-'],[data-ui^='select-'],[data-ui='dropdown-1']):focus-visible {outline:2px solid var(--ui-accent)!important;outline-offset:3px!important}
   [data-ui]:disabled {cursor:not-allowed!important;opacity:.45!important}
   @media(hover:hover) and (pointer:fine) {
+    [data-ui='button-10'][aria-pressed='true']:not(:disabled):hover{background:var(--ui-text)!important}
     [data-ui^='button-']:not(:disabled):hover {background:var(--ui-hover)!important}
     [data-ui='button-1']:not(:disabled):hover {background:color-mix(in srgb,var(--ui-primary-bg) 88%,var(--ui-primary-text))!important}
     [data-ui='button-5']:not(:disabled):hover {background:color-mix(in srgb,var(--ui-danger) 8%,transparent)!important}

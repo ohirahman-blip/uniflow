@@ -1,7 +1,7 @@
 import {useSwipeToDismiss} from './useSwipeToDismiss'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { Archive, BookOpen, CalendarClock, Layers2, ArrowLeft, ArrowRight, BookOpenCheck, Check, ChevronRight, GraduationCap, PenLine, Play, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
+import { Target, Archive, BookOpen, CalendarClock, Layers2, ArrowLeft, ArrowRight, BookOpenCheck, Check, ChevronRight, GraduationCap, PenLine, Play, Plus, RotateCcw, Sparkles, Timer, Trash2, X } from 'lucide-react'
 import { dateString, formatDate, selectedAssessment, today, uid, type AppData, type Assessment, type Semester, type StudyModule } from './model'
 import AnimatedScore from './AnimatedScore'
 import {lessonProgressMap} from './lesson-progress'
@@ -14,6 +14,7 @@ import {timerElapsed,type StudyTimerState} from './study-timer'
 import { numberedLessons, scoreTotal, type NumberedLesson } from './score'
 import type { LearningRating, LearningSession, ScoreEvent, StudyTask } from './learning'
 import { moduleDirectory } from './module-directory'
+import {GoalManager,type WorkspaceChange} from './StudyManagement'
 import './module-learning-home.css'
 
 type Props = {
@@ -22,6 +23,7 @@ type Props = {
   onStudyBundleOpened:()=>void
   onStudyScheduleChange:(preferences:StudySchedulePreferences)=>void
   data: AppData
+  onMutate: WorkspaceChange
   semester?: Semester
   modules: StudyModule[]
   onAddTask: (moduleId: string, title: string, dueDate?: string) => void
@@ -94,12 +96,13 @@ function ActivityHistory({ events, tasks, sessions, onEditSession, onToggleTask,
 }
 
 
-export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onStudyBundleOpened,onStudyScheduleChange,data, semester: selectedSemester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onAddAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
+export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onStudyBundleOpened,onStudyScheduleChange,data,onMutate, semester: selectedSemester, modules, onAddTask, onToggleTask, onDeleteTask, onDeleteActivity, storageKey, currentModuleId, onPreviewAssessment, onAddAssessment, onToggleHomework, onActiveModuleChange, onSession, onTimerChange, onUpdateSession, onLearnContent, onEditModule, onCreateModule }: Props) {
   const {all:available,current:currentModules,past:pastModules,planned:plannedModules,groups,isPlanned}=moduleDirectory(data,modules,selectedSemester)
   const currentIds = new Set(currentModules.map(module=>module.id))
   const scopeFor=(id:string):'current'|'past'|'planned'|'all'=>currentIds.has(id)?'current':plannedModules.some(module=>module.id===id)?'planned':pastModules.some(module=>module.id===id)?'past':'all'
   const [selectedModule, setSelectedModule] = useState(()=>{if(currentModuleId)return currentModuleId;try{return localStorage.getItem(storageKey)||''}catch{return ''}})
   const [moduleScope,setModuleScope]=useState<'current'|'past'|'planned'|'all'>(()=>selectedModule?scopeFor(selectedModule):'current')
+  const [goalsOpen,setGoalsOpen]=useState(false)
   const scopes={current:{label:'Aktuelle Module',shortLabel:'Aktuell',icon:BookOpen,modules:currentModules},past:{label:'Vergangene Module',shortLabel:'Vergangen',icon:Archive,modules:pastModules},planned:{label:'Geplante Module',shortLabel:'Geplant',icon:CalendarClock,modules:plannedModules},all:{label:'Alle Module',shortLabel:'Alle',icon:Layers2,modules:available}}
   const visible=scopes[moduleScope].modules
   const [directoryOpen,setDirectoryOpen]=useState(()=>{if(currentModuleId)return false;try{return !localStorage.getItem(storageKey)}catch{return true}}),[openingModule,setOpeningModule]=useState('')
@@ -188,22 +191,25 @@ export default function ModuleLearningHome({ studyPlan,requestedStudyBundle,onSt
     setModal(null);setFinishingTimer(null);setEditingSession(null)
   }
 
-  if (!available.length) return <main className="screen mlh-empty"><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button data-ui="button-2" onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></main>
+  if (!available.length) return <main className="screen mlh-empty"><button data-ui="button-10" className="mlh-goals-toggle" type="button" aria-label="Ziele" aria-pressed={goalsOpen} onClick={()=>setGoalsOpen(value=>!value)}><Target size={18}/><span>Ziele</span></button>{goalsOpen?<section className="mlh-goals-section" aria-label="Deine Ziele"><h1>Deine Ziele</h1><GoalManager data={data} onMutate={onMutate}/></section>:<><Sparkles size={32} /><h1>Dein Lernbereich</h1><p>Erstelle dein erstes Modul und starte direkt mit 100 Punkten.</p><button data-ui="button-2" onClick={onCreateModule}><Plus size={18} /> Modul erstellen</button></>}</main>
   const accent = { '--mlh-accent': active.color || '#7aa2ff' } as CSSProperties
   return <main className={'screen mlh-slider-window '+(directoryOpen?'is-directory':'is-module')} style={accent}>
     <div className="mlh-slider-track">
       <section className="mlh-directory mlh-slider-pane" aria-hidden={!directoryOpen}>
         <div ref={node=>setModuleScroller(node,'directory')} onScroll={event=>syncModuleScroll(event.currentTarget,railScroll.current)} className="mlh-directory-scroll">
-          <div className="mlh-directory-filter" role="group" aria-label="Module anzeigen">
-            {(['current','past','planned','all'] as const).map(scope=>{const item=scopes[scope],Icon=item.icon;return <button key={scope} type="button" data-ui="select-9" aria-label={`${item.label}: ${item.modules.length}`} title={item.label} aria-pressed={moduleScope===scope} onClick={()=>{setModuleScope(scope);moduleScroll.current=0;directoryScroll.current?.scrollTo({top:0})}}><Icon className="mlh-filter-icon" size={18} aria-hidden="true"/><span className="mlh-filter-label"><span className="mlh-filter-full">{item.label}</span><span className="mlh-filter-short">{item.shortLabel}</span></span><span className="mlh-filter-count" aria-hidden="true">{item.modules.length}</span></button>})}
+          <div className="mlh-directory-toolbar"><div className="mlh-directory-filter" role="group" aria-label="Module anzeigen">
+            {(['current','past','planned','all'] as const).map(scope=>{const item=scopes[scope],Icon=item.icon;return <button key={scope} type="button" data-ui="select-9" aria-label={`${item.label}: ${item.modules.length}`} title={item.label} aria-pressed={!goalsOpen&&moduleScope===scope} onClick={()=>{setGoalsOpen(false);setModuleScope(scope);moduleScroll.current=0;directoryScroll.current?.scrollTo({top:0})}}><Icon className="mlh-filter-icon" size={18} aria-hidden="true"/><span className="mlh-filter-label"><span className="mlh-filter-full">{item.label}</span><span className="mlh-filter-short">{item.shortLabel}</span></span><span className="mlh-filter-count" aria-hidden="true">{item.modules.length}</span></button>})}
 
           </div>
+          <button data-ui="button-10" className="mlh-goals-toggle" type="button" aria-label="Ziele" title="Ziele" aria-pressed={goalsOpen} aria-controls="learning-directory-content" onClick={()=>{setGoalsOpen(value=>!value);directoryScroll.current?.scrollTo({top:0})}}><Target size={18}/><span>Ziele</span></button></div>
+          <div id="learning-directory-content">{goalsOpen?<section className="mlh-goals-section" aria-label="Deine Ziele"><h1>Deine Ziele</h1><GoalManager data={data} onMutate={onMutate}/></section>:<>
           {(moduleScope==='all'?groups:[{key:moduleScope,label:'',modules:visible}]).map(group=><section className="mlh-directory-group" key={group.key}>
             {group.label&&<h2>{group.label}</h2>}
             <div className="mlh-directory-list">{group.modules.map(module=><button data-ui="special-1" key={module.id} className={(openingModule===module.id?'is-selected ':'')+(moduleScope==='all'&&isPlanned(module)?'is-planned':'')} style={{'--module-color':module.color} as CSSProperties} onClick={()=>enterModule(module.id)}>{module.coverImage&&<img className="mlh-course-image" src={module.coverImage} alt="" loading="lazy"/>}<span className="mlh-directory-name">{module.name}</span>{moduleScope==='all'&&isPlanned(module)&&<small className="mlh-course-planned">Geplant</small>}</button>)}</div>
           </section>)}
           {!visible.length&&<p className="mlh-directory-empty">{moduleScope==='planned'?'Hier erscheinen deine für später geplanten Module.':moduleScope==='past'?'Hier erscheinen deine abgeschlossenen Module und Module aus früheren Semestern.':'Für diese Ansicht sind noch keine Module vorhanden.'}</p>}
           <button data-ui="button-6" className="mlh-directory-add" onClick={onCreateModule}><Plus size={16}/>Modul hinzufügen</button>
+          </>}</div>
         </div>
       </section>
       <section className="mlh-module-pane mlh-slider-pane" aria-hidden={directoryOpen}>

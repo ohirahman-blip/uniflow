@@ -28,16 +28,19 @@ Verbindliche Vorlagen sind die ursprüngliche Kalenderleiste, „+ Aufgabe“, d
 | Button 7 – `button-7` | Frühere Kalenderwerkzeuge: rund, 36 px (mobil 33 × 34 px), dezente Fläche; Heute als transparenter Text in der Leiste | Kalenderleiste, Fokus, Navigation |
 | Button 8 – `button-8` | Früherer „+ Aufgabe“-Button: 12-px-Schrift, 8 × 13 px Innenabstand, Radius 18 px; dunkel transparent, hell dezent grau | Kompakte Hinzufügen-Aktion im Dashboard |
 | Button 9 – `button-9` | Früherer Papierkorb: freistehendes dezentes Icon ohne gefüllten Kreis, 16 px | Aufgaben löschen; kompakte 30-px-Variante im Lernbereich |
+| Button 10 – `button-10` | Ziele: mobil runder 40-px-Iconbutton, am Desktop abgerundetes Rechteck mit Icon und Text; aktive Fläche kontrastreich | Eigener Ziele-Bereich neben der Modulfilterleiste in Lernen |
 
 ## Felder und Dropdowns
 
 | Typ / Kennung | Gestaltung | Verwendung |
 | --- | --- | --- |
-| Feld 1 – `field-1` | 42 px, Radius 12 px, feiner Rahmen und dezente Fläche | Einzeilige Eingabe, Suche |
+| Feld 1 – `field-1` | 42 px, Radius 12 px, rahmenlose dezente Fläche | Einzeilige Eingabe, Suche |
 | Feld 2 – `field-2` | Mehrzeilig, mindestens 100 px, Radius 14 px, kein manuelles Ziehen | Notizen; kompakte automatisch wachsende Schnelleingabe |
-| Feld 3 – `field-3` | Transparente Fläche, Unterlinie, Titelgröße 24–36 px | Großer Eingabetitel |
+| Feld 3 – `field-3` | Transparente Fläche ohne Rahmen oder Unterlinie, Titelgröße 24–36 px | Großer Eingabetitel |
 | Feld 4 – `field-4` | Zentrierte 24-px-Ziffern, Tabellarziffern, Standardfläche | Uhrzeit und Dauer |
 | Dropdown 1 – `dropdown-1` | Wie Feld 1, Inhalt links, Pfeil rechts | Native Auswahl oder Auslöser des UniFlow-Pickers |
+
+Dropdowns und Textfelder haben keinen dauerhaften Rahmen. Für Tastaturbedienung bleibt ein sichtbarer Fokus. Auch Suchfeld-Hüllen und kompakte Aufwand-Dropdowns im Lernplan verwenden rahmenlose Flächen. `form-controls.css` verweist für die alten Feldvariablen auf die zentralen Tokens.
 
 ## Auswahlfelder
 
@@ -51,7 +54,7 @@ Verbindliche Vorlagen sind die ursprüngliche Kalenderleiste, „+ Aufgabe“, d
 | Auswahl 6 – `select-6` | Kompakte Kalendertage, sichtbarer ausgewählter Tag | Datumsauswahl |
 | Auswahl 7 – `select-7` | Vertikale Auswahlzeilen in der Scrollrolle | Uhrzeit/Dauer per Scrollen |
 | Auswahl 8 – `select-8` | Kompakte Bewertungssegmente, Statusfarbe | Lernfeedback |
-| Auswahl 9 – `select-9` | Abgerundete Filterleiste; mobil Icons, aktives Segment wächst mit Text | Aktuelle, vergangene, geplante und alle Module |
+| Auswahl 9 – `select-9` | Vorlage Kalenderleiste: 34-px-Kapseln mit kontrastreicher Auswahl; mobil Icons, aktives Segment wächst mit Text | Aktuelle, vergangene, geplante und alle Module |
 | Auswahl 10 – `select-10` | Frühere Kalenderansicht: kompakte 34-px-Kapseln, aktive Auswahl kontrastreich gefüllt | Tag, zwei Tage, Woche und Monat |
 
 ## Funktionsgebundene Sondertypen

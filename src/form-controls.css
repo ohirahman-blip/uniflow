@@ -1,13 +1,13 @@
 /* Canonical closed-field appearance. Inputs and picker buttons share exactly
    the same mobile metrics; 16px also avoids Safari zooming text inputs alone. */
 :root{
-  --uf-field-font:13px;
-  --uf-field-text:var(--uf-color-text,#f0f0f5);
-  --uf-field-height:46px;
-  --uf-field-radius:14px;
+  --uf-field-font:var(--ui-font);
+  --uf-field-text:var(--ui-text);
+  --uf-field-height:var(--ui-field-height);
+  --uf-field-radius:var(--ui-field-radius);
   --uf-field-padding:12px;
-  --uf-field-background:#ffffff04;
-  --uf-field-border:#ffffff16;
+  --uf-field-background:var(--ui-field-bg);
+  --uf-field-border:transparent;
 }
 body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen)
 :is(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']),select,.uf-picker-trigger,.big-choice,.uf-entry-module-choice){
@@ -35,7 +35,7 @@ body :is(.sheet,.mlh-sheet,.module-fast,.uf-picker-dialog,.settings-screen) text
   box-sizing:border-box;max-width:100%;min-width:0;
 }
 @media(max-width:720px),(hover:none) and (pointer:coarse){
-  :root{--uf-field-font:16px;--uf-field-height:46px;--uf-editor-control-font:16px;--uf-editor-control-height:46px;--uf-editor-control-radius:14px}
+  :root{--uf-field-font:var(--ui-font);--uf-field-height:var(--ui-field-height);--uf-editor-control-font:16px;--uf-editor-control-height:46px;--uf-editor-control-radius:14px}
 }
 
 /* Hints must never look like saved values, including in iOS Safari. */
