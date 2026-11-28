@@ -54,8 +54,16 @@ Dropdowns und Textfelder haben keinen dauerhaften Rahmen. Für Tastaturbedienung
 | Auswahl 6 – `select-6` | Kompakte Kalendertage, sichtbarer ausgewählter Tag | Datumsauswahl |
 | Auswahl 7 – `select-7` | Vertikale Auswahlzeilen in der Scrollrolle | Uhrzeit/Dauer per Scrollen |
 | Auswahl 8 – `select-8` | Kompakte Bewertungssegmente, Statusfarbe | Lernfeedback |
-| Auswahl 9 – `select-9` | Vorlage Kalenderleiste: 34-px-Kapseln mit kontrastreicher Auswahl; mobil Icons, aktives Segment wächst mit Text | Aktuelle, vergangene, geplante und alle Module |
-| Auswahl 10 – `select-10` | Frühere Kalenderansicht: kompakte 34-px-Kapseln, aktive Auswahl kontrastreich gefüllt | Tag, zwei Tage, Woche und Monat |
+| Auswahl 9 – `select-9` | Vorlage Kalenderleiste: 34-px-Kapseln mit dezent grauer Auswahl; mobil Icons, aktives Segment wächst mit Text | Aktuelle, vergangene, geplante und alle Module |
+| Auswahl 10 – `select-10` | Kompakte 34-px-Kapseln, aktive Auswahl dezent grau | Tag, zwei Tage, Woche und Monat |
+
+Die Auswahl in Lernen, Kalender und Ziele verwendet zentral `--ui-selection-bg` (dunkel `#3c3c42`, hell `#d6d6dc`) und `--ui-selection-text`.
+
+`text-link-1` ist der rahmenlose Wortbutton in der großen Dashboard-Begrüßung. Nur „Lernplan“, „offenen Aufgaben“, „Stundenplan“ bzw. „Freunde“ ist interaktiv, der restliche Satz ist normaler Überschriftentext.
+
+Die Monatsübersicht verwendet `month-day` für runde Tageszahlen und `month-entry` für dezente, nach Modulfarbe getönte Terminchips. Abgerundete Tagesflächen ohne Gitterrahmen, sichtbarer Fokus, heutiger Tag mit Punkt. Die Farben folgen Hell/Dunkel. Termin- und Navigationslogik sind unverändert.
+
+Die Kürzel-Seitenleiste der Module wird mobil ausgeblendet. Ein kompakter Zurückbutton „Module“ öffnet dort die Modulübersicht; am Desktop bleibt die Kürzel-Leiste bestehen.
 
 ## Funktionsgebundene Sondertypen
 

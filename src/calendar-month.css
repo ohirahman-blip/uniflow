@@ -1,32 +1,48 @@
 /* UniFlow's month-only assessment overview, derived from the week anchor. */
-.uf-month{padding:20px 0 58px;color:var(--uf-color-text);background:var(--uf-page-background,#080808)}
+.uf-month{padding:20px 0 58px;color:var(--uf-calm-text);background:var(--uf-calm-page)}
 .uf-month-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:3px 0 22px}
-.uf-month-heading>div>span{font-size:10px;letter-spacing:1.5px;font-weight:700;color:#96969d}
-.uf-month-heading h2{margin:6px 0 0;font-size:26px;letter-spacing:-.8px;font-weight:750;text-transform:capitalize}
+.uf-month-heading>div>span{font-size:10px;letter-spacing:1px;font-weight:500;color:var(--uf-calm-muted)}
+.uf-month-heading h2{margin:6px 0 0;font-size:26px;letter-spacing:-.6px;font-weight:550;text-transform:capitalize}
 .uf-month-back{display:inline-flex;align-items:center;gap:7px;padding:10px 12px}
 .uf-month-weekdays,.uf-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
-.uf-month-weekdays{border-bottom:1px solid #2a2a2e;padding-bottom:10px}
-.uf-month-weekdays span{text-align:center;font-size:11px;color:var(--uf-color-text-secondary);font-weight:650}
-.uf-month-grid{border-left:1px solid #242428}
-.uf-month-cell{min-width:0;min-height:104px;padding:8px 6px;border-right:1px solid #242428;border-bottom:1px solid #242428;background:#111113}
-.uf-month-cell.other-month{background:#0a0a0b}
-.uf-month-day{width:25px;height:25px;display:grid;place-items:center}
+.uf-month-weekdays{padding-bottom:10px;gap:6px}
+.uf-month-weekdays span{text-align:center;font-size:11px;color:var(--uf-calm-muted);font-weight:500}
+.uf-month-grid{gap:6px;grid-auto-rows:minmax(104px,auto)}
+.uf-month-cell{box-sizing:border-box;min-width:0;min-height:104px;padding:8px 6px;border-radius:14px}
+.uf-month-day{position:relative;width:30px;height:30px;display:grid;place-items:center;margin:0 auto}
 .uf-month-assessments{display:flex;flex-direction:column;gap:4px;margin-top:5px}
-.uf-month-pill{display:flex;align-items:center;gap:4px;text-align:left;min-width:0;width:100%;height:20px;padding:0 6px}
+.uf-month-pill{box-sizing:border-box;display:flex;align-items:center;gap:4px;text-align:left;min-width:0;width:100%;min-height:24px;padding:5px 6px}
 .uf-month-pill svg{flex:0 0 auto;opacity:.85}
 .uf-month-pill span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.uf-month-legend{display:flex;justify-content:flex-end;margin-top:15px;color:#8e8e96;font-size:11px}
+.uf-month-legend{display:flex;justify-content:flex-end;margin-top:15px;color:var(--uf-calm-muted);font-size:11px}
 .uf-month-legend span{display:flex;align-items:center;gap:7px}
 @media(max-width:720px){
   .uf-month{padding-top:14px}
   .uf-month-heading{align-items:center}
   .uf-month-heading h2{font-size:21px}
-  .uf-month-back{gap:0;padding:10px}
+  .uf-month-back{max-width:46%;font-size:11px!important}
   .uf-month-back svg{width:18px;height:18px}
-  .uf-month-cell{min-height:77px;padding:5px 3px}
-  .uf-month-pill{height:17px;padding:0 3px;gap:2px}
+  .uf-month-grid{gap:4px;grid-auto-rows:minmax(80px,auto)}
+  .uf-month-weekdays{gap:4px}
+  .uf-month-cell{min-height:80px;padding:5px 3px;border-radius:10px}
+  .uf-month-pill{min-height:22px;padding:4px 3px;gap:2px}
   .uf-month-pill svg{display:none}
-  .uf-month-day{height:24px;width:24px}
+  .uf-month-day{height:28px;width:28px}
+}
+
+@layer uniflow-controls {
+  .uf-month-weekdays,.uf-month-grid,.uf-month-cell{border:0!important;box-shadow:none!important}
+  .uf-month-grid{grid-template-rows:none!important}
+  .uf-month-cell{background:var(--uf-calm-surface)!important}
+  .uf-month-cell.other-month{background:color-mix(in srgb,var(--uf-calm-surface) 45%,var(--uf-calm-page))!important}
+  [data-ui='month-day']{padding:0;border:0;border-radius:50%;background:transparent;color:var(--ui-text);font:500 12px/1 var(--ui-font-family);cursor:pointer}
+  .other-month>[data-ui='month-day']{color:var(--ui-muted)}
+  .is-selected>[data-ui='month-day']{background:var(--ui-selection-bg);color:var(--ui-selection-text)}
+  .is-today>[data-ui='month-day']::after{content:'';position:absolute;bottom:2px;left:calc(50% - 2px);width:4px;height:4px;border-radius:50%;background:var(--ui-accent)}
+  [data-ui='month-entry']{border:0;border-radius:8px;background:color-mix(in srgb,var(--month-accent) 14%,var(--uf-calm-surface));color:color-mix(in srgb,var(--month-accent) 65%,var(--ui-text));font:500 10px/1.3 var(--ui-font-family);box-shadow:none;cursor:pointer}
+  [data-ui='month-entry'].complete{opacity:.5;text-decoration:line-through}
+  :is([data-ui='month-day'],[data-ui='month-entry']):focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
+  @media(hover:hover) and (pointer:fine){[data-ui='month-day']:hover{background:var(--ui-hover)}[data-ui='month-entry']:hover{background:color-mix(in srgb,var(--month-accent) 24%,var(--uf-calm-surface))}}
 }
 
 /* Slide adjacent months as full panels; no timetable event changes. */
